@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="sombre">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12101a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="FGL">
+<title>FGL — FelGamesList</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ===== JETONS ===== */
+:root{
+  --ink:#12101a; --ink2:#1b1826; --ink3:#262133; --line:#332c45;
+  --paper:#ede9f5; --muted:#8b84a3;
+  --brass:#e8b04b; --plum:#7b5cd6; --mint:#4fd1a5; --rouge:#e0555f;
+  --or:#e8b04b; --argent:#c7cbd6; --bronze:#c0794a;
+  --accent:#7b5cd6;
+  --r:14px; --r-s:9px;
+  --dsp:"Bricolage Grotesque",system-ui,sans-serif;
+  --bdy:"Inter Tight",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+  --veil:rgba(18,16,26,.82);
+  --ombre:0 18px 50px rgba(0,0,0,.5);
+}
+[data-theme="clair"]{
+  --ink:#f4f1f7; --ink2:#ffffff; --ink3:#ece7f2; --line:#dcd4e6;
+  --paper:#1d1830; --muted:#6d6484;
+  --veil:rgba(244,241,247,.86);
+  --ombre:0 18px 50px rgba(60,40,110,.14);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--bdy); background:var(--ink); color:var(--paper);
+  min-height:100dvh; -webkit-font-smoothing:antialiased;
+  padding-bottom:96px;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+a{color:var(--accent)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
+
+/* ===== FOND VIVANT ===== */
+#bg{position:fixed;inset:-8%;z-index:0;overflow:hidden;pointer-events:none}
+#bgTiles{position:absolute;inset:0;transition:transform .9s cubic-bezier(.2,.8,.3,1)}
+.tuile{
+  position:absolute;background-size:cover;background-position:center;
+  border-radius:18px;filter:blur(16px) saturate(1.3);
+  animation:derive linear infinite;
+}
+@keyframes derive{
+  0%{transform:translate3d(0,0,0) rotate(0deg)}
+  50%{transform:translate3d(22px,-34px,0) rotate(2.5deg)}
+  100%{transform:translate3d(0,0,0) rotate(0deg)}
+}
+.bg-veil{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(120% 80% at 50% -10%, transparent 0%, var(--veil) 62%),
+    linear-gradient(var(--veil), var(--veil));
+}
+body.sansanim .tuile{animation:none}
+body.sansanim #bgTiles{transition:none}
+@media (prefers-reduced-motion:reduce){ .tuile{animation:none} }
+
+/* ===== EN-TÊTE ===== */
+.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 18px}
+.hd{
+  position:sticky;top:0;z-index:40;
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  background:color-mix(in srgb, var(--ink) 72%, transparent);
+  border-bottom:1px solid var(--line);
+}
+.hd-in{display:flex;align-items:center;gap:14px;padding:12px 0;flex-wrap:wrap}
+.marque{display:flex;align-items:baseline;gap:9px;font-family:var(--dsp);font-weight:800;
+  font-size:26px;letter-spacing:-.03em;line-height:1}
+.marque em{font-style:normal;color:var(--accent)}
+.marque small{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em}
+.rech{flex:1;min-width:180px;position:relative}
+.rech input{
+  width:100%;padding:10px 14px 10px 36px;border-radius:99px;
+  background:var(--ink2);border:1px solid var(--line);outline:none;
+}
+.rech input:focus{border-color:var(--accent)}
+.rech span{position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:.5}
+.ico{
+  width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
+  background:var(--ink2);border:1px solid var(--line);font-size:16px;
+  transition:.15s;
+}
+.ico:hover{background:var(--ink3);transform:translateY(-1px)}
+.btn{
+  padding:10px 16px;border-radius:11px;background:var(--ink2);
+  border:1px solid var(--line);font-weight:500;transition:.15s;
+}
+.btn:hover{background:var(--ink3)}
+.btn.pri{background:var(--accent);border-color:transparent;color:#fff;font-weight:600}
+.btn.pri:hover{filter:brightness(1.12)}
+.btn.dgr{color:var(--rouge);border-color:color-mix(in srgb,var(--rouge) 40%,transparent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ===== BARRE FILTRES ===== */
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:20px 0 14px}
+.puce{
+  padding:7px 14px;border-radius:99px;background:var(--ink2);border:1px solid var(--line);
+  font-size:13.5px;white-space:nowrap;transition:.15s;
+}
+.puce:hover{background:var(--ink3)}
+.puce.on{background:var(--accent);border-color:transparent;color:#fff;font-weight:600}
+select{
+  padding:8px 12px;border-radius:10px;background:var(--ink2);
+  border:1px solid var(--line);outline:none;
+}
+.espace{flex:1}
+.compte{font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+/* ===== GRILLE ===== */
+.grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));padding-bottom:40px}
+.carte{
+  background:var(--ink2);border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;transition:.18s;text-align:left;display:flex;flex-direction:column;
+}
+.carte:hover{transform:translateY(-4px);border-color:var(--accent);box-shadow:var(--ombre)}
+.aff{aspect-ratio:3/4;background:var(--ink3);position:relative;overflow:hidden}
+.aff img{width:100%;height:100%;object-fit:cover;display:block}
+.aff .vide{
+  width:100%;height:100%;display:grid;place-items:center;font-family:var(--dsp);
+  font-weight:800;font-size:32px;color:var(--line);
+  background:linear-gradient(150deg,var(--ink3),var(--ink2));
+}
+.note-b{
+  position:absolute;top:8px;right:8px;font-family:var(--mono);font-weight:700;font-size:13px;
+  padding:4px 8px;border-radius:8px;background:rgba(10,8,16,.78);color:var(--brass);
+  backdrop-filter:blur(6px);
+}
+.stat-b{
+  position:absolute;bottom:8px;left:8px;font-size:11px;padding:3px 8px;border-radius:7px;
+  background:rgba(10,8,16,.78);backdrop-filter:blur(6px);color:#fff;font-weight:500;
+}
+.trp-b{
+  position:absolute;bottom:8px;right:8px;font-family:var(--mono);font-size:11px;
+  padding:3px 7px;border-radius:7px;background:rgba(10,8,16,.78);color:var(--or);
+  backdrop-filter:blur(6px);
+}
+.carte-txt{padding:11px 12px 13px}
+.carte-t{font-weight:600;font-size:14.5px;line-height:1.25;margin:0 0 3px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.carte-s{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+
+/* vue liste */
+.grid.liste{grid-template-columns:1fr;gap:9px}
+.grid.liste .carte{flex-direction:row;align-items:stretch}
+.grid.liste .aff{width:64px;aspect-ratio:auto;flex:0 0 64px}
+.grid.liste .note-b,.grid.liste .stat-b,.grid.liste .trp-b{display:none}
+.grid.liste .carte-txt{display:flex;align-items:center;gap:14px;flex:1;padding:12px 14px}
+.grid.liste .carte-t{margin:0;-webkit-line-clamp:1;flex:1}
+.grid.liste .l-note{font-family:var(--mono);font-weight:700;color:var(--brass)}
+
+.vide-etat{text-align:center;padding:70px 20px;color:var(--muted)}
+.vide-etat h2{font-family:var(--dsp);font-size:26px;color:var(--paper);margin:0 0 8px;letter-spacing:-.02em}
+
+/* ===== MODALES ===== */
+.modale{
+  position:fixed;inset:0;z-index:100;display:none;
+  background:rgba(6,4,12,.72);backdrop-filter:blur(5px);
+  padding:20px;overflow-y:auto;
+}
+.modale.on{display:block}
+.boite{
+  max-width:560px;margin:38px auto;background:var(--ink);border:1px solid var(--line);
+  border-radius:20px;box-shadow:var(--ombre);overflow:hidden;
+  animation:monte .22s cubic-bezier(.2,.9,.3,1);
+}
+.boite.large{max-width:840px}
+@keyframes monte{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.boite-hd{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:18px 22px;border-bottom:1px solid var(--line);
+  position:sticky;top:0;background:var(--ink);z-index:2;
+}
+.boite-hd h2{font-family:var(--dsp);font-size:21px;margin:0;letter-spacing:-.02em}
+.boite-bd{padding:20px 22px 24px}
+.boite-ft{display:flex;gap:9px;padding:16px 22px;border-top:1px solid var(--line);flex-wrap:wrap}
+
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);
+  margin:0 0 6px;letter-spacing:.03em;text-transform:uppercase}
+.champ{margin-bottom:15px}
+.champ input,.champ textarea,.champ select{
+  width:100%;padding:11px 13px;border-radius:10px;background:var(--ink2);
+  border:1px solid var(--line);outline:none;
+}
+.champ input:focus,.champ textarea:focus,.champ select:focus{border-color:var(--accent)}
+.champ textarea{resize:vertical;min-height:70px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.aide{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.45}
+.ligne{display:flex;gap:8px}
+.ligne input{flex:1}
+
+/* étoiles */
+.etoiles{display:flex;gap:2px;align-items:center;user-select:none}
+.et{position:relative;width:26px;height:26px;cursor:pointer;font-size:23px;line-height:26px;
+  color:var(--line);text-align:center}
+.et .plein{position:absolute;inset:0;overflow:hidden;color:var(--brass);width:0}
+.note-txt{font-family:var(--mono);font-weight:700;color:var(--brass);margin-left:10px;font-size:15px}
+.note-raz{font-size:11px;color:var(--muted);margin-left:8px;text-decoration:underline}
+
+/* ===== SUCCÈS ===== */
+.trp-hd{display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+.jauge{flex:1;min-width:160px;height:9px;border-radius:99px;background:var(--ink3);overflow:hidden}
+.jauge i{display:block;height:100%;border-radius:99px;
+  background:linear-gradient(90deg,var(--bronze),var(--or));transition:width .5s}
+.jauge-t{font-family:var(--mono);font-size:12.5px;color:var(--muted);white-space:nowrap}
+.trp-grille{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(126px,1fr))}
+.trp{
+  position:relative;border-radius:12px;overflow:hidden;background:var(--ink2);
+  border:1px solid var(--line);text-align:left;transition:.16s;padding:0;
+}
+.trp:hover{transform:translateY(-2px);border-color:var(--accent)}
+.trp .img{aspect-ratio:1;background:var(--ink3);position:relative}
+.trp .img img{width:100%;height:100%;object-fit:cover;display:block}
+.trp .gen{
+  width:100%;height:100%;display:grid;place-items:center;font-family:var(--dsp);
+  font-weight:800;font-size:26px;color:rgba(255,255,255,.9);
+}
+.trp .nom{font-size:11.5px;font-weight:600;padding:8px 9px 9px;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.trp .rar{
+  position:absolute;top:6px;left:6px;font-family:var(--mono);font-size:9.5px;font-weight:700;
+  padding:2px 6px;border-radius:6px;background:rgba(8,6,14,.85);backdrop-filter:blur(4px);
+}
+.trp .dt{position:absolute;bottom:6px;left:6px;right:6px;font-family:var(--mono);font-size:9.5px;
+  color:#fff;background:rgba(8,6,14,.85);padding:2px 6px;border-radius:6px;text-align:center}
+.trp.off .img img,.trp.off .gen{filter:grayscale(1) brightness(.42)}
+.trp.off .nom{color:var(--muted)}
+.trp.off .cad{position:absolute;inset:0;display:grid;place-items:center;font-size:22px;opacity:.65}
+.trp.on{border-color:color-mix(in srgb,var(--or) 55%,transparent);
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--or) 25%,transparent),0 6px 22px rgba(232,176,75,.16)}
+.rar.or{color:var(--or)} .rar.ar{color:var(--argent)} .rar.br{color:var(--bronze)}
+.trp-vide{text-align:center;color:var(--muted);padding:36px 16px;font-size:14px;line-height:1.6}
+
+/* ===== PANNEAU PROFIL ===== */
+.profil-btn{
+  position:fixed;right:18px;bottom:18px;z-index:90;
+  display:flex;align-items:center;gap:10px;padding:10px 18px 10px 11px;
+  border-radius:99px;background:var(--ink2);border:1px solid var(--line);
+  box-shadow:var(--ombre);font-weight:600;font-size:14px;transition:.18s;
+}
+.profil-btn:hover{transform:translateY(-2px);border-color:var(--accent)}
+.profil-btn .av{width:30px;height:30px;border-radius:99px;object-fit:cover;
+  background:var(--accent);display:grid;place-items:center;font-weight:700;color:#fff;font-size:13px}
+.panneau{
+  position:fixed;right:18px;bottom:18px;z-index:95;width:min(400px,calc(100vw - 36px));
+  max-height:min(78dvh,700px);background:var(--ink);border:1px solid var(--line);
+  border-radius:20px;box-shadow:var(--ombre);display:none;flex-direction:column;overflow:hidden;
+}
+.panneau.on{display:flex;animation:monte .2s cubic-bezier(.2,.9,.3,1)}
+.panneau-bd{overflow-y:auto;padding:18px 20px 22px}
+.pf-tete{display:flex;gap:14px;align-items:center;margin-bottom:16px}
+.pf-av{width:58px;height:58px;border-radius:99px;object-fit:cover;flex:0 0 58px;
+  background:var(--accent);display:grid;place-items:center;font-family:var(--dsp);
+  font-weight:800;font-size:22px;color:#fff}
+.pf-nom{font-family:var(--dsp);font-size:21px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.pf-bio{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.4}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}
+.stat{background:var(--ink2);border:1px solid var(--line);border-radius:11px;padding:10px 8px;text-align:center}
+.stat b{display:block;font-family:var(--mono);font-size:17px;color:var(--paper)}
+.stat span{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.titre-s{font-family:var(--dsp);font-size:14px;font-weight:700;letter-spacing:.02em;
+  margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.top{display:flex;flex-direction:column;gap:6px;margin-bottom:18px}
+.top-l{display:flex;align-items:center;gap:11px;padding:7px;border-radius:10px;transition:.14s;text-align:left;width:100%}
+.top-l:hover{background:var(--ink2)}
+.top-r{font-family:var(--mono);font-weight:700;font-size:14px;color:var(--muted);
+  width:22px;text-align:right;flex:0 0 22px}
+.top-l:nth-child(1) .top-r{color:var(--or)}
+.top-l:nth-child(2) .top-r{color:var(--argent)}
+.top-l:nth-child(3) .top-r{color:var(--bronze)}
+.top-a{width:32px;height:42px;border-radius:6px;object-fit:cover;background:var(--ink3);flex:0 0 32px}
+.top-n{flex:1;font-size:13.5px;font-weight:500;line-height:1.25;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.top-v{font-family:var(--mono);font-weight:700;color:var(--brass);font-size:14px}
+
+.toast{
+  position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);
+  z-index:200;background:var(--ink3);border:1px solid var(--line);color:var(--paper);
+  padding:11px 20px;border-radius:99px;font-size:13.5px;font-weight:500;
+  box-shadow:var(--ombre);opacity:0;pointer-events:none;transition:.25s;
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.pied{text-align:center;padding:26px 0 10px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+@media (max-width:640px){
+  .grid{grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px}
+  .marque{font-size:22px}
+  .duo{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .boite{margin:0 auto;border-radius:16px}
+  .modale{padding:10px}
+  .profil-btn span.lbl{display:none}
+  .profil-btn{padding:10px}
+}
+</style>
+</head>
+<body>
+
+<div id="bg"><div id="bgTiles"></div><div class="bg-veil"></div></div>
+
+<!-- ===== EN-TÊTE ===== -->
+<header class="hd">
+  <div class="wrap hd-in">
+    <div class="marque">FG<em>L</em> <small id="vTag"></small></div>
+    <div class="rech"><span>🔎</span><input id="q" placeholder="Chercher un jeu…" autocomplete="off"></div>
+    <button class="ico" id="bTheme" title="Changer de thème">🌙</button>
+    <button class="ico" id="bRegl" title="Réglages">⚙️</button>
+    <button class="btn pri" id="bAdd">+ Ajouter</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- ===== FILTRES ===== -->
+  <div class="bar" id="barre">
+    <div id="puces"></div>
+    <select id="fPlat"><option value="">Toutes plateformes</option></select>
+    <select id="fTri">
+      <option value="recent">Ajout récent</option>
+      <option value="ancien">Ajout ancien</option>
+      <option value="note">Meilleures notes</option>
+      <option value="notebas">Pires notes</option>
+      <option value="meta">Note Metacritic</option>
+      <option value="joue">Joué récemment</option>
+      <option value="az">A → Z</option>
+    </select>
+    <button class="ico" id="bVue" title="Changer de vue">▦</button>
+    <div class="espace"></div>
+    <div class="compte" id="compte"></div>
+  </div>
+
+  <div class="grid" id="grille"></div>
+  <div id="vide"></div>
+  <div class="pied" id="pied"></div>
+</main>
+
+<!-- ===== BULLE PROFIL ===== -->
+<button class="profil-btn" id="bProfil">
+  <span class="av" id="miniAv">N</span><span class="lbl">Mon Profil</span>
+</button>
+
+<div class="panneau" id="panProfil">
+  <div class="boite-hd">
+    <h2>Mon Profil</h2>
+    <button class="ico" data-ferme="panProfil">✕</button>
+  </div>
+  <div class="panneau-bd" id="pfCorps"></div>
+</div>
+
+<!-- ===== MODALE JEU ===== -->
+<div class="modale" id="mJeu">
+  <div class="boite">
+    <div class="boite-hd">
+      <h2 id="jTitreH">Ajouter un jeu</h2>
+      <button class="ico" data-ferme="mJeu">✕</button>
+    </div>
+    <div class="boite-bd">
+      <div class="champ">
+        <label for="jTitre">Titre du jeu</label>
+        <div class="ligne">
+          <input id="jTitre" placeholder="Elden Ring" autocomplete="off">
+          <button class="btn" id="bCherche" title="Chercher l'affiche et les infos">🔍</button>
+        </div>
+        <div class="aide" id="jCherchAide"></div>
+      </div>
+      <div class="duo">
+        <div class="champ">
+          <label for="jPlat">Plateforme</label>
+          <select id="jPlat"></select>
+        </div>
+        <div class="champ">
+          <label for="jStat">Statut</label>
+          <select id="jStat"></select>
+        </div>
+      </div>
+      <div class="champ">
+        <label>Ma note</label>
+        <div class="etoiles" id="jEtoiles"></div>
+      </div>
+      <div class="duo">
+        <div class="champ">
+          <label for="jJoue">Dernière fois joué</label>
+          <input id="jJoue" type="date">
+        </div>
+        <div class="champ">
+          <label for="jHeures">Heures de jeu</label>
+          <input id="jHeures" type="number" min="0" step="1" placeholder="0">
+        </div>
+      </div>
+      <div class="champ">
+        <label for="jMeta">Note utilisateurs Metacritic (sur 10)</label>
+        <div class="ligne">
+          <input id="jMeta" type="number" min="0" max="10" step="0.1" placeholder="8.1">
+          <button class="btn" id="bMeta" title="Ouvrir Metacritic">↗</button>
+        </div>
+        <div class="aide">Metacritic n'ouvre pas ses données aux sites web : le bouton ↗ ouvre la fiche du jeu, tu recopies la note « User Score ».</div>
+      </div>
+      <div class="champ">
+        <label for="jAff">Affiche (lien de l'image)</label>
+        <input id="jAff" placeholder="https://…" autocomplete="off">
+        <div class="aide">Le 🔍 la remplit tout seul. Sinon : clic droit sur une image → « Copier l'adresse de l'image ».</div>
+      </div>
+      <div class="champ">
+        <label for="jGenres">Genres</label>
+        <input id="jGenres" placeholder="Action-RPG, Aventure" autocomplete="off">
+      </div>
+      <div class="champ">
+        <label for="jAvis">Mon avis</label>
+        <textarea id="jAvis" placeholder="Ce que t'en as pensé…"></textarea>
+      </div>
+    </div>
+    <div class="boite-ft">
+      <button class="btn pri" id="bSauve">Enregistrer</button>
+      <button class="btn" id="bTrophees">🏆 Succès</button>
+      <div class="espace"></div>
+      <button class="btn dgr" id="bSuppr">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODALE SUCCÈS ===== -->
+<div class="modale" id="mTrp">
+  <div class="boite large">
+    <div class="boite-hd">
+      <h2 id="trpTitre">Succès</h2>
+      <button class="ico" data-ferme="mTrp">✕</button>
+    </div>
+    <div class="boite-bd" id="trpCorps"></div>
+    <div class="boite-ft">
+      <button class="btn pri" id="bChargeTrp">🏆 Charger les succès</button>
+      <button class="btn" id="bAjoutTrp">+ À la main</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODALE RÉGLAGES ===== -->
+<div class="modale" id="mRegl">
+  <div class="boite">
+    <div class="boite-hd">
+      <h2>Réglages</h2>
+      <button class="ico" data-ferme="mRegl">✕</button>
+    </div>
+    <div class="boite-bd">
+      <div class="champ">
+        <label for="rCle">Clé API RAWG</label>
+        <input id="rCle" placeholder="Colle ta clé ici" autocomplete="off">
+        <div class="aide">Gratuite et instantanée sur <a href="https://rawg.io/apidocs" target="_blank" rel="noopener">rawg.io/apidocs</a>. Elle sert à récupérer les affiches et les succès. Elle reste sur cet appareil.</div>
+      </div>
+      <div class="champ">
+        <label>Fond animé</label>
+        <button class="puce" id="rAnim"></button>
+        <div class="aide">Coupe l'animation du fond si ça rame ou si ça te gêne.</div>
+      </div>
+      <div class="champ">
+        <label>Sauvegarde</label>
+        <div class="ligne">
+          <button class="btn" id="bExport">⬇ Exporter</button>
+          <button class="btn" id="bImport">⬆ Importer</button>
+        </div>
+        <div class="aide">Tes jeux vivent dans ce navigateur. Exporte de temps en temps : un fichier .json que tu ranges où tu veux.</div>
+      </div>
+    </div>
+    <div class="boite-ft"><button class="btn pri" id="bSauveRegl">Enregistrer</button></div>
+  </div>
+</div>
+
+<input type="file" id="fichierImport" accept=".json,application/json" style="display:none">
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   FGL — FelGamesList
+   ========================================================= */
+const VERSION = 'v1';
+
+/* ---------- Constantes ---------- */
+const PLATEFORMES = ['PC (Steam)','PlayStation','Xbox','Nintendo Switch','Mobile','Rétro','Autre'];
+const STATUTS = [
+  {id:'encours',   nom:'En cours',  c:'#7b5cd6'},
+  {id:'termine',   nom:'Terminé',   c:'#4fd1a5'},
+  {id:'cent',      nom:'100 %',     c:'#e8b04b'},
+  {id:'pause',     nom:'En pause',  c:'#8b84a3'},
+  {id:'abandonne', nom:'Abandonné', c:'#e0555f'},
+  {id:'prevu',     nom:'Prévu',     c:'#4a90d9'}
+];
+const PALETTE_SECOURS = ['#7b5cd6','#e8b04b','#4fd1a5','#e0555f','#4a90d9'];
+
+/* ---------- Utilitaires dates (heure LOCALE, jamais UTC) ---------- */
+function isoLocal(d = new Date()){
+  const p = n => String(n).padStart(2,'0');
+  const off = -d.getTimezoneOffset();
+  const s = off >= 0 ? '+' : '-';
+  const a = Math.abs(off);
+  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate())
+       + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds())
+       + s + p(Math.floor(a/60)) + ':' + p(a%60);
+}
+const dayLocal = (d = new Date()) => isoLocal(d).slice(0,10);
+
+/* Construit une Date LOCALE depuis "AAAA-MM-JJ".
+   new Date("2026-07-20") serait interprété en UTC → décalage d'un jour. */
+function parseDay(s){
+  if(!s || typeof s !== 'string') return null;
+  const m = s.slice(0,10).split('-').map(Number);
+  if(m.length !== 3 || m.some(isNaN)) return null;
+  return new Date(m[0], m[1]-1, m[2]);
+}
+function ms(s){
+  if(!s) return 0;
+  if(s.length <= 10){ const d = parseDay(s); return d ? d.getTime() : 0; }
+  const t = Date.parse(s);
+  return isNaN(t) ? 0 : t;
+}
+/* "il y a 3 jours" à partir d'un jour local */
+function depuisJour(s){
+  const d = parseDay(s);
+  if(!d) return '';
+  const auj = parseDay(dayLocal());
+  const j = Math.round((auj - d) / 86400000);
+  if(j <= 0) return "aujourd'hui";
+  if(j === 1) return 'hier';
+  if(j < 7) return 'il y a ' + j + ' jours';
+  if(j < 31) { const w = Math.floor(j/7); return 'il y a ' + w + ' semaine' + (w>1?'s':''); }
+  // au-delà d'un mois : vrai calcul calendaire, pas une moyenne de 30,44 jours
+  let mo = (auj.getFullYear() - d.getFullYear()) * 12 + (auj.getMonth() - d.getMonth());
+  if(auj.getDate() < d.getDate()) mo--;
+  if(mo < 1) mo = 1;
+  if(mo < 12) return 'il y a ' + mo + ' mois';
+  const an = Math.floor(mo / 12);
+  return 'il y a ' + an + ' an' + (an>1?'s':'');
+}
+
+/* ---------- Petits outils ---------- */
+const $ = s => document.querySelector(s);
+const uid = () => 'g_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,6);
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+let toastT;
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('on'), 2600);
+}
+const statutDe = id => STATUTS.find(s => s.id === id) || STATUTS[0];
+
+/* ---------- État ---------- */
+const CLE = 'fgl_data_v1';
+let DATA = null;
+let UI = { statut:'', plateforme:'', tri:'recent', vue:'grille', q:'' };
+let jeuEnCours = null;   // id du jeu ouvert dans la modale
+let noteTmp = null;      // note en cours de saisie
+
+function dataVierge(){
+  return {
+    version: 1,
+    reglages: { cleRawg:'', theme:'sombre', anim:true },
+    profil: {
+      pseudo:'Nawfel', githubLogin:'', avatar:'', bio:'',
+      visibilite:'public', amis:[], lastSeen: isoLocal()
+    },
+    jeux: []
+  };
+}
+function charge(){
+  try{
+    const brut = localStorage.getItem(CLE);
+    DATA = brut ? JSON.parse(brut) : dataVierge();
+  }catch(e){
+    console.warn('Sauvegarde illisible, on repart à neuf', e);
+    DATA = dataVierge();
+  }
+  migre();
+}
+function migre(){
+  const v = dataVierge();
+  if(!DATA || typeof DATA !== 'object') DATA = v;
+  if(!DATA.reglages) DATA.reglages = v.reglages;
+  if(!DATA.profil)   DATA.profil   = v.profil;
+  if(!Array.isArray(DATA.jeux)) DATA.jeux = [];
+  for(const k in v.reglages) if(DATA.reglages[k] === undefined) DATA.reglages[k] = v.reglages[k];
+  for(const k in v.profil)   if(DATA.profil[k]   === undefined) DATA.profil[k]   = v.profil[k];
+  DATA.jeux.forEach(g => {
+    if(!g.id) g.id = uid();
+    if(!Array.isArray(g.achievements)) g.achievements = [];
+    if(!Array.isArray(g.genres)) g.genres = [];
+    if(g.achievementsTotal == null) g.achievementsTotal = g.achievements.length;
+    if(!g.addedAt) g.addedAt = isoLocal();
+  });
+  DATA.version = 1;
+}
+function sauve(){
+  DATA.profil.lastSeen = isoLocal();
+  try{
+    localStorage.setItem(CLE, JSON.stringify(DATA));
+  }catch(e){
+    console.error(e);
+    toast("Sauvegarde impossible : mémoire du navigateur pleine.");
+  }
+}
+
+/* =========================================================
+   FOND VIVANT
+   ========================================================= */
+function rendFond(){
+  const zone = $('#bgTiles');
+  const avecAff = DATA.jeux.filter(g => g.cover);
+  if(!avecAff.length){ zone.innerHTML = ''; return; }
+
+  // les mieux notés d'abord : ils seront plus grands et plus visibles
+  const tri = avecAff.slice().sort((a,b) => (b.note || 0) - (a.note || 0)).slice(0, 22);
+  let html = '';
+  tri.forEach((g, i) => {
+    const poids = (g.note || 5) / 10;               // 0 → 1
+    const taille = 150 + poids * 190;                // px
+    const opa = (0.10 + poids * 0.22).toFixed(2);
+    const x = (i * 37 + (i % 5) * 13) % 96;
+    const y = (i * 53 + (i % 3) * 21) % 92;
+    const dur = 22 + (i % 7) * 4;
+    const dly = -(i * 3);
+    html += '<div class="tuile" style="'
+      + 'left:' + x + '%;top:' + y + '%;'
+      + 'width:' + taille + 'px;height:' + Math.round(taille * 1.33) + 'px;'
+      + 'opacity:' + opa + ';'
+      + 'animation-duration:' + dur + 's;animation-delay:' + dly + 's;'
+      + 'background-image:url(' + esc(g.cover) + ');"></div>';
+  });
+  zone.innerHTML = html;
+  extraitAccent(tri[0].cover);
+}
+
+/* Couleur d'accent tirée de l'affiche du jeu n°1 */
+function extraitAccent(url){
+  if(!url) return;
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    try{
+      const c = document.createElement('canvas');
+      c.width = 12; c.height = 12;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, 12, 12);
+      const d = ctx.getImageData(0, 0, 12, 12).data;
+      let r=0, v=0, b=0, n=0;
+      for(let i=0; i<d.length; i+=4){
+        const mx = Math.max(d[i], d[i+1], d[i+2]);
+        const mn = Math.min(d[i], d[i+1], d[i+2]);
+        if(mx - mn < 26) continue;            // on saute les gris
+        r += d[i]; v += d[i+1]; b += d[i+2]; n++;
+      }
+      if(!n) return;
+      let R = r/n, V = v/n, B = b/n;
+      const lum = (R*0.299 + V*0.587 + B*0.114);
+      const k = lum < 105 ? 105/Math.max(lum,1) : 1;   // on éclaircit si trop sombre
+      R = Math.min(255, R*k); V = Math.min(255, V*k); B = Math.min(255, B*k);
+      const hex = '#' + [R,V,B].map(x => Math.round(x).toString(16).padStart(2,'0')).join('');
+      document.documentElement.style.setProperty('--accent', hex);
+    }catch(e){
+      // image qui refuse le canvas : on garde la couleur par défaut, ce n'est pas grave
+    }
+  };
+  img.onerror = () => {};
+  img.src = url;
+}
+
+/* Parallaxe douce */
+let pxT;
+window.addEventListener('mousemove', e => {
+  if(!DATA || !DATA.reglages.anim) return;
+  clearTimeout(pxT);
+  pxT = setTimeout(() => {
+    const x = (e.clientX / window.innerWidth - .5) * -26;
+    const y = (e.clientY / window.innerHeight - .5) * -26;
+    $('#bgTiles').style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
+  }, 40);
+});
+
+/* =========================================================
+   GRILLE
+   ========================================================= */
+function jeuxFiltres(){
+  let L = DATA.jeux.slice();
+  const q = UI.q.trim().toLowerCase();
+  if(q) L = L.filter(g => (g.title || '').toLowerCase().includes(q));
+  if(UI.statut) L = L.filter(g => g.status === UI.statut);
+  if(UI.plateforme) L = L.filter(g => g.platform === UI.plateforme);
+
+  const parNote = (a,b) => (b.note == null ? -1 : b.note) - (a.note == null ? -1 : a.note);
+  switch(UI.tri){
+    case 'ancien':  L.sort((a,b) => ms(a.addedAt) - ms(b.addedAt)); break;
+    case 'note':    L.sort(parNote); break;
+    case 'notebas': L.sort((a,b) => (a.note == null ? 99 : a.note) - (b.note == null ? 99 : b.note)); break;
+    case 'meta':    L.sort((a,b) => (b.metaUser || 0) - (a.metaUser || 0)); break;
+    case 'joue':    L.sort((a,b) => ms(b.lastPlayed) - ms(a.lastPlayed)); break;
+    case 'az':      L.sort((a,b) => (a.title || '').localeCompare(b.title || '', 'fr')); break;
+    default:        L.sort((a,b) => ms(b.addedAt) - ms(a.addedAt));
+  }
+  return L;
+}
+
+function rendGrille(){
+  const L = jeuxFiltres();
+  const g = $('#grille');
+  g.className = 'grid' + (UI.vue === 'liste' ? ' liste' : '');
+  $('#compte').textContent = L.length + (L.length > 1 ? ' jeux' : ' jeu');
+
+  if(!DATA.jeux.length){
+    g.innerHTML = '';
+    $('#vide').innerHTML = '<div class="vide-etat"><h2>Ta bibliothèque est vide</h2>'
+      + '<p>Ajoute ton premier jeu : le fond du site se construira à partir de tes affiches.</p></div>';
+    return;
+  }
+  if(!L.length){
+    g.innerHTML = '';
+    $('#vide').innerHTML = '<div class="vide-etat"><h2>Rien ne correspond</h2>'
+      + '<p>Change de filtre ou vide la recherche.</p></div>';
+    return;
+  }
+  $('#vide').innerHTML = '';
+
+  g.innerHTML = L.map(j => {
+    const st = statutDe(j.status);
+    const obt = j.achievements.filter(a => a.unlocked).length;
+    const tot = j.achievementsTotal || j.achievements.length;
+    const aff = j.cover
+      ? '<img src="' + esc(j.cover) + '" alt="" loading="lazy">'
+      : '<div class="vide">' + esc((j.title || '?').slice(0,1).toUpperCase()) + '</div>';
+    const note = j.note != null
+      ? '<div class="note-b">' + j.note.toFixed(1) + '</div>' : '';
+    const trp = tot
+      ? '<div class="trp-b">' + (obt === tot ? '💯' : '🏆 ' + obt + '/' + tot) + '</div>' : '';
+    const sous = [j.platform, j.lastPlayed ? depuisJour(j.lastPlayed) : ''].filter(Boolean).join(' · ');
+    return '<button class="carte" data-jeu="' + j.id + '">'
+      + '<div class="aff">' + aff + note + trp
+      + '<div class="stat-b" style="background:' + st.c + 'cc">' + st.nom + '</div></div>'
+      + '<div class="carte-txt">'
+      + '<div class="carte-t">' + esc(j.title) + '</div>'
+      + '<div class="carte-s">' + esc(sous) + '</div>'
+      + (UI.vue === 'liste' && j.note != null ? '<div class="l-note">' + j.note.toFixed(1) + '</div>' : '')
+      + '</div></button>';
+  }).join('');
+}
+
+/* =========================================================
+   ÉTOILES (0 à 10, demi-crans)
+   ========================================================= */
+function rendEtoiles(val){
+  const z = $('#jEtoiles');
+  let h = '';
+  for(let i = 1; i <= 10; i++){
+    const p = val == null ? 0 : Math.max(0, Math.min(1, val - (i-1))) * 100;
+    h += '<div class="et" data-e="' + i + '">★<span class="plein" style="width:' + p + '%">★</span></div>';
+  }
+  h += '<span class="note-txt">' + (val == null ? '—' : val.toFixed(1)) + '</span>';
+  if(val != null) h += '<button type="button" class="note-raz" id="bRaz">effacer</button>';
+  z.innerHTML = h;
+  const raz = $('#bRaz');
+  if(raz) raz.onclick = () => { noteTmp = null; rendEtoiles(null); };
+}
+function initEtoiles(){
+  const z = $('#jEtoiles');
+  z.addEventListener('click', e => {
+    const et = e.target.closest('.et');
+    if(!et) return;
+    const i = +et.dataset.e;
+    const r = et.getBoundingClientRect();
+    const demi = (e.clientX - r.left) < r.width / 2;
+    noteTmp = demi ? i - 0.5 : i;
+    rendEtoiles(noteTmp);
+  });
+  z.addEventListener('mousemove', e => {
+    const et = e.target.closest('.et');
+    if(!et) return;
+    const i = +et.dataset.e;
+    const r = et.getBoundingClientRect();
+    const demi = (e.clientX - r.left) < r.width / 2;
+    apercuEtoiles(demi ? i - 0.5 : i);
+  });
+  z.addEventListener('mouseleave', () => apercuEtoiles(noteTmp));
+}
+function apercuEtoiles(val){
+  const ets = document.querySelectorAll('#jEtoiles .et');
+  ets.forEach((el, k) => {
+    const i = k + 1;
+    const p = val == null ? 0 : Math.max(0, Math.min(1, val - (i-1))) * 100;
+    el.querySelector('.plein').style.width = p + '%';
+  });
+  const t = document.querySelector('#jEtoiles .note-txt');
+  if(t) t.textContent = val == null ? '—' : val.toFixed(1);
+}
+
+/* =========================================================
+   MODALE JEU
+   ========================================================= */
+function ouvre(id){ $('#' + id).classList.add('on'); }
+function ferme(id){ $('#' + id).classList.remove('on'); }
+
+function ouvreJeu(id){
+  jeuEnCours = id;
+  rawgTmp = null;
+  const j = id ? DATA.jeux.find(x => x.id === id) : null;
+  $('#jTitreH').textContent = j ? 'Modifier' : 'Ajouter un jeu';
+  $('#jTitre').value   = j ? (j.title || '') : '';
+  $('#jPlat').value    = j ? (j.platform || PLATEFORMES[0]) : PLATEFORMES[0];
+  $('#jStat').value    = j ? (j.status || 'encours') : 'encours';
+  $('#jJoue').value    = j ? (j.lastPlayed || '') : dayLocal();
+  $('#jHeures').value  = j && j.playtime ? j.playtime : '';
+  $('#jMeta').value    = j && j.metaUser != null ? j.metaUser : '';
+  $('#jAff').value     = j ? (j.cover || '') : '';
+  $('#jGenres').value  = j ? (j.genres || []).join(', ') : '';
+  $('#jAvis').value    = j ? (j.comment || '') : '';
+  $('#jCherchAide').textContent = '';
+  noteTmp = j ? (j.note != null ? j.note : null) : null;
+  rendEtoiles(noteTmp);
+  $('#bSuppr').style.display = j ? '' : 'none';
+  $('#bTrophees').style.display = j ? '' : 'none';
+  ouvre('mJeu');
+  if(!j) setTimeout(() => $('#jTitre').focus(), 60);
+}
+
+function sauveJeu(){
+  const titre = $('#jTitre').value.trim();
+  if(!titre){ toast('Il faut au moins un titre.'); $('#jTitre').focus(); return; }
+
+  const metaBrut = $('#jMeta').value.trim();
+  const meta = metaBrut === '' ? null : Math.max(0, Math.min(10, parseFloat(metaBrut)));
+  const champs = {
+    title: titre,
+    platform: $('#jPlat').value,
+    status: $('#jStat').value,
+    note: noteTmp,
+    lastPlayed: $('#jJoue').value || '',
+    playtime: parseInt($('#jHeures').value, 10) || 0,
+    metaUser: (meta == null || isNaN(meta)) ? null : meta,
+    cover: $('#jAff').value.trim(),
+    genres: $('#jGenres').value.split(',').map(s => s.trim()).filter(Boolean),
+    comment: $('#jAvis').value.trim(),
+    updatedAt: isoLocal()
+  };
+
+  if(jeuEnCours){
+    const j = DATA.jeux.find(x => x.id === jeuEnCours);
+    Object.assign(j, champs);
+    toast('Modifié.');
+  }else{
+    DATA.jeux.push(Object.assign({
+      id: uid(), rawgId: rawgTmp, achievements: [], achievementsTotal: 0, addedAt: isoLocal()
+    }, champs));
+    rawgTmp = null;
+    toast('Ajouté à ta liste.');
+  }
+  sauve(); ferme('mJeu'); toutRendre();
+}
+
+function supprimeJeu(){
+  if(!jeuEnCours) return;
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!confirm('Supprimer « ' + (j ? j.title : '') +' » ? C\'est définitif.')) return;
+  DATA.jeux = DATA.jeux.filter(x => x.id !== jeuEnCours);
+  sauve(); ferme('mJeu'); toutRendre();
+  toast('Supprimé.');
+}
+
+/* =========================================================
+   RAWG — affiche + infos
+   ========================================================= */
+function cleRawg(){ return (DATA.reglages.cleRawg || '').trim(); }
+
+async function chercheRawg(){
+  const titre = $('#jTitre').value.trim();
+  const aide = $('#jCherchAide');
+  if(!titre){ toast('Écris d\'abord le titre.'); return; }
+  if(!cleRawg()){
+    aide.innerHTML = 'Il manque ta clé RAWG → ⚙️ Réglages.';
+    toast('Clé RAWG manquante.');
+    return;
+  }
+  aide.textContent = 'Recherche en cours…';
+  try{
+    const url = 'https://api.rawg.io/api/games?key=' + encodeURIComponent(cleRawg())
+      + '&search=' + encodeURIComponent(titre) + '&page_size=1';
+    const rep = await fetch(url);
+    if(!rep.ok) throw new Error('HTTP ' + rep.status);
+    const js = await rep.json();
+    const r = js.results && js.results[0];
+    if(!r){ aide.textContent = 'Aucun jeu trouvé sous ce nom.'; return; }
+
+    $('#jTitre').value = r.name || titre;
+    if(r.background_image) $('#jAff').value = r.background_image;
+    if(r.genres && r.genres.length && !$('#jGenres').value.trim()){
+      $('#jGenres').value = r.genres.map(g => g.name).join(', ');
+    }
+    if(jeuEnCours){
+      const j = DATA.jeux.find(x => x.id === jeuEnCours);
+      if(j) j.rawgId = r.id;
+    }else{
+      rawgTmp = r.id;
+    }
+    aide.textContent = 'Trouvé : ' + r.name + (r.released ? ' (' + r.released.slice(0,4) + ')' : '');
+  }catch(e){
+    console.error(e);
+    aide.textContent = 'La recherche a échoué. Vérifie ta clé et ta connexion.';
+  }
+}
+let rawgTmp = null;
+
+/* =========================================================
+   SUCCÈS
+   ========================================================= */
+function classeRarete(p){
+  if(p == null) return {c:'br', t:''};
+  if(p <= 5)  return {c:'or', t:p.toFixed(1) + '%'};
+  if(p <= 15) return {c:'ar', t:p.toFixed(1) + '%'};
+  return {c:'br', t:p.toFixed(1) + '%'};
+}
+function couleurBadge(nom){
+  let h = 0;
+  for(let i = 0; i < nom.length; i++) h = (h * 31 + nom.charCodeAt(i)) % 360;
+  return 'linear-gradient(150deg,hsl(' + h + ',52%,42%),hsl(' + ((h+42)%360) + ',58%,26%))';
+}
+
+function ouvreTrophees(){
+  if(!jeuEnCours) return;
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!j) return;
+  $('#trpTitre').textContent = '🏆 ' + j.title;
+  rendTrophees();
+  ouvre('mTrp');
+}
+
+function rendTrophees(){
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!j) return;
+  const z = $('#trpCorps');
+  const L = j.achievements;
+
+  if(!L.length){
+    z.innerHTML = '<div class="trp-vide">Aucun succès chargé pour ce jeu.<br>'
+      + 'Clique sur <b>Charger les succès</b> pour récupérer la liste officielle avec ses icônes, '
+      + 'ou ajoute-les à la main.</div>';
+    return;
+  }
+  const obt = L.filter(a => a.unlocked).length;
+  const tot = j.achievementsTotal || L.length;
+  const pct = tot ? Math.round(obt / tot * 100) : 0;
+
+  let h = '<div class="trp-hd">'
+    + '<div class="jauge"><i style="width:' + pct + '%"></i></div>'
+    + '<div class="jauge-t">' + obt + ' / ' + tot + ' · ' + pct + ' %'
+    + (obt === tot && tot > 0 ? ' 💯' : '') + '</div></div>';
+
+  h += '<div class="trp-grille">';
+  L.forEach(a => {
+    const r = classeRarete(a.rarity);
+    const img = a.icon
+      ? '<img src="' + esc(a.icon) + '" alt="" loading="lazy">'
+      : '<div class="gen" style="background:' + couleurBadge(a.name || '?') + '">🏆</div>';
+    h += '<button class="trp ' + (a.unlocked ? 'on' : 'off') + '" data-trp="' + esc(a.id) + '" '
+      + 'title="' + esc(a.name) + (a.desc ? ' — ' + esc(a.desc) : '') + '">'
+      + '<div class="img">' + img
+      + (r.t ? '<span class="rar ' + r.c + '">' + r.t + '</span>' : '')
+      + (a.unlocked && a.date ? '<span class="dt">' + esc(a.date.slice(8,10) + '/' + a.date.slice(5,7) + '/' + a.date.slice(0,4)) + '</span>' : '')
+      + (!a.unlocked ? '<span class="cad">🔒</span>' : '')
+      + '</div><div class="nom">' + esc(a.name) + '</div></button>';
+  });
+  h += '</div>';
+  z.innerHTML = h;
+}
+
+async function chargeTrophees(){
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!j) return;
+  if(!cleRawg()){ toast('Clé RAWG manquante → ⚙️ Réglages.'); return; }
+
+  const z = $('#trpCorps');
+  z.innerHTML = '<div class="trp-vide">Chargement des succès…</div>';
+  try{
+    // 1. retrouver l'id RAWG si on ne l'a pas
+    if(!j.rawgId){
+      const u = 'https://api.rawg.io/api/games?key=' + encodeURIComponent(cleRawg())
+        + '&search=' + encodeURIComponent(j.title) + '&page_size=1';
+      const rp = await fetch(u);
+      if(!rp.ok) throw new Error('HTTP ' + rp.status);
+      const js = await rp.json();
+      if(!js.results || !js.results[0]) throw new Error('introuvable');
+      j.rawgId = js.results[0].id;
+    }
+    // 2. récupérer les succès (plusieurs pages)
+    let url = 'https://api.rawg.io/api/games/' + j.rawgId + '/achievements?key=' + encodeURIComponent(cleRawg());
+    const trouves = [];
+    let pages = 0;
+    while(url && pages < 6 && trouves.length < 300){
+      const rep = await fetch(url);
+      if(!rep.ok) throw new Error('HTTP ' + rep.status);
+      const js = await rep.json();
+      (js.results || []).forEach(a => trouves.push(a));
+      url = js.next || null;
+      pages++;
+    }
+    if(!trouves.length){
+      z.innerHTML = '<div class="trp-vide">La base RAWG n\'a aucun succès pour ce jeu.<br>'
+        + 'C\'est fréquent pour les exclusivités PlayStation et Xbox : ajoute-les à la main '
+        + 'en collant l\'adresse de l\'icône depuis PSNProfiles ou TrueAchievements.</div>';
+      return;
+    }
+    // 3. fusionner sans perdre ce qui est déjà débloqué
+    const dejaOk = {};
+    j.achievements.forEach(a => { if(a.unlocked) dejaOk[a.name] = a.date || ''; });
+    j.achievements = trouves.map(a => ({
+      id: 'a_' + a.id,
+      name: a.name || 'Succès',
+      desc: a.description || '',
+      icon: a.image || '',
+      rarity: a.percent != null ? parseFloat(a.percent) : null,
+      source: 'steam',
+      unlocked: Object.prototype.hasOwnProperty.call(dejaOk, a.name),
+      date: dejaOk[a.name] || ''
+    }));
+    j.achievementsTotal = j.achievements.length;
+    sauve(); rendTrophees(); rendGrille();
+    toast(trouves.length + ' succès chargés. Coche ceux que t\'as eus.');
+  }catch(e){
+    console.error(e);
+    z.innerHTML = '<div class="trp-vide">Le chargement a échoué.<br>'
+      + 'Vérifie ta clé RAWG et ta connexion, puis réessaie.</div>';
+  }
+}
+
+function basculeTrophee(aid){
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!j) return;
+  const a = j.achievements.find(x => x.id === aid);
+  if(!a) return;
+  a.unlocked = !a.unlocked;
+  a.date = a.unlocked ? dayLocal() : '';
+  sauve(); rendTrophees(); rendGrille();
+}
+
+function ajouteTropheeManuel(){
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!j) return;
+  const nom = prompt('Nom du succès :');
+  if(!nom) return;
+  const icone = prompt('Adresse de l\'icône (facultatif) :\nClic droit sur l\'image → « Copier l\'adresse de l\'image »') || '';
+  j.achievements.push({
+    id: 'a_m_' + Date.now().toString(36),
+    name: nom.trim(), desc:'', icon: icone.trim(),
+    rarity: null, source:'manuel', unlocked: true, date: dayLocal()
+  });
+  j.achievementsTotal = Math.max(j.achievementsTotal, j.achievements.length);
+  sauve(); rendTrophees(); rendGrille();
+}
+
+/* =========================================================
+   PROFIL + TOP 10
+   ========================================================= */
+function top10(){
+  return DATA.jeux
+    .filter(g => g.note != null)
+    .sort((a,b) =>
+      (b.note - a.note)
+      || ((b.metaUser || 0) - (a.metaUser || 0))
+      || (a.title || '').localeCompare(b.title || '', 'fr'))
+    .slice(0, 10);
+}
+
+function rendProfil(){
+  const p = DATA.profil;
+  const notes = DATA.jeux.filter(g => g.note != null).map(g => g.note);
+  const moy = notes.length ? (notes.reduce((a,b) => a+b, 0) / notes.length) : null;
+  const heures = DATA.jeux.reduce((a,g) => a + (g.playtime || 0), 0);
+  const finis = DATA.jeux.filter(g => g.status === 'termine' || g.status === 'cent').length;
+
+  const ini = (p.pseudo || 'N').slice(0,1).toUpperCase();
+  const av = p.avatar
+    ? '<img class="pf-av" src="' + esc(p.avatar) + '" alt="">'
+    : '<div class="pf-av">' + esc(ini) + '</div>';
+  const miniAv = $('#miniAv');
+  if(p.avatar){
+    miniAv.outerHTML = '<img class="av" id="miniAv" src="' + esc(p.avatar) + '" alt="">';
+  }else{
+    miniAv.outerHTML = '<span class="av" id="miniAv">' + esc(ini) + '</span>';
+  }
+
+  let h = '<div class="pf-tete">' + av + '<div>'
+    + '<div class="pf-nom">' + esc(p.pseudo || 'Sans pseudo') + '</div>'
+    + '<div class="pf-bio">' + (p.bio ? esc(p.bio) : 'Pas encore de bio') + '</div>'
+    + '</div></div>';
+
+  h += '<div class="stats">'
+    + '<div class="stat"><b>' + DATA.jeux.length + '</b><span>jeux</span></div>'
+    + '<div class="stat"><b>' + finis + '</b><span>finis</span></div>'
+    + '<div class="stat"><b>' + (moy == null ? '—' : moy.toFixed(1)) + '</b><span>moyenne</span></div>'
+    + '<div class="stat"><b>' + heures + '</b><span>heures</span></div>'
+    + '</div>';
+
+  const T = top10();
+  h += '<div class="titre-s">🏅 Mon top 10</div>';
+  if(!T.length){
+    h += '<div class="aide" style="margin-bottom:18px">Note tes jeux : le classement se construit tout seul.</div>';
+  }else{
+    h += '<div class="top">';
+    T.forEach((j, i) => {
+      const aff = j.cover
+        ? '<img class="top-a" src="' + esc(j.cover) + '" alt="" loading="lazy">'
+        : '<div class="top-a"></div>';
+      h += '<button class="top-l" data-jeu="' + j.id + '">'
+        + '<span class="top-r">' + (i+1) + '</span>' + aff
+        + '<span class="top-n">' + esc(j.title) + '</span>'
+        + '<span class="top-v">' + j.note.toFixed(1) + '</span></button>';
+    });
+    h += '</div>';
+  }
+
+  h += '<div class="titre-s">✏️ Mes infos</div>'
+    + '<div class="champ"><label for="pPseudo">Pseudo</label>'
+    + '<input id="pPseudo" value="' + esc(p.pseudo) + '"></div>'
+    + '<div class="champ"><label for="pAvatar">Avatar (lien de l\'image)</label>'
+    + '<input id="pAvatar" value="' + esc(p.avatar) + '" placeholder="https://…"></div>'
+    + '<div class="champ"><label for="pBio">Bio</label>'
+    + '<textarea id="pBio" placeholder="Deux mots sur toi">' + esc(p.bio) + '</textarea></div>'
+    + '<button class="btn pri" id="bSauveProfil">Enregistrer mon profil</button>';
+
+  $('#pfCorps').innerHTML = h;
+  $('#bSauveProfil').onclick = () => {
+    p.pseudo = $('#pPseudo').value.trim() || 'Sans pseudo';
+    p.avatar = $('#pAvatar').value.trim();
+    p.bio    = $('#pBio').value.trim();
+    sauve(); rendProfil();
+    toast('Profil enregistré.');
+  };
+}
+
+/* =========================================================
+   EXPORT / IMPORT
+   ========================================================= */
+function exporte(){
+  const blob = new Blob([JSON.stringify(DATA, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'fgl-sauvegarde-' + dayLocal() + '.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('Sauvegarde téléchargée.');
+}
+function importe(fichier){
+  const fr = new FileReader();
+  fr.onload = () => {
+    try{
+      const nv = JSON.parse(fr.result);
+      if(!nv || !Array.isArray(nv.jeux)) throw new Error('format');
+      const rempl = confirm(
+        'Remplacer ta liste actuelle (' + DATA.jeux.length + ' jeux) par celle du fichier ('
+        + nv.jeux.length + ' jeux) ?\n\nOK = remplacer   ·   Annuler = fusionner les deux');
+      if(rempl){
+        DATA = nv;
+      }else{
+        const vus = new Set(DATA.jeux.map(g => (g.title || '').toLowerCase()));
+        nv.jeux.forEach(g => {
+          if(!vus.has((g.title || '').toLowerCase())){
+            g.id = uid();
+            DATA.jeux.push(g);
+          }
+        });
+      }
+      migre(); sauve(); toutRendre();
+      toast('Import terminé : ' + DATA.jeux.length + ' jeux.');
+    }catch(e){
+      console.error(e);
+      toast('Fichier illisible. Prends un export FGL (.json).');
+    }
+  };
+  fr.readAsText(fichier);
+}
+
+/* =========================================================
+   THÈME & RÉGLAGES
+   ========================================================= */
+function appliqueTheme(){
+  const t = DATA.reglages.theme;
+  document.documentElement.dataset.theme = t;
+  $('#bTheme').textContent = t === 'sombre' ? '🌙' : '☀️';
+  document.querySelector('meta[name=theme-color]')
+    .setAttribute('content', t === 'sombre' ? '#12101a' : '#f4f1f7');
+  document.body.classList.toggle('sansanim', !DATA.reglages.anim);
+}
+
+/* =========================================================
+   RENDU GLOBAL + DÉMARRAGE
+   ========================================================= */
+function toutRendre(){
+  rendGrille();
+  rendFond();
+  rendProfil();
+  majFiltres();
+}
+function majFiltres(){
+  const plats = Array.from(new Set(DATA.jeux.map(g => g.platform).filter(Boolean))).sort();
+  const sel = $('#fPlat');
+  const val = UI.plateforme;
+  sel.innerHTML = '<option value="">Toutes plateformes</option>'
+    + plats.map(p => '<option value="' + esc(p) + '">' + esc(p) + '</option>').join('');
+  sel.value = plats.includes(val) ? val : '';
+  UI.plateforme = sel.value;
+}
+
+function init(){
+  charge();
+  appliqueTheme();
+
+  $('#vTag').textContent = VERSION;
+  $('#pied').textContent = 'FelGamesList ' + VERSION + ' — tes données restent dans ce navigateur';
+
+  // listes déroulantes
+  $('#jPlat').innerHTML = PLATEFORMES.map(p => '<option>' + esc(p) + '</option>').join('');
+  $('#jStat').innerHTML = STATUTS.map(s => '<option value="' + s.id + '">' + s.nom + '</option>').join('');
+  $('#puces').innerHTML = '<button class="puce on" data-st="">Tous</button>'
+    + STATUTS.map(s => '<button class="puce" data-st="' + s.id + '">' + s.nom + '</button>').join('');
+  $('#puces').style.display = 'flex';
+  $('#puces').style.gap = '6px';
+  $('#puces').style.flexWrap = 'wrap';
+
+  initEtoiles();
+
+  // en-tête
+  $('#bAdd').onclick = () => ouvreJeu(null);
+  $('#bRegl').onclick = () => {
+    $('#rCle').value = DATA.reglages.cleRawg || '';
+    $('#rAnim').textContent = DATA.reglages.anim ? 'Animé ✓' : 'Coupé';
+    $('#rAnim').classList.toggle('on', DATA.reglages.anim);
+    ouvre('mRegl');
+  };
+  $('#bTheme').onclick = () => {
+    DATA.reglages.theme = DATA.reglages.theme === 'sombre' ? 'clair' : 'sombre';
+    sauve(); appliqueTheme();
+  };
+  $('#q').addEventListener('input', e => { UI.q = e.target.value; rendGrille(); });
+
+  // filtres
+  $('#puces').addEventListener('click', e => {
+    const b = e.target.closest('.puce');
+    if(!b) return;
+    UI.statut = b.dataset.st;
+    document.querySelectorAll('#puces .puce').forEach(x => x.classList.toggle('on', x === b));
+    rendGrille();
+  });
+  $('#fPlat').onchange = e => { UI.plateforme = e.target.value; rendGrille(); };
+  $('#fTri').onchange  = e => { UI.tri = e.target.value; rendGrille(); };
+  $('#bVue').onclick = () => {
+    UI.vue = UI.vue === 'grille' ? 'liste' : 'grille';
+    $('#bVue').textContent = UI.vue === 'grille' ? '▦' : '☰';
+    rendGrille();
+  };
+
+  // clic sur une carte ou une ligne du top 10
+  document.body.addEventListener('click', e => {
+    const c = e.target.closest('[data-jeu]');
+    if(c){ ouvreJeu(c.dataset.jeu); return; }
+    const t = e.target.closest('[data-trp]');
+    if(t){ basculeTrophee(t.dataset.trp); return; }
+    const f = e.target.closest('[data-ferme]');
+    if(f){ ferme(f.dataset.ferme); return; }
+  });
+
+  // fermer en cliquant le fond noir
+  document.querySelectorAll('.modale').forEach(m => {
+    m.addEventListener('click', e => { if(e.target === m) m.classList.remove('on'); });
+  });
+  document.addEventListener('keydown', e => {
+    if(e.key !== 'Escape') return;
+    document.querySelectorAll('.modale.on').forEach(m => m.classList.remove('on'));
+    $('#panProfil').classList.remove('on');
+  });
+
+  // modale jeu
+  $('#bSauve').onclick    = sauveJeu;
+  $('#bSuppr').onclick    = supprimeJeu;
+  $('#bCherche').onclick  = chercheRawg;
+  $('#bTrophees').onclick = ouvreTrophees;
+  $('#bMeta').onclick = () => {
+    const t = $('#jTitre').value.trim();
+    if(!t){ toast('Écris d\'abord le titre.'); return; }
+    window.open('https://www.metacritic.com/search/' + encodeURIComponent(t) + '/', '_blank', 'noopener');
+  };
+  $('#jTitre').addEventListener('keydown', e => { if(e.key === 'Enter') sauveJeu(); });
+
+  // succès
+  $('#bChargeTrp').onclick = chargeTrophees;
+  $('#bAjoutTrp').onclick  = ajouteTropheeManuel;
+
+  // profil
+  $('#bProfil').onclick = () => {
+    const p = $('#panProfil');
+    p.classList.toggle('on');
+    if(p.classList.contains('on')) rendProfil();
+  };
+
+  // réglages
+  $('#rAnim').onclick = () => {
+    DATA.reglages.anim = !DATA.reglages.anim;
+    $('#rAnim').textContent = DATA.reglages.anim ? 'Animé ✓' : 'Coupé';
+    $('#rAnim').classList.toggle('on', DATA.reglages.anim);
+    sauve(); appliqueTheme();
+  };
+  $('#bSauveRegl').onclick = () => {
+    DATA.reglages.cleRawg = $('#rCle').value.trim();
+    sauve(); ferme('mRegl');
+    toast('Réglages enregistrés.');
+  };
+  $('#bExport').onclick = exporte;
+  $('#bImport').onclick = () => $('#fichierImport').click();
+  $('#fichierImport').onchange = e => {
+    if(e.target.files[0]) importe(e.target.files[0]);
+    e.target.value = '';
+  };
+
+  toutRendre();
+  console.log('FGL ' + VERSION + ' prêt · ' + DATA.jeux.length + ' jeux');
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
