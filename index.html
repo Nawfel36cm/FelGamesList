@@ -294,7 +294,68 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .pied{text-align:center;padding:26px 0 10px;font-family:var(--mono);font-size:11px;color:var(--muted)}
 
+/* ===== NAVIGATION ===== */
+.ico.on{background:var(--accent);border-color:transparent;color:#fff}
+
+/* ===== BANDEAU LECTURE SEULE ===== */
+.bandeau{
+  display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin:18px 0 0;
+  padding:12px 16px;border-radius:var(--r);background:var(--ink2);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+}
+.bandeau b{font-family:var(--dsp);font-size:15px;letter-spacing:-.01em}
+.bandeau .av-b{width:34px;height:34px;border-radius:99px;object-fit:cover;flex:0 0 34px;
+  background:var(--accent);display:grid;place-items:center;font-weight:700;color:#fff;font-size:14px}
+
+/* ===== PAGE UTILISATEURS ===== */
+.u-grille{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));padding-bottom:40px}
+.u-carte{
+  background:var(--ink2);border:1px solid var(--line);border-radius:var(--r);
+  padding:15px;text-align:left;width:100%;transition:.18s;display:block;
+}
+.u-carte:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:var(--ombre)}
+.u-tete{display:flex;gap:12px;align-items:center}
+.u-av{width:46px;height:46px;border-radius:99px;object-fit:cover;flex:0 0 46px;
+  background:var(--accent);display:grid;place-items:center;font-family:var(--dsp);
+  font-weight:800;font-size:18px;color:#fff}
+.u-nom{font-weight:600;font-size:15px;line-height:1.2}
+.u-log{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px}
+.pastille{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);margin-top:4px}
+.dot{width:8px;height:8px;border-radius:99px;background:var(--muted);flex:0 0 8px}
+.dot.on{background:var(--mint);box-shadow:0 0 0 3px color-mix(in srgb,var(--mint) 22%,transparent)}
+.u-bio{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.u-top{display:flex;gap:7px;margin-top:12px}
+.u-top img,.u-top .u-vide{width:38px;height:50px;border-radius:6px;object-fit:cover;
+  background:var(--ink3);flex:0 0 38px;display:block}
+.u-bas{display:flex;gap:12px;margin-top:12px;padding-top:11px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+/* ===== AMIS (puces) ===== */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 18px}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:5px 8px 5px 11px;
+  border-radius:99px;background:var(--ink2);border:1px solid var(--line);
+  font-family:var(--mono);font-size:12px}
+.chip button{color:var(--muted);font-size:12px;line-height:1;padding:2px}
+.chip button:hover{color:var(--rouge)}
+
+/* ===== CLOUD ===== */
+.cl-etat{display:flex;align-items:center;gap:10px;font-size:13.5px;margin-bottom:18px;
+  padding:11px 14px;border-radius:11px;background:var(--ink2);border:1px solid var(--line)}
+.cl-etat b{font-weight:600}
+
+/* ===== FICHE EN LECTURE SEULE ===== */
+.voir-tete{display:flex;gap:15px;margin-bottom:16px}
+.voir-aff{width:112px;flex:0 0 112px;aspect-ratio:3/4;border-radius:11px;object-fit:cover;background:var(--ink3)}
+.voir-l{display:flex;justify-content:space-between;gap:14px;padding:8px 0;
+  border-bottom:1px solid var(--line);font-size:13.5px}
+.voir-l span{color:var(--muted)}
+.voir-l b{font-family:var(--mono);font-weight:700}
+.voir-avis{margin-top:14px;font-size:13.5px;line-height:1.6;color:var(--paper);
+  background:var(--ink2);border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+
 @media (max-width:640px){
+  .u-grille{grid-template-columns:1fr}
   .grid{grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px}
   .marque{font-size:22px}
   .duo{grid-template-columns:1fr}
@@ -315,6 +376,8 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);
   <div class="wrap hd-in">
     <div class="marque">FG<em>L</em> <small id="vTag"></small></div>
     <div class="rech"><span>🔎</span><input id="q" placeholder="Chercher un jeu…" autocomplete="off"></div>
+    <button class="ico" id="bUsers" title="Utilisateurs">👥</button>
+    <button class="ico" id="bCloud" title="Cloud GitHub">☁️</button>
     <button class="ico" id="bTheme" title="Changer de thème">🌙</button>
     <button class="ico" id="bRegl" title="Réglages">⚙️</button>
     <button class="btn pri" id="bAdd">+ Ajouter</button>
@@ -322,6 +385,10 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);
 </header>
 
 <main class="wrap">
+  <div id="bandeau"></div>
+
+  <!-- ===== VUE ACCUEIL ===== -->
+  <section id="vueAccueil">
   <!-- ===== FILTRES ===== -->
   <div class="bar" id="barre">
     <div id="puces"></div>
@@ -342,6 +409,19 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);
 
   <div class="grid" id="grille"></div>
   <div id="vide"></div>
+  </section>
+
+  <!-- ===== VUE UTILISATEURS ===== -->
+  <section id="vueUsers" style="display:none">
+    <div class="bar">
+      <div class="titre-s" style="margin:0">👥 Utilisateurs</div>
+      <div class="espace"></div>
+      <div class="compte" id="uCompte"></div>
+      <button class="btn" id="bMajUsers">↻ Rafraîchir</button>
+    </div>
+    <div class="u-grille" id="uGrille"></div>
+  </section>
+
   <div class="pied" id="pied"></div>
 </main>
 
@@ -475,6 +555,65 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);
   </div>
 </div>
 
+<!-- ===== MODALE CLOUD ===== -->
+<div class="modale" id="mCloud">
+  <div class="boite">
+    <div class="boite-hd">
+      <h2>☁️ Cloud GitHub</h2>
+      <button class="ico" data-ferme="mCloud">✕</button>
+    </div>
+    <div class="boite-bd">
+      <div class="cl-etat" id="clEtat"></div>
+
+      <div class="champ">
+        <label for="clToken">Token GitHub — permission « gist » uniquement</label>
+        <div class="ligne">
+          <input id="clToken" type="password" placeholder="ghp_…" autocomplete="off">
+          <button class="btn pri" id="bConnecte">Connecter</button>
+        </div>
+        <div class="aide">
+          1. Ouvre <a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=FGL" target="_blank" rel="noopener">cette page GitHub</a> — la case <b>gist</b> est déjà cochée — puis « Generate token ».<br>
+          2. Colle-le ici. Il reste sur cet appareil et n'est envoyé qu'à api.github.com.<br>
+          3. Le même token sur ton PC et ton téléphone = la même liste partout.
+        </div>
+      </div>
+
+      <div class="champ">
+        <label>Synchronisation</label>
+        <div class="ligne">
+          <button class="btn" id="bPush">⬆ Envoyer</button>
+          <button class="btn" id="bPull">⬇ Récupérer</button>
+          <button class="puce" id="bAuto"></button>
+        </div>
+        <div class="aide" id="clSync"></div>
+      </div>
+
+      <div class="champ">
+        <label>Ce que FGL crée sur ton compte</label>
+        <div class="aide">
+          • <b>fgl-data.json</b> — gist <b>secret</b> : toute ta collection, succès compris.<br>
+          • <b>fgl-profile.json</b> — gist <b>public</b> : pseudo, avatar, bio, présence, top 10 et ta liste allégée. C'est celui-là que tes amis lisent.<br>
+          Ne les supprime pas depuis GitHub, FGL les retrouve tout seul à chaque connexion.
+        </div>
+      </div>
+    </div>
+    <div class="boite-ft">
+      <button class="btn dgr" id="bDeco">Se déconnecter</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODALE FICHE EN LECTURE SEULE ===== -->
+<div class="modale" id="mVoir">
+  <div class="boite">
+    <div class="boite-hd">
+      <h2 id="voirTitre">Jeu</h2>
+      <button class="ico" data-ferme="mVoir">✕</button>
+    </div>
+    <div class="boite-bd" id="voirCorps"></div>
+  </div>
+</div>
+
 <input type="file" id="fichierImport" accept=".json,application/json" style="display:none">
 <div class="toast" id="toast"></div>
 
@@ -482,7 +621,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);
 /* =========================================================
    FGL — FelGamesList
    ========================================================= */
-const VERSION = 'v1';
+const VERSION = 'v2';
 
 /* ---------- Constantes ---------- */
 const PLATEFORMES = ['PC (Steam)','PlayStation','Xbox','Nintendo Switch','Mobile','Rétro','Autre'];
@@ -562,14 +701,16 @@ const statutDe = id => STATUTS.find(s => s.id === id) || STATUTS[0];
 /* ---------- État ---------- */
 const CLE = 'fgl_data_v1';
 let DATA = null;
-let UI = { statut:'', plateforme:'', tri:'recent', vue:'grille', q:'' };
+let UI = { statut:'', plateforme:'', tri:'recent', vue:'grille', vue2:'accueil', q:'' };
+let lecture = null;      // profil consulté en lecture seule (null = ma liste)
 let jeuEnCours = null;   // id du jeu ouvert dans la modale
 let noteTmp = null;      // note en cours de saisie
 
 function dataVierge(){
   return {
-    version: 1,
+    version: 2,
     reglages: { cleRawg:'', theme:'sombre', anim:true },
+    cloud: { login:'', gistData:'', gistProfil:'', auto:true, syncAt:'', majAt:'' },
     profil: {
       pseudo:'Nawfel', githubLogin:'', avatar:'', bio:'',
       visibilite:'public', amis:[], lastSeen: isoLocal()
@@ -592,6 +733,8 @@ function migre(){
   if(!DATA || typeof DATA !== 'object') DATA = v;
   if(!DATA.reglages) DATA.reglages = v.reglages;
   if(!DATA.profil)   DATA.profil   = v.profil;
+  if(!DATA.cloud)    DATA.cloud    = v.cloud;
+  for(const k in v.cloud) if(DATA.cloud[k] === undefined) DATA.cloud[k] = v.cloud[k];
   if(!Array.isArray(DATA.jeux)) DATA.jeux = [];
   for(const k in v.reglages) if(DATA.reglages[k] === undefined) DATA.reglages[k] = v.reglages[k];
   for(const k in v.profil)   if(DATA.profil[k]   === undefined) DATA.profil[k]   = v.profil[k];
@@ -602,16 +745,29 @@ function migre(){
     if(g.achievementsTotal == null) g.achievementsTotal = g.achievements.length;
     if(!g.addedAt) g.addedAt = isoLocal();
   });
-  DATA.version = 1;
+  if(!Array.isArray(DATA.profil.amis)) DATA.profil.amis = [];
+  if(!DATA.profil.visibilite) DATA.profil.visibilite = 'public';
+  DATA.version = 2;
 }
-function sauve(){
-  DATA.profil.lastSeen = isoLocal();
+/* écriture brute, sans toucher aux repères de synchro */
+function ecrit(){
   try{
     localStorage.setItem(CLE, JSON.stringify(DATA));
   }catch(e){
     console.error(e);
     toast("Sauvegarde impossible : mémoire du navigateur pleine.");
   }
+}
+/* enregistrement local + marquage « modifié depuis le dernier envoi » */
+function sauveLocal(){
+  DATA.profil.lastSeen = isoLocal();
+  DATA.cloud.majAt = isoLocal();
+  ecrit();
+}
+/* enregistrement normal : local puis envoi différé vers GitHub */
+function sauve(){
+  sauveLocal();
+  cloudPlanifie();
 }
 
 /* =========================================================
@@ -693,8 +849,11 @@ window.addEventListener('mousemove', e => {
 /* =========================================================
    GRILLE
    ========================================================= */
+/* la grille lit ma collection, ou celle qu'on consulte en lecture seule */
+function sourceJeux(){ return lecture ? (lecture.jeux || []) : DATA.jeux; }
+
 function jeuxFiltres(){
-  let L = DATA.jeux.slice();
+  let L = sourceJeux().slice();
   const q = UI.q.trim().toLowerCase();
   if(q) L = L.filter(g => (g.title || '').toLowerCase().includes(q));
   if(UI.statut) L = L.filter(g => g.status === UI.statut);
@@ -719,10 +878,13 @@ function rendGrille(){
   g.className = 'grid' + (UI.vue === 'liste' ? ' liste' : '');
   $('#compte').textContent = L.length + (L.length > 1 ? ' jeux' : ' jeu');
 
-  if(!DATA.jeux.length){
+  if(!sourceJeux().length){
     g.innerHTML = '';
-    $('#vide').innerHTML = '<div class="vide-etat"><h2>Ta bibliothèque est vide</h2>'
-      + '<p>Ajoute ton premier jeu : le fond du site se construira à partir de tes affiches.</p></div>';
+    $('#vide').innerHTML = lecture
+      ? '<div class="vide-etat"><h2>Liste vide</h2><p>' + esc(lecture.pseudo || lecture.login)
+        + ' n\'a rien publié pour le moment.</p></div>'
+      : '<div class="vide-etat"><h2>Ta bibliothèque est vide</h2>'
+        + '<p>Ajoute ton premier jeu : le fond du site se construira à partir de tes affiches.</p></div>';
     return;
   }
   if(!L.length){
@@ -735,8 +897,9 @@ function rendGrille(){
 
   g.innerHTML = L.map(j => {
     const st = statutDe(j.status);
-    const obt = j.achievements.filter(a => a.unlocked).length;
-    const tot = j.achievementsTotal || j.achievements.length;
+    // en lecture seule les succès arrivent déjà comptés (trpObt / trpTot)
+    const obt = j.achievements ? j.achievements.filter(a => a.unlocked).length : (j.trpObt || 0);
+    const tot = j.achievements ? (j.achievementsTotal || j.achievements.length) : (j.trpTot || 0);
     const aff = j.cover
       ? '<img src="' + esc(j.cover) + '" alt="" loading="lazy">'
       : '<div class="vide">' + esc((j.title || '?').slice(0,1).toUpperCase()) + '</div>';
@@ -745,7 +908,8 @@ function rendGrille(){
     const trp = tot
       ? '<div class="trp-b">' + (obt === tot ? '💯' : '🏆 ' + obt + '/' + tot) + '</div>' : '';
     const sous = [j.platform, j.lastPlayed ? depuisJour(j.lastPlayed) : ''].filter(Boolean).join(' · ');
-    return '<button class="carte" data-jeu="' + j.id + '">'
+    const cible = lecture ? 'data-voir="' + j._i + '"' : 'data-jeu="' + j.id + '"';
+    return '<button class="carte" ' + cible + '>'
       + '<div class="aff">' + aff + note + trp
       + '<div class="stat-b" style="background:' + st.c + 'cc">' + st.nom + '</div></div>'
       + '<div class="carte-txt">'
@@ -1133,17 +1297,56 @@ function rendProfil(){
     + '<div class="champ"><label for="pAvatar">Avatar (lien de l\'image)</label>'
     + '<input id="pAvatar" value="' + esc(p.avatar) + '" placeholder="https://…"></div>'
     + '<div class="champ"><label for="pBio">Bio</label>'
-    + '<textarea id="pBio" placeholder="Deux mots sur toi">' + esc(p.bio) + '</textarea></div>'
-    + '<button class="btn pri" id="bSauveProfil">Enregistrer mon profil</button>';
+    + '<textarea id="pBio" placeholder="Deux mots sur toi">' + esc(p.bio) + '</textarea></div>';
+
+  const vis = p.visibilite || 'public';
+  h += '<div class="champ"><label for="pVis">Qui peut voir ma liste</label>'
+    + '<select id="pVis">'
+    + '<option value="public"' + (vis === 'public' ? ' selected' : '') + '>Tout le monde</option>'
+    + '<option value="amis"'   + (vis === 'amis'   ? ' selected' : '') + '>Mes amis seulement</option>'
+    + '<option value="prive"'  + (vis === 'prive'  ? ' selected' : '') + '>Personne</option>'
+    + '</select>'
+    + '<div class="aide">« Personne » vide vraiment ton profil en ligne. « Mes amis » est une règle '
+    + 'd\'affichage dans FGL : un gist public reste techniquement lisible par qui connaît son adresse.</div></div>';
+
+  h += '<button class="btn pri" id="bSauveProfil">Enregistrer mon profil</button>';
+
+  h += '<div class="titre-s" style="margin-top:22px">👥 Mes amis</div>'
+    + '<div class="ligne"><input id="pAmi" placeholder="pseudo GitHub" autocomplete="off">'
+    + '<button class="btn" id="bAddAmi">+</button></div>';
+  const amis = p.amis || [];
+  h += '<div class="chips" id="pAmis">'
+    + (amis.length
+        ? amis.map(l => '<span class="chip">' + esc(l)
+            + '<button data-ami="' + esc(l) + '" title="Retirer">✕</button></span>').join('')
+        : '<div class="aide">Ajoute les pseudos GitHub de tes potes : ils apparaissent dans 👥 Utilisateurs.</div>')
+    + '</div>';
 
   $('#pfCorps').innerHTML = h;
+
   $('#bSauveProfil').onclick = () => {
     p.pseudo = $('#pPseudo').value.trim() || 'Sans pseudo';
     p.avatar = $('#pAvatar').value.trim();
     p.bio    = $('#pBio').value.trim();
+    p.visibilite = $('#pVis').value;
     sauve(); rendProfil();
+    if(connecte()) cloudPushProfil().catch(e => console.warn(e));
     toast('Profil enregistré.');
   };
+  const ajouteAmi = () => {
+    const l = $('#pAmi').value.trim().replace(/^@/, '');
+    if(!l) return;
+    const bas = l.toLowerCase();
+    if((p.amis || []).some(x => String(x).toLowerCase() === bas)){
+      toast('Déjà dans tes amis.'); return;
+    }
+    p.amis = (p.amis || []).concat(l);
+    sauve(); rendProfil();
+    if(connecte()) cloudPushProfil().catch(e => console.warn(e));
+    toast(l + ' ajouté.');
+  };
+  $('#bAddAmi').onclick = ajouteAmi;
+  $('#pAmi').addEventListener('keydown', e => { if(e.key === 'Enter') ajouteAmi(); });
 }
 
 /* =========================================================
@@ -1201,16 +1404,562 @@ function appliqueTheme(){
 }
 
 /* =========================================================
+   CLOUD GITHUB — gists, synchro, présence
+   ========================================================= */
+const CLE_TOKEN = 'fgl_gh_token';
+const F_DATA    = 'fgl-data.json';
+const F_PROFIL  = 'fgl-profile.json';
+
+function ghToken(){ return (localStorage.getItem(CLE_TOKEN) || '').trim(); }
+function connecte(){ return !!ghToken(); }
+
+/* Appel à l'API GitHub. Sans token ça marche aussi (lecture publique, 60 appels/h). */
+async function gh(chemin, opts){
+  const o = opts || {};
+  const h = Object.assign({'Accept':'application/vnd.github+json'}, o.headers || {});
+  const t = ghToken();
+  if(t) h['Authorization'] = 'Bearer ' + t;
+  const rep = await fetch('https://api.github.com' + chemin, Object.assign({}, o, {headers:h}));
+  if(rep.status === 401) throw new Error('token');
+  if(rep.status === 403 || rep.status === 429) throw new Error('limite');
+  if(!rep.ok) throw new Error('HTTP ' + rep.status);
+  if(rep.status === 204) return null;
+  return rep.json();
+}
+function messageCloud(e){
+  const m = String((e && e.message) || e);
+  if(m === 'token')  return 'Token refusé par GitHub. Recolle-le (permission « gist »).';
+  if(m === 'limite') return 'Limite d\'appels GitHub atteinte, réessaie dans une heure.';
+  return 'GitHub n\'a pas répondu correctement (' + m + ').';
+}
+/* Lit le contenu d'un fichier de gist, même si GitHub l'a tronqué. */
+async function contenuFichier(f){
+  if(!f) return null;
+  if(f.truncated && f.raw_url){
+    const r = await fetch(f.raw_url, {cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return r.text();
+  }
+  return f.content;
+}
+
+/* ---------- Ce qu'on publie ---------- */
+function payloadData(){
+  // le token n'est JAMAIS envoyé, et la clé RAWG reste sur l'appareil
+  return { app:'FGL', version:2, syncAt: isoLocal(), profil: DATA.profil, jeux: DATA.jeux };
+}
+/* version allégée d'un jeu, pour le profil public */
+function jeuPublic(g){
+  const A = g.achievements || [];
+  return {
+    title: g.title, cover: g.cover || '', note: g.note == null ? null : g.note,
+    status: g.status || 'encours', platform: g.platform || '',
+    playtime: g.playtime || 0, metaUser: g.metaUser == null ? null : g.metaUser,
+    lastPlayed: g.lastPlayed || '', genres: g.genres || [], comment: g.comment || '',
+    trpObt: A.filter(a => a.unlocked).length,
+    trpTot: g.achievementsTotal || A.length
+  };
+}
+function payloadProfil(){
+  const p = DATA.profil;
+  const partage = p.visibilite !== 'prive';
+  return {
+    app:'FGL', version:2,
+    login: DATA.cloud.login || '', pseudo: p.pseudo || 'Sans pseudo',
+    avatar: p.avatar || '', bio: p.bio || '',
+    visibilite: p.visibilite || 'public',
+    amis: p.amis || [],
+    lastSeen: isoLocal(),
+    nbJeux: partage ? DATA.jeux.length : 0,
+    top10: partage ? top10().map(jeuPublic) : [],
+    jeux:  partage ? DATA.jeux.map(jeuPublic) : []
+  };
+}
+
+/* ---------- Retrouver / créer les deux gists ---------- */
+async function cloudTrouveGists(){
+  const L = await gh('/gists?per_page=100');
+  (L || []).forEach(g => {
+    if(!g.files) return;
+    if(g.files[F_DATA]   && !DATA.cloud.gistData)   DATA.cloud.gistData   = g.id;
+    if(g.files[F_PROFIL] && !DATA.cloud.gistProfil) DATA.cloud.gistProfil = g.id;
+    if(g.owner && g.owner.login && !DATA.cloud.login) DATA.cloud.login = g.owner.login;
+  });
+  ecrit();
+}
+
+/* ---------- Envoyer ---------- */
+let pushT = null, cloudOccupe = false;
+
+function cloudPlanifie(){
+  if(!connecte() || !DATA.cloud.auto) return;
+  clearTimeout(pushT);
+  pushT = setTimeout(() => cloudPush(true), 6000);
+}
+
+async function cloudPushProfil(){
+  if(!connecte()) return;
+  const corps = {
+    description: 'FGL — profil public',
+    files: { 'fgl-profile.json': { content: JSON.stringify(payloadProfil()) } }
+  };
+  if(DATA.cloud.gistProfil){
+    await gh('/gists/' + DATA.cloud.gistProfil, {method:'PATCH', body: JSON.stringify(corps)});
+  }else{
+    const g = await gh('/gists', {method:'POST', body: JSON.stringify(Object.assign({public:true}, corps))});
+    DATA.cloud.gistProfil = g.id;
+    if(g.owner && g.owner.login && !DATA.cloud.login) DATA.cloud.login = g.owner.login;
+    ecrit();
+  }
+}
+
+async function cloudPush(silencieux){
+  if(!connecte()){ toast('Connecte ton compte GitHub d\'abord.'); return false; }
+  if(cloudOccupe) return false;
+  cloudOccupe = true;
+  clearTimeout(pushT);
+  try{
+    const corps = {
+      description: 'FGL — sauvegarde (ne pas supprimer)',
+      files: { 'fgl-data.json': { content: JSON.stringify(payloadData(), null, 1) } }
+    };
+    if(DATA.cloud.gistData){
+      await gh('/gists/' + DATA.cloud.gistData, {method:'PATCH', body: JSON.stringify(corps)});
+    }else{
+      const g = await gh('/gists', {method:'POST', body: JSON.stringify(Object.assign({public:false}, corps))});
+      DATA.cloud.gistData = g.id;
+      if(g.owner && g.owner.login && !DATA.cloud.login) DATA.cloud.login = g.owner.login;
+    }
+    await cloudPushProfil();
+    DATA.cloud.syncAt = isoLocal();
+    DATA.cloud.majAt  = DATA.cloud.syncAt;
+    ecrit(); majEtatCloud();
+    if(!silencieux) toast('Sauvegarde envoyée sur GitHub.');
+    return true;
+  }catch(e){
+    console.error(e);
+    toast(messageCloud(e));
+    majEtatCloud();
+    return false;
+  }finally{
+    cloudOccupe = false;
+  }
+}
+
+/* ---------- Récupérer ---------- */
+async function litGistData(){
+  if(!DATA.cloud.gistData) await cloudTrouveGists();
+  if(!DATA.cloud.gistData) return null;
+  const g = await gh('/gists/' + DATA.cloud.gistData);
+  const txt = await contenuFichier(g.files && g.files[F_DATA]);
+  if(!txt) return null;
+  const d = JSON.parse(txt);
+  if(!d || !Array.isArray(d.jeux)) throw new Error('format');
+  return d;
+}
+function appliqueDistant(d){
+  DATA.jeux = d.jeux || [];
+  if(d.profil) DATA.profil = Object.assign(DATA.profil, d.profil);
+  migre();
+  DATA.cloud.syncAt = d.syncAt || isoLocal();
+  DATA.cloud.majAt  = DATA.cloud.syncAt;   // rien de neuf en local depuis
+  ecrit();
+  lecture = null;
+  toutRendre();
+}
+async function cloudPull(manuel){
+  if(!connecte()){ toast('Connecte ton compte GitHub d\'abord.'); return; }
+  try{
+    const d = await litGistData();
+    if(!d){ toast('Aucune sauvegarde trouvée sur ton compte.'); return; }
+    if(manuel && DATA.jeux.length){
+      const ok = confirm('Remplacer ta liste de cet appareil (' + DATA.jeux.length
+        + ' jeux) par celle de GitHub (' + (d.jeux || []).length + ' jeux) ?');
+      if(!ok) return;
+    }
+    appliqueDistant(d);
+    toast('Collection récupérée : ' + DATA.jeux.length + ' jeux.');
+  }catch(e){
+    console.error(e);
+    toast(messageCloud(e));
+  }
+}
+
+/* ---------- Connexion / déconnexion ---------- */
+async function cloudConnecte(token){
+  if(!token){ toast('Colle ton token GitHub.'); return; }
+  localStorage.setItem(CLE_TOKEN, token);
+  try{
+    try{
+      const me = await gh('/user');
+      if(me && me.login){
+        DATA.cloud.login = me.login;
+        DATA.profil.githubLogin = me.login;
+      }
+    }catch(e){
+      if(String(e.message) === 'token') throw e;   // vraiment invalide
+      // sinon on retrouvera le login via les gists
+    }
+    await cloudTrouveGists();
+    ecrit(); majEtatCloud();
+    toast('Connecté' + (DATA.cloud.login ? ' : ' + DATA.cloud.login : '') + '.');
+    await cloudDemarre();
+  }catch(e){
+    console.error(e);
+    localStorage.removeItem(CLE_TOKEN);
+    majEtatCloud();
+    toast(messageCloud(e));
+  }
+}
+function cloudDeconnecte(){
+  if(!confirm('Se déconnecter de GitHub ?\n\nTes jeux restent sur cet appareil et les gists restent sur ton compte.')) return;
+  localStorage.removeItem(CLE_TOKEN);
+  clearInterval(presT); presT = null;
+  DATA.cloud.login = '';
+  ecrit(); majEtatCloud();
+  toast('Déconnecté.');
+}
+
+/* ---------- Démarrage : on décide qui gagne ---------- */
+async function cloudDemarre(){
+  majEtatCloud();
+  if(!connecte()) return;
+  try{
+    await cloudTrouveGists();
+    const d = await litGistData();
+    const distant = ms(d && d.syncAt);
+    const localMaj = ms(DATA.cloud.majAt);
+    if(d && distant > localMaj){
+      // GitHub est plus récent que la dernière modif faite ici : on récupère
+      appliqueDistant(d);
+      toast('Collection récupérée depuis GitHub (' + DATA.jeux.length + ' jeux).');
+    }else if(DATA.cloud.auto){
+      await cloudPush(true);
+    }
+    presenceDemarre();
+    majEtatCloud();
+  }catch(e){
+    console.warn(e);
+    majEtatCloud(messageCloud(e));
+  }
+}
+
+/* ---------- Présence ---------- */
+let presT = null;
+function presenceDemarre(){
+  if(!connecte()) return;
+  cloudPushProfil().catch(e => console.warn(e));
+  clearInterval(presT);
+  presT = setInterval(() => {
+    if(document.visibilityState === 'visible') cloudPushProfil().catch(e => console.warn(e));
+  }, 120000);
+}
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && connecte()) cloudPushProfil().catch(e => console.warn(e));
+});
+/* dernier signe de vie à la fermeture de l'onglet */
+window.addEventListener('pagehide', () => {
+  const t = ghToken();
+  if(!t || !DATA || !DATA.cloud.gistProfil) return;
+  try{
+    fetch('https://api.github.com/gists/' + DATA.cloud.gistProfil, {
+      method:'PATCH', keepalive:true,
+      headers:{'Authorization':'Bearer ' + t, 'Accept':'application/vnd.github+json'},
+      body: JSON.stringify({files:{'fgl-profile.json':{content: JSON.stringify(payloadProfil())}}})
+    });
+  }catch(e){ /* rien à faire, la page se ferme */ }
+});
+
+/* ---------- État affiché dans la modale ---------- */
+function ouvreCloud(){
+  $('#clToken').value = '';
+  majEtatCloud();
+  ouvre('mCloud');
+}
+function majEtatCloud(erreur){
+  const z = $('#clEtat');
+  if(!z) return;
+  if(erreur){
+    z.innerHTML = '<span class="dot"></span><span>' + esc(erreur) + '</span>';
+  }else if(connecte()){
+    z.innerHTML = '<span class="dot on"></span><span>Connecté'
+      + (DATA.cloud.login ? ' — <b>' + esc(DATA.cloud.login) + '</b>' : '') + '</span>';
+  }else{
+    z.innerHTML = '<span class="dot"></span><span>Hors ligne — tes jeux vivent seulement sur cet appareil.</span>';
+  }
+  const a = $('#bAuto');
+  if(a){
+    a.textContent = DATA.cloud.auto ? 'Auto ✓' : 'Auto coupé';
+    a.classList.toggle('on', !!DATA.cloud.auto);
+  }
+  const s = $('#clSync');
+  if(s){
+    s.textContent = DATA.cloud.syncAt
+      ? 'Dernier envoi : ' + DATA.cloud.syncAt.slice(8,10) + '/' + DATA.cloud.syncAt.slice(5,7)
+        + '/' + DATA.cloud.syncAt.slice(0,4) + ' à ' + DATA.cloud.syncAt.slice(11,16)
+      : 'Jamais envoyé pour l\'instant.';
+  }
+  const b = $('#bCloud');
+  if(b) b.classList.toggle('on', connecte());
+}
+
+/* =========================================================
+   UTILISATEURS
+   ========================================================= */
+const CACHE = new Map();          // login → { t, p }
+const CACHE_MS = 5 * 60 * 1000;   // durée de cache par défaut
+let USERS = [];
+let annuaire = null;
+let pauseAPI = 0;                 // date jusqu'à laquelle on arrête d'appeler GitHub
+
+/* Sans token GitHub : 60 appels/h par adresse IP. Avec token : 5000/h.
+   On adapte donc le nombre de profils lus et la fraîcheur demandée. */
+function maxProfils(){ return connecte() ? 40 : 12; }
+function ttlAuto(){    return connecte() ? 45000 : 10 * 60000; }
+
+/* users.json posé à côté de index.html dans le dépôt */
+async function chargeAnnuaire(){
+  if(annuaire) return annuaire;
+  try{
+    const rep = await fetch('users.json', {cache:'no-store'});
+    if(!rep.ok) throw new Error('HTTP ' + rep.status);
+    const js = await rep.json();
+    const L = Array.isArray(js) ? js : (js.users || js.logins || []);
+    annuaire = L.map(x => (typeof x === 'string' ? x : (x && x.login))).filter(Boolean);
+  }catch(e){
+    annuaire = [];   // pas de fichier : ce n'est pas une erreur
+  }
+  return annuaire;
+}
+
+/* ttl = âge maximum accepté pour une réponse déjà en cache (ms) */
+async function profilDe(login, ttl){
+  const age = (ttl == null ? CACHE_MS : ttl);
+  const cle = login.toLowerCase();
+  const c = CACHE.get(cle);
+  if(c && Date.now() - c.t < age) return c.p;
+  try{
+    const L = await gh('/users/' + encodeURIComponent(login) + '/gists?per_page=100');
+    let f = null;
+    for(const g of (L || [])){
+      if(g.files && g.files[F_PROFIL]){ f = g.files[F_PROFIL]; break; }
+    }
+    if(!f){ CACHE.set(cle, {t:Date.now(), p:null}); return null; }
+    const r = await fetch(f.raw_url, {cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const p = JSON.parse(await r.text());
+    p.login = login;
+    (p.jeux || []).forEach((g, i) => { g._i = i; });
+    CACHE.set(cle, {t:Date.now(), p});
+    return p;
+  }catch(e){
+    if(String(e.message) === 'limite') throw e;   // on remonte pour arrêter la boucle
+    console.warn('profil ' + login, e);
+    return c ? c.p : null;
+  }
+}
+
+/* Respect de la visibilité : privé jamais, amis seulement si réciprocité */
+function profilVisible(p){
+  if(!p) return false;
+  const v = p.visibilite || 'public';
+  if(v === 'prive') return false;
+  if(v === 'amis'){
+    const moi = (DATA.cloud.login || '').toLowerCase();
+    if(!moi) return false;
+    return (p.amis || []).some(x => String(x).toLowerCase() === moi);
+  }
+  return true;
+}
+
+/* ---------- Présence, recalculée en local chaque seconde ---------- */
+function etatPresence(iso){
+  const t = ms(iso);
+  if(!t) return {on:false, txt:'Jamais vu'};
+  const ecart = Date.now() - t;
+  if(ecart < 5 * 60000) return {on:true, txt:'En ligne'};
+  return {on:false, txt:'Déconnecté depuis ' + duree(t)};
+}
+function duree(t){
+  const mn = Math.floor((Date.now() - t) / 60000);
+  if(mn < 60) return Math.max(mn, 1) + ' min';
+  const h = Math.floor(mn / 60);
+  if(h < 24) return h + ' h';
+  const j = Math.floor(h / 24);
+  if(j < 31) return j + ' jour' + (j > 1 ? 's' : '');
+  // au-delà : vrai calcul calendaire
+  const d0 = new Date(t), d1 = new Date();
+  let mo = (d1.getFullYear() - d0.getFullYear()) * 12 + (d1.getMonth() - d0.getMonth());
+  if(d1.getDate() < d0.getDate()) mo--;
+  if(mo < 1) mo = 1;
+  if(mo < 12) return mo + ' mois';
+  const an = Math.floor(mo / 12);
+  return an + ' an' + (an > 1 ? 's' : '');
+}
+function majPresence(){
+  document.querySelectorAll('[data-seen]').forEach(el => {
+    const e = etatPresence(el.dataset.seen);
+    el.innerHTML = '<span class="dot' + (e.on ? ' on' : '') + '"></span>' + esc(e.txt);
+  });
+}
+
+/* ---------- Chargement + rendu ---------- */
+let chargeEnCours = false;
+async function chargeUsers(ttl){
+  if(chargeEnCours) return;
+  if(pauseAPI && Date.now() < pauseAPI) return;   // limite atteinte, on laisse souffler
+  chargeEnCours = true;
+  const z = $('#uGrille');
+  if(!USERS.length) z.innerHTML = '<div class="vide-etat">Chargement des profils…</div>';
+  try{
+    const moi = (DATA.cloud.login || '').toLowerCase();
+    const vus = new Set();
+    const logins = [];
+    (DATA.profil.amis || []).concat(await chargeAnnuaire()).forEach(l => {
+      const s = String(l || '').trim().replace(/^@/, '');
+      const b = s.toLowerCase();
+      if(!s || b === moi || vus.has(b)) return;
+      vus.add(b); logins.push(s);
+    });
+    const res = [];
+    for(const l of logins.slice(0, maxProfils())){   // jamais de boucle sans limite
+      const p = await profilDe(l, ttl);
+      if(profilVisible(p)) res.push(p);
+    }
+    USERS = res;
+    pauseAPI = 0;
+  }catch(e){
+    console.warn(e);
+    if(String(e.message) === 'limite'){
+      pauseAPI = Date.now() + 10 * 60000;
+      toast(connecte()
+        ? 'Limite d\'appels GitHub atteinte, pause de 10 minutes.'
+        : 'Limite GitHub atteinte (60 appels/h sans compte). Connecte ton token dans ☁️.');
+    }
+  }finally{
+    chargeEnCours = false;
+    rendUsers();
+  }
+}
+
+function rendUsers(){
+  const z = $('#uGrille');
+  $('#uCompte').textContent = USERS.length + (USERS.length > 1 ? ' profils' : ' profil');
+  if(!USERS.length){
+    z.innerHTML = '<div class="vide-etat"><h2>Personne pour l\'instant</h2>'
+      + '<p>Ajoute des amis dans <b>Mon Profil</b> (leur pseudo GitHub), ou demande à être listé '
+      + 'dans le <b>users.json</b> du dépôt.</p>'
+      + (connecte() ? '' : '<p class="aide">Sans compte GitHub connecté, FGL ne lit que '
+          + maxProfils() + ' profils et rafraîchit moins souvent : GitHub limite à 60 appels par heure.</p>')
+      + '</div>';
+    return;
+  }
+  z.innerHTML = USERS.map(p => {
+    const ini = (p.pseudo || p.login || '?').slice(0,1).toUpperCase();
+    const av = p.avatar
+      ? '<img class="u-av" src="' + esc(p.avatar) + '" alt="" loading="lazy">'
+      : '<div class="u-av">' + esc(ini) + '</div>';
+    const top = (p.top10 || []).slice(0, 3).map(g => g.cover
+      ? '<img src="' + esc(g.cover) + '" alt="" loading="lazy" title="' + esc(g.title) + '">'
+      : '<div class="u-vide" title="' + esc(g.title) + '"></div>').join('');
+    const e = etatPresence(p.lastSeen);
+    return '<button class="u-carte" data-user="' + esc(p.login) + '">'
+      + '<div class="u-tete">' + av + '<div>'
+      + '<div class="u-nom">' + esc(p.pseudo || p.login) + '</div>'
+      + '<div class="u-log">@' + esc(p.login) + '</div>'
+      + '<div class="pastille" data-seen="' + esc(p.lastSeen || '') + '">'
+      + '<span class="dot' + (e.on ? ' on' : '') + '"></span>' + esc(e.txt) + '</div>'
+      + '</div></div>'
+      + (p.bio ? '<div class="u-bio">' + esc(p.bio) + '</div>' : '')
+      + (top ? '<div class="u-top">' + top + '</div>' : '')
+      + '<div class="u-bas"><span>' + (p.nbJeux || 0) + ' jeux</span>'
+      + '<span>' + ((p.top10 || []).length ? 'top ' + Math.min(10, p.top10.length) : 'pas de top') + '</span>'
+      + '</div></button>';
+  }).join('');
+}
+
+/* ---------- Lecture seule ---------- */
+function ouvreLecture(login){
+  const p = USERS.find(x => String(x.login).toLowerCase() === String(login).toLowerCase());
+  if(!p) return;
+  lecture = p;
+  UI.q = ''; $('#q').value = '';
+  montreVue('accueil');
+  rendBandeau(); majFiltres(); rendGrille();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function quitteLecture(){
+  lecture = null;
+  rendBandeau(); montreVue('users'); majFiltres(); rendGrille();
+}
+function rendBandeau(){
+  const z = $('#bandeau');
+  const add = $('#bAdd');
+  if(!lecture){
+    z.innerHTML = '';
+    if(add) add.style.display = '';
+    return;
+  }
+  if(add) add.style.display = 'none';
+  const ini = (lecture.pseudo || lecture.login || '?').slice(0,1).toUpperCase();
+  const av = lecture.avatar
+    ? '<img class="av-b" src="' + esc(lecture.avatar) + '" alt="">'
+    : '<div class="av-b">' + esc(ini) + '</div>';
+  const e = etatPresence(lecture.lastSeen);
+  z.innerHTML = '<div class="bandeau">' + av
+    + '<div><b>Tu regardes la liste de ' + esc(lecture.pseudo || lecture.login) + '</b>'
+    + '<div class="pastille" data-seen="' + esc(lecture.lastSeen || '') + '">'
+    + '<span class="dot' + (e.on ? ' on' : '') + '"></span>' + esc(e.txt) + '</div></div>'
+    + '<div class="espace"></div>'
+    + '<button class="btn" id="bRetourL">← Revenir à ma liste</button></div>';
+  $('#bRetourL').onclick = quitteLecture;
+}
+function ouvreVoir(i){
+  const g = (lecture && lecture.jeux || [])[i];
+  if(!g) return;
+  const st = statutDe(g.status);
+  const aff = g.cover
+    ? '<img class="voir-aff" src="' + esc(g.cover) + '" alt="">'
+    : '<div class="voir-aff"></div>';
+  const ligne = (nom, val) => val ? '<div class="voir-l"><span>' + nom + '</span><b>' + val + '</b></div>' : '';
+  $('#voirTitre').textContent = g.title || 'Jeu';
+  $('#voirCorps').innerHTML = '<div class="voir-tete">' + aff + '<div style="flex:1">'
+    + '<div class="stat-b" style="position:static;display:inline-block;background:' + st.c + 'cc">'
+    + st.nom + '</div>'
+    + (g.note != null ? '<div class="note-txt" style="margin:10px 0 0;font-size:26px">'
+        + g.note.toFixed(1) + '<span style="font-size:13px;color:var(--muted)"> / 10</span></div>' : '')
+    + (g.genres && g.genres.length ? '<div class="carte-s" style="margin-top:8px">'
+        + esc(g.genres.join(' · ')) + '</div>' : '')
+    + '</div></div>'
+    + ligne('Plateforme', esc(g.platform))
+    + ligne('Metacritic joueurs', g.metaUser != null ? g.metaUser.toFixed(1) : '')
+    + ligne('Temps de jeu', g.playtime ? g.playtime + ' h' : '')
+    + ligne('Dernière fois joué', g.lastPlayed ? esc(depuisJour(g.lastPlayed)) : '')
+    + ligne('Succès', g.trpTot ? g.trpObt + ' / ' + g.trpTot : '')
+    + (g.comment ? '<div class="voir-avis">' + esc(g.comment) + '</div>' : '');
+  ouvre('mVoir');
+}
+
+/* ---------- Bascule des vues ---------- */
+function montreVue(v){
+  UI.vue2 = v;
+  $('#vueAccueil').style.display = v === 'accueil' ? '' : 'none';
+  $('#vueUsers').style.display   = v === 'users'   ? '' : 'none';
+  $('#bUsers').classList.toggle('on', v === 'users');
+}
+
+/* =========================================================
    RENDU GLOBAL + DÉMARRAGE
    ========================================================= */
 function toutRendre(){
+  rendBandeau();
   rendGrille();
   rendFond();
   rendProfil();
   majFiltres();
 }
 function majFiltres(){
-  const plats = Array.from(new Set(DATA.jeux.map(g => g.platform).filter(Boolean))).sort();
+  const plats = Array.from(new Set(sourceJeux().map(g => g.platform).filter(Boolean))).sort();
   const sel = $('#fPlat');
   const val = UI.plateforme;
   sel.innerHTML = '<option value="">Toutes plateformes</option>'
@@ -1275,6 +2024,17 @@ function init(){
     if(t){ basculeTrophee(t.dataset.trp); return; }
     const f = e.target.closest('[data-ferme]');
     if(f){ ferme(f.dataset.ferme); return; }
+    const v = e.target.closest('[data-voir]');
+    if(v){ ouvreVoir(+v.dataset.voir); return; }
+    const u = e.target.closest('[data-user]');
+    if(u){ ouvreLecture(u.dataset.user); return; }
+    const am = e.target.closest('[data-ami]');
+    if(am){
+      DATA.profil.amis = (DATA.profil.amis || []).filter(x => String(x) !== am.dataset.ami);
+      sauve(); rendProfil();
+      if(connecte()) cloudPushProfil().catch(err => console.warn(err));
+      return;
+    }
   });
 
   // fermer en cliquant le fond noir
@@ -1329,7 +2089,38 @@ function init(){
     e.target.value = '';
   };
 
+  // vues
+  $('#bUsers').onclick = () => {
+    if(UI.vue2 === 'users'){ montreVue('accueil'); return; }
+    montreVue('users');
+    chargeUsers();               // cache de 5 min accepté à l'ouverture
+  };
+  $('#bMajUsers').onclick = () => { pauseAPI = 0; chargeUsers(0); };   // forcé
+
+  // cloud
+  $('#bCloud').onclick   = ouvreCloud;
+  $('#bConnecte').onclick = () => cloudConnecte($('#clToken').value.trim());
+  $('#clToken').addEventListener('keydown', e => {
+    if(e.key === 'Enter') cloudConnecte($('#clToken').value.trim());
+  });
+  $('#bDeco').onclick = cloudDeconnecte;
+  $('#bPush').onclick = () => cloudPush(false);
+  $('#bPull').onclick = () => cloudPull(true);
+  $('#bAuto').onclick = () => {
+    DATA.cloud.auto = !DATA.cloud.auto;
+    ecrit(); majEtatCloud();
+    toast(DATA.cloud.auto ? 'Envoi automatique activé.' : 'Envoi automatique coupé.');
+  };
+
+  // présence : texte recalculé en local chaque seconde
+  setInterval(majPresence, 1000);
+  // et vraies données rafraîchies toutes les 60 s, uniquement sur la page Utilisateurs
+  setInterval(() => {
+    if(UI.vue2 === 'users' && document.visibilityState === 'visible') chargeUsers(ttlAuto());
+  }, 60000);
+
   toutRendre();
+  cloudDemarre();
   console.log('FGL ' + VERSION + ' prêt · ' + DATA.jeux.length + ' jeux');
 }
 
