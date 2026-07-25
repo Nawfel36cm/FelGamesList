@@ -126,7 +126,10 @@ body.sansanim #bgTiles{transition:none}
   font-size:13px;font-weight:600;transition:.15s;
 }
 .moi:hover{border-color:var(--accent)}
-.moi .av{width:30px;height:30px;font-size:12px}
+.moi .av{
+  width:30px;height:30px;font-size:12px;border-radius:99px;object-fit:cover;
+  background:var(--accent);display:grid;place-items:center;font-weight:700;color:#fff;
+}
 
 /* la couronne des 100 % */
 .av-w{position:relative;display:inline-block;line-height:0}
@@ -1072,6 +1075,27 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
           sur toute ta collection d'un coup.</div>
       </div>
       <div class="champ">
+        <label>Diagnostic</label>
+        <button class="btn" id="bTestSgdb">🩺 Tester la connexion SteamGridDB</button>
+        <div class="aide" id="sgdbTest">Dit en une phrase si les jaquettes peuvent arriver, et sinon pourquoi.</div>
+      </div>
+      <div class="champ">
+        <label for="rGB">Clé Giant Bomb — recommandée</label>
+        <input id="rGB" placeholder="Colle ta clé ici" autocomplete="off">
+        <div class="aide">La meilleure source de jaquettes utilisable directement, sans relais,
+          sur toutes les plateformes. Gratuite : crée un compte sur
+          <a href="https://www.giantbomb.com/api/" target="_blank" rel="noopener">giantbomb.com/api</a>
+          et la clé s'affiche en haut de la page.</div>
+      </div>
+      <div class="champ">
+        <label for="rProxy">Relais SteamGridDB — facultatif</label>
+        <input id="rProxy" placeholder="https://…workers.dev" autocomplete="off">
+        <div class="aide">SteamGridDB refuse les appels venant d'un site : il faut un petit relais.
+          Le fichier <b>relais-steamgriddb.js</b> livré avec FGL s'installe en 5 minutes sur
+          Cloudflare (gratuit) ; colle ensuite son adresse ici et SteamGridDB devient la source
+          n°1 des jaquettes. Sans relais, FGL utilise Steam et Wikipédia.</div>
+      </div>
+      <div class="champ">
         <label for="rSgdb">Clé SteamGridDB — pour les jeux hors Steam</label>
         <input id="rSgdb" placeholder="Colle ta clé ici" autocomplete="off">
         <div class="aide">Une clé est <b>déjà intégrée au site</b> : tout le monde en profite sans rien faire.
@@ -1279,7 +1303,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 /* =========================================================
    FGL — FelGamesList
    ========================================================= */
-const VERSION = '0.9.9';
+const VERSION = '0.9.13';
 
 /* ---------- Constantes ---------- */
 const PLATEFORMES = ['PC (Steam)','PlayStation','Xbox','Nintendo Switch','Mobile','Rétro','Autre'];
@@ -1425,7 +1449,7 @@ let centTmp = false;     // case « fait à 100 % » en cours de saisie
 function dataVierge(){
   return {
     version: 7,
-    reglages: { cleRawg:'', cleSgdb:'', cleYT:'', theme:'sombre', palette:'auto', anim:true },
+    reglages: { cleRawg:'', cleSgdb:'', cleYT:'', cleGB:'', proxySgdb:'', theme:'sombre', palette:'auto', anim:true },
     cloud: { login:'', gistData:'', gistProfil:'', auto:true, syncAt:'', majAt:'', connus:[] },
     defis: {},              // id du défi → jour du déblocage
     osts: [],               // bandes originales
@@ -1458,6 +1482,8 @@ function migre(){
   for(const k in v.cloud) if(DATA.cloud[k] === undefined) DATA.cloud[k] = v.cloud[k];
   if(DATA.reglages.cleSgdb === undefined) DATA.reglages.cleSgdb = '';
   if(DATA.reglages.cleYT === undefined) DATA.reglages.cleYT = '';
+  if(DATA.reglages.proxySgdb === undefined) DATA.reglages.proxySgdb = '';
+  if(DATA.reglages.cleGB === undefined) DATA.reglages.cleGB = '';
   if(!DATA.reglages.palette) DATA.reglages.palette = 'auto';
   if(!DATA.reactions || typeof DATA.reactions !== 'object') DATA.reactions = {};
   (DATA.osts || []).forEach(o => { delete o.comment; });
@@ -1723,7 +1749,20 @@ function apercuEtoiles(val){
    MODALE JEU
    ========================================================= */
 function ouvre(id){ $('#' + id).classList.add('on'); }
-function ferme(id){ $('#' + id).classList.remove('on'); }
+function ferme(id){
+  const m = $('#' + id);
+  if(!m) return;
+  m.classList.remove('on');
+  coupeVideos(m);
+}
+/* Un iframe YouTube continue de jouer même caché : on le vide vraiment. */
+function coupeVideos(zone){
+  if(!zone) return;
+  zone.querySelectorAll('iframe').forEach(f => {
+    try{ f.src = 'about:blank'; }catch(e){}
+    f.remove();
+  });
+}
 
 function ouvreJeu(id){
   jeuEnCours = id;
@@ -1829,6 +1868,16 @@ const CLE_SGDB_SITE = '33a4d8f56339bcc48ca45627e41f6154';
    ton quota depuis son propre site.
    ----------------------------------------------------------------- */
 const CLE_YT_SITE = 'AIzaSyC624b2jo7raGqp2I1MF4fH8EnmERY4Yfg';
+
+/* -----------------------------------------------------------------
+   CLÉ GIANT BOMB — la meilleure source de jaquettes utilisable
+   directement depuis un site, toutes plateformes confondues.
+   Gratuite : compte sur giantbomb.com puis giantbomb.com/api
+   ----------------------------------------------------------------- */
+const CLE_GB_SITE = '';
+function cleGB(){
+  return (DATA.reglages.cleGB || '').trim() || CLE_GB_SITE.trim();
+}
 function cleYT(){
   return (DATA.reglages.cleYT || '').trim() || CLE_YT_SITE.trim();
 }
@@ -1848,24 +1897,87 @@ const AIDE_META = '⤓ récupère la note de la presse via RAWG. La note des jou
 /* Au démarrage : quelques jaquettes manquantes par session, sans déranger.
    Toute la collection finit par se corriger d'elle-même au fil des ouvertures. */
 async function rattrapeDoucement(){
-  if(rattrapeEnCours || !cleSgdb()) return;
+  if(rattrapeEnCours || !cleRawg()) return;
   const L = DATA.jeux.filter(g => g.title && !estJaquette(g.cover)).slice(0, 12);
   if(!L.length) return;
   let ok = 0;
   for(const g of L){
     try{
-      const img = await jaquette(g.title);
+      const i = await infosRawg(g.title);
+      const img = await jaquette(g.title, i && i.id, i && i.cover);
       if(img && img !== g.cover){ g.cover = img; ok++; }
+      if(i && !g.rawgId) g.rawgId = i.id;
     }catch(e){ console.warn('jaquette auto', g.title, e); }
   }
   if(ok){ sauve(); rendGrille(); rendFond(); console.log('FGL · ' + ok + ' jaquette(s) récupérée(s) en fond'); }
+}
+
+/* Un appel de bout en bout, pour distinguer une clé refusée d'un blocage
+   du navigateur ou d'un simple manque de jaquette. */
+async function testeSgdb(){
+  const z = $('#sgdbTest');
+  // Giant Bomb d'abord : c'est la source qui marche sans rien installer
+  if(cleGB()){
+    z.textContent = 'Test de Giant Bomb…';
+    try{
+      const u = await jaquetteGB('Celeste');
+      if(u){
+        z.innerHTML = '✅ Giant Bomb répond et fournit des jaquettes. Lance le rattrapage.';
+      }else{
+        z.innerHTML = '⚠️ Giant Bomb répond mais n\'a pas trouvé de jaquette pour le test.';
+      }
+    }catch(e){
+      console.error('Test Giant Bomb', e);
+      z.innerHTML = '❌ Giant Bomb ne répond pas : clé invalide, ou quota atteint.';
+    }
+    return;
+  }
+  if(!relaisSgdb()){
+    z.innerHTML = 'ℹ️ Ni clé Giant Bomb, ni relais : les jaquettes viennent de Steam puis de '
+      + 'Wikipédia. Le plus simple est d\'ajouter une clé Giant Bomb ci-dessus — c\'est gratuit '
+      + 'et ça marche sans rien installer.';
+    return;
+  }
+  z.textContent = 'Test en cours…';
+  const tete = cleSgdb() ? { 'Authorization': 'Bearer ' + cleSgdb() } : {};
+  let r1;
+  try{
+    r1 = await fetch(urlSgdb('/api/v2/search/autocomplete/celeste'), { headers: tete });
+  }catch(e){
+    console.error('Test SteamGridDB', e);
+    z.innerHTML = '❌ Le relais ne répond pas. Vérifie son adresse, ou qu\'il est bien déployé.';
+    return;
+  }
+  if(r1.status === 401 || r1.status === 403){
+    z.textContent = '❌ Clé refusée par SteamGridDB (erreur ' + r1.status + '). À régénérer.';
+    return;
+  }
+  if(!r1.ok){ z.textContent = '❌ SteamGridDB répond ' + r1.status + '.'; return; }
+  const j1 = await r1.json();
+  const L = (j1 && j1.data) || [];
+  if(!L.length){ z.textContent = '⚠️ Connexion établie, mais la recherche ne renvoie rien.'; return; }
+
+  const jeu = L[0];
+  const r2 = await fetch('https://www.steamgriddb.com/api/v2/grids/game/' + jeu.id
+    + '?dimensions=600x900&types=static&nsfw=false', { headers: tete });
+  const j2 = r2.ok ? await r2.json() : {};
+  const n600 = ((j2 && j2.data) || []).length;
+  const r3 = await fetch('https://www.steamgriddb.com/api/v2/grids/game/' + jeu.id
+    + '?types=static&nsfw=false', { headers: tete });
+  const j3 = r3.ok ? await r3.json() : {};
+  const nTout = ((j3 && j3.data) || []).length;
+
+  z.innerHTML = '✅ Connexion établie. Test sur « ' + esc(jeu.name) + ' » : '
+    + n600 + ' jaquette(s) en 600×900, ' + nTout + ' au total. '
+    + (n600 ? 'Tout est en ordre, lance le rattrapage.'
+            : 'Aucune en 600×900 : c\'est pour ça que les affiches manquaient.');
 }
 
 /* Remplace les captures d'écran par de vraies jaquettes sur toute la collection */
 let rattrapeEnCours = false;
 async function rattrapeJaquettes(){
   if(rattrapeEnCours) return;
-  if(!cleSgdb()){ toast('Clé SteamGridDB manquante.'); return; }
+  if(!cleRawg()){ toast('Clé RAWG manquante.'); return; }
   // on repasse sur tout : SteamGridDB est prioritaire, il peut faire mieux
   // que ce qui avait été trouvé auparavant sur Steam ou Wikipédia
   const L = DATA.jeux.filter(g => g.title);
@@ -1881,11 +1993,14 @@ async function rattrapeJaquettes(){
       const g = L[k];
       toast('Jaquettes : ' + (k + 1) + ' / ' + L.length + '…');
       try{
-        const img = await jaquette(g.title);
+        const i = await infosRawg(g.title);
+        const img = await jaquette(g.title, i && i.id, i && i.cover);
         if(img && img !== g.cover){
           g.cover = img; ok++;
-          bilan.SteamGridDB = (bilan.SteamGridDB || 0) + 1;
+          const src = sourceJaquette(img);
+          bilan[src] = (bilan[src] || 0) + 1;
         }
+        if(i && !g.rawgId) g.rawgId = i.id;
       }catch(e){ console.warn('jaquette', g.title, e); }
     }
     sauve(); toutRendre();
@@ -1921,13 +2036,24 @@ function imageOK(url){
 }
 
 /* Recherche d'une jaquette chez SteamGridDB à partir du seul titre. */
+/* SteamGridDB refuse les appels directs d'un navigateur : pas d'en-tête CORS.
+   La seule façon de l'utiliser depuis un site statique est un petit relais
+   (voir le fichier relais-steamgriddb.js livré à côté). Sans relais configuré,
+   on n'essaie même pas : ça échouerait à tous les coups. */
+function relaisSgdb(){ return (DATA.reglages.proxySgdb || '').trim(); }
+function urlSgdb(chemin){
+  const r = relaisSgdb();
+  return r ? r + (r.indexOf('?') >= 0 ? '&' : '?') + 'p=' + encodeURIComponent(chemin)
+           : 'https://www.steamgriddb.com' + chemin;
+}
+
 async function jaquetteSgdb(nom){
   const cle = cleSgdb();
-  if(!cle || !nom) return '';
-  const tete = { 'Authorization': 'Bearer ' + cle };
+  if(!nom || !relaisSgdb()) return '';
+  const tete = cle ? { 'Authorization': 'Bearer ' + cle } : {};
 
-  const r1 = await fetch('https://www.steamgriddb.com/api/v2/search/autocomplete/'
-    + encodeURIComponent(nom), { headers: tete });
+  const r1 = await fetch(urlSgdb('/api/v2/search/autocomplete/'
+    + encodeURIComponent(nom)), { headers: tete });
   if(!r1.ok) throw new Error('HTTP ' + r1.status);
   const j1 = await r1.json();
   const L = (j1 && j1.data) || [];
@@ -1937,51 +2063,188 @@ async function jaquetteSgdb(nom){
   const cible = String(nom).toLowerCase().trim();
   const jeu = L.find(x => String(x.name || '').toLowerCase().trim() === cible) || L[0];
 
-  // 600x900 d'abord — c'est le format jaquette. Puis les autres verticaux.
-  // Les carrés (512x512, 1024x1024) ne sont pris qu'en tout dernier recours.
+  // 600x900 en priorité absolue. Mais beaucoup de jeux n'ont sur SteamGridDB
+  // que du 660x930 ou du 342x482 — même forme, autre taille. Les refuser
+  // laissait la moitié de la collection sans image : on les accepte ensuite,
+  // et on ne garde jamais une bannière horizontale.
   const essais = [
     '?dimensions=600x900&types=static&nsfw=false',
     '?dimensions=660x930,342x482&types=static&nsfw=false',
     '?types=static&nsfw=false'
   ];
   for(const q of essais){
-    const r2 = await fetch('https://www.steamgriddb.com/api/v2/grids/game/' + jeu.id + q,
-      { headers: tete });
-    if(!r2.ok) continue;
+    const r2 = await fetch(urlSgdb('/api/v2/grids/game/' + jeu.id + q), { headers: tete });
+    if(!r2.ok){
+      if(r2.status === 401 || r2.status === 403) throw new Error('HTTP ' + r2.status);
+      continue;
+    }
     const j2 = await r2.json();
     const g = (j2 && j2.data) || [];
-    // à formats égaux on garde la plus haute : une vraie jaquette, pas une bannière
     const vertical = g.filter(x => x && x.url && (!x.width || !x.height || x.height > x.width));
-    const choisi = vertical[0] || g[0];
-    if(choisi && choisi.url) return choisi.url;
+    if(vertical[0]) return vertical[0].url;
   }
   return '';
 }
 
-/* SteamGridDB, et rien d'autre.
-   Pas de capture d'écran de secours : mieux vaut aucune image qu'une image
-   qui n'est pas une jaquette. Le titre suffit, aucune autre API n'intervient. */
-async function jaquette(nom){
+/* ---------- JSONP ----------
+   Certaines API refusent les appels d'un navigateur (pas d'en-tête CORS)
+   mais acceptent le JSONP : la réponse arrive sous forme de <script>, ce
+   que le navigateur n'a jamais bloqué. C'est le cas de Giant Bomb.
+   À n'utiliser qu'avec des services de confiance : un JSONP exécute
+   réellement le code renvoyé par le serveur. */
+function jsonp(url, nomParam, delai){
+  return new Promise((res, rej) => {
+    const fn = 'fglcb' + Math.random().toString(36).slice(2);
+    const sc = document.createElement('script');
+    let fini = false;
+    const nettoie = () => {
+      try{ delete window[fn]; }catch(e){ window[fn] = undefined; }
+      if(sc.parentNode) sc.parentNode.removeChild(sc);
+    };
+    const minuteur = setTimeout(() => {
+      if(fini) return;
+      fini = true; nettoie(); rej(new Error('delai'));
+    }, delai || 9000);
+    window[fn] = donnees => {
+      if(fini) return;
+      fini = true; clearTimeout(minuteur); nettoie(); res(donnees);
+    };
+    sc.onerror = () => {
+      if(fini) return;
+      fini = true; clearTimeout(minuteur); nettoie(); rej(new Error('script'));
+    };
+    sc.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + (nomParam || 'callback') + '=' + fn;
+    document.head.appendChild(sc);
+  });
+}
+
+/* Giant Bomb : base encyclopédique dont l'image principale d'un jeu est
+   sa jaquette. Couvre Nintendo, PlayStation, Xbox, PC et le rétro. */
+async function jaquetteGB(nom){
+  const cle = cleGB();
+  if(!cle || !nom) return '';
+  const u = 'https://www.giantbomb.com/api/search/?api_key=' + encodeURIComponent(cle)
+    + '&format=jsonp&resources=game&limit=10&field_list=name,image'
+    + '&query=' + encodeURIComponent(nom);
+  const js = await jsonp(u, 'json_callback');
+  const L = (js && js.results) || [];
+  if(!L.length) return '';
+  // la recherche remonte souvent la suite avant l'original : on vise le titre exact
+  const cible = String(nom).toLowerCase().trim();
+  const jeu = L.find(x => String(x.name || '').toLowerCase().trim() === cible) || L[0];
+  const im = jeu && jeu.image;
+  if(!im) return '';
+  return im.super_url || im.original_url || im.medium_url || '';
+}
+
+/* Identifiant Steam d'un jeu, via RAWG (qui accepte le navigateur) */
+async function appIdSteam(rawgId){
+  if(!rawgId || !cleRawg()) return null;
+  const rep = await fetch('https://api.rawg.io/api/games/' + encodeURIComponent(rawgId)
+    + '?key=' + encodeURIComponent(cleRawg()));
+  if(!rep.ok) throw new Error('HTTP ' + rep.status);
+  const js = await rep.json();
+  for(const st of (js.stores || [])){
+    const m = String(st.url || '').match(/store\.steampowered\.com\/app\/(\d+)/);
+    if(m) return m[1];
+  }
+  return null;
+}
+
+/* Wikipédia : l'image d'en-tête d'un article de jeu vidéo est presque
+   toujours la jaquette. Aucune clé, CORS autorisé via origin=*. */
+async function jaquetteWiki(nom){
+  if(!nom) return '';
+  const u = 'https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*'
+    + '&generator=search&gsrlimit=1'
+    + '&gsrsearch=' + encodeURIComponent(nom + ' video game')
+    + '&prop=pageimages&piprop=thumbnail&pithumbsize=800';
+  const r = await fetch(u);
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  const js = await r.json();
+  const pages = (js && js.query && js.query.pages) || null;
+  if(!pages) return '';
+  for(const k in pages){
+    const th = pages[k].thumbnail;
+    if(th && th.source) return th.source;
+  }
+  return '';
+}
+
+/* Meilleure jaquette disponible.
+   1. SteamGridDB si un relais est configuré (la plus belle, mais son
+      serveur refuse les navigateurs : elle exige un relais)
+   2. Giant Bomb, si une clé est fournie — vraies jaquettes, toutes
+      plateformes, et pas de relais nécessaire grâce au JSONP
+   3. jaquette officielle Steam, pour les jeux PC
+   4. Wikipédia, qui couvre bien les consoles
+   5. capture RAWG en tout dernier recours */
+async function jaquette(nom, rawgId, secours){
   const titre = String(nom || '').trim();
   if(!titre) return '';
   const cle = titre.toLowerCase();
-  if(cacheJaquette.has(cle)) return cacheJaquette.get(cle);
+  if(cacheJaquette.has(cle)) return cacheJaquette.get(cle) || secours || '';
   let trouvee = '';
-  try{
-    const u = await jaquetteSgdb(titre);
-    if(u && await imageOK(u)){ trouvee = u; sgdbOK++; }
-    else sgdbVide++;
-  }catch(e){
-    sgdbErreurs++;
-    if(sgdbErreurs === 1) console.warn('SteamGridDB inaccessible :', e);
+
+  if(relaisSgdb()){
+    try{
+      const u = await jaquetteSgdb(titre);
+      if(u && await imageOK(u)){ trouvee = u; sgdbOK++; }
+      else sgdbVide++;
+    }catch(e){
+      sgdbErreurs++;
+      if(sgdbErreurs === 1) console.warn('SteamGridDB via relais :', e);
+    }
   }
+
+  if(!trouvee && cleGB()){
+    try{
+      const u = await jaquetteGB(titre);
+      if(u && await imageOK(u)) trouvee = u;
+    }catch(e){ console.warn('jaquette Giant Bomb', e); }
+  }
+
+  if(!trouvee && rawgId){
+    try{
+      const app = await appIdSteam(rawgId);
+      if(app){
+        const essais = [
+          'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/' + app + '/library_600x900_2x.jpg',
+          'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/' + app + '/library_600x900.jpg',
+          'https://cdn.cloudflare.steamstatic.com/steam/apps/' + app + '/library_600x900_2x.jpg',
+          'https://cdn.cloudflare.steamstatic.com/steam/apps/' + app + '/library_600x900.jpg'
+        ];
+        for(const u of essais){ if(await imageOK(u)){ trouvee = u; break; } }
+      }
+    }catch(e){ console.warn('jaquette Steam', e); }
+  }
+
+  if(!trouvee){
+    try{
+      const u = await jaquetteWiki(titre);
+      if(u && await imageOK(u)) trouvee = u;
+    }catch(e){ console.warn('jaquette Wikipédia', e); }
+  }
+
   cacheJaquette.set(cle, trouvee);
-  return trouvee;
+  return trouvee || secours || '';
 }
 
 /* une vraie jaquette, par opposition à une capture d'écran RAWG */
 function estJaquette(url){
-  return String(url || '').indexOf('steamgriddb') >= 0;
+  const u = String(url || '');
+  return u.indexOf('steamgriddb') >= 0
+      || u.indexOf('giantbomb') >= 0
+      || u.indexOf('steamstatic') >= 0
+      || u.indexOf('wikimedia.org') >= 0;
+}
+function sourceJaquette(url){
+  const u = String(url || '');
+  if(u.indexOf('steamgriddb') >= 0) return 'SteamGridDB';
+  if(u.indexOf('giantbomb') >= 0)   return 'Giant Bomb';
+  if(u.indexOf('steamstatic') >= 0) return 'Steam';
+  if(u.indexOf('wikimedia.org') >= 0) return 'Wikipédia';
+  return 'capture';
 }
 
 /* Bouton ⤓ : remplit la note Metacritic tout seul */
@@ -2067,7 +2330,7 @@ async function chercheRawg(){
     if(!i){ aide.textContent = 'Aucun jeu trouvé sous ce nom.'; return; }
     $('#jTitre').value = i.nom;
     aide.textContent = 'Jeu trouvé, recherche de la jaquette…';
-    const img = await jaquette(i.nom);
+    const img = await jaquette(i.nom, i.id, i.cover);
     if(img) $('#jAff').value = img;
     poseGenres(i.genres, true);          // clic sur 🔍 : les genres sont refaits
     dernierAuto = i.nom.trim().toLowerCase();
@@ -2104,7 +2367,7 @@ async function autoInfos(){
     const i = await infosRawg(titre);
     if(!i){ aide.textContent = 'Aucun jeu trouvé sous ce nom.'; return; }
     if(!$('#jAff').value.trim()){
-      const img = await jaquette(i.nom);
+      const img = await jaquette(i.nom, i.id, i.cover);
       if(img) $('#jAff').value = img;
     }
     poseGenres(i.genres, false);         // genres posés dès que le jeu est reconnu
@@ -2128,7 +2391,7 @@ async function completeAuto(id){
     let bouge = false;
     if(!j.rawgId && i.id){ j.rawgId = i.id; bouge = true; }
     if(!j.cover){
-      const img = await jaquette(j.title);
+      const img = await jaquette(j.title, i.id, i.cover);
       if(img){ j.cover = img; bouge = true; }
     }
     if((!j.genres || !j.genres.length) && i.genres.length){ j.genres = i.genres; bouge = true; }
@@ -4103,6 +4366,8 @@ function init(){
   $('#bRegl').onclick = () => {
     $('#rCle').value = DATA.reglages.cleRawg || '';
     $('#rSgdb').value = DATA.reglages.cleSgdb || '';
+    $('#rProxy').value = DATA.reglages.proxySgdb || '';
+    $('#rGB').value = DATA.reglages.cleGB || '';
     $('#rYT').value = DATA.reglages.cleYT || '';
     $('#rAnim').textContent = DATA.reglages.anim ? 'Animé ✓' : 'Coupé';
     $('#rAnim').classList.toggle('on', DATA.reglages.anim);
@@ -4255,13 +4520,15 @@ function init(){
     }
   });
 
-  // fermer en cliquant le fond noir
+  // fermer en cliquant le fond noir — en coupant le son au passage
   document.querySelectorAll('.modale').forEach(m => {
-    m.addEventListener('click', e => { if(e.target === m) m.classList.remove('on'); });
+    m.addEventListener('click', e => {
+      if(e.target === m){ m.classList.remove('on'); coupeVideos(m); }
+    });
   });
   document.addEventListener('keydown', e => {
     if(e.key !== 'Escape') return;
-    document.querySelectorAll('.modale.on').forEach(m => m.classList.remove('on'));
+    document.querySelectorAll('.modale.on').forEach(m => { m.classList.remove('on'); coupeVideos(m); });
     $('#panProfil').classList.remove('on');
   });
 
@@ -4280,6 +4547,7 @@ function init(){
   $('#jTitre').addEventListener('change', autoInfos);
   $('#bMetaAuto').onclick = chercheMeta;
   $('#bJaquettes').onclick = rattrapeJaquettes;
+  $('#bTestSgdb').onclick = testeSgdb;
 
   // bouton « fait à 100 % »
   $('#jCent').onclick = () => {
@@ -4309,6 +4577,8 @@ function init(){
   $('#bSauveRegl').onclick = () => {
     DATA.reglages.cleRawg = $('#rCle').value.trim();
     DATA.reglages.cleSgdb = $('#rSgdb').value.trim();
+    DATA.reglages.proxySgdb = $('#rProxy').value.trim().replace(/\/+$/, '');
+    DATA.reglages.cleGB = $('#rGB').value.trim();
     DATA.reglages.cleYT = $('#rYT').value.trim();
     sauve(); ferme('mRegl');
     toast('Réglages enregistrés.');
