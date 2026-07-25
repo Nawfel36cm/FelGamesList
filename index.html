@@ -482,6 +482,29 @@ body.sansanim .confetti{display:none}
 .t-pal-l img{width:32px;height:42px;object-fit:cover;border-radius:6px;background:var(--ink3)}
 .t-pal-l .d{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:auto}
 
+/* une fenêtre qui s'ouvre par-dessus une autre */
+.modale.sur{z-index:220}
+.boite.petite{max-width:420px}
+.d-fiche{text-align:center;padding:6px 4px 2px}
+.d-fiche .e{font-size:56px;line-height:1;display:block;margin-bottom:12px}
+.d-fiche h3{font-family:var(--dsp);font-size:21px;margin:0 0 4px}
+.d-fiche .cat{
+  font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--muted);margin-bottom:16px;
+}
+.d-quoi{
+  background:var(--ink3);border-radius:12px;padding:14px 16px;margin-bottom:16px;
+  font-size:14px;line-height:1.55;text-align:left;
+}
+.d-quoi b{display:block;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--muted);margin-bottom:6px;font-weight:600}
+.d-etat{font-family:var(--mono);font-size:13px;color:var(--brass);margin-bottom:10px}
+.d-fait{
+  background:linear-gradient(160deg,color-mix(in srgb,var(--or) 22%,var(--ink3)),var(--ink3));
+  border:1px solid color-mix(in srgb,var(--or) 42%,transparent);
+  border-radius:12px;padding:12px 14px;font-size:13.5px;color:var(--or);font-weight:600;
+}
+
 /* ===== DÉFIS ===== */
 .d-grille{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
 .d{
@@ -881,8 +904,16 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
       <div class="champ">
         <label>Jaquettes</label>
         <button class="btn" id="bJaquettes">🖼️ Récupérer les vraies jaquettes</button>
-        <div class="aide">Remplace les captures d'écran par la jaquette verticale officielle,
+        <div class="aide">Remplace les captures d'écran par la vraie jaquette verticale,
           sur toute ta collection d'un coup.</div>
+      </div>
+      <div class="champ">
+        <label for="rSgdb">Clé SteamGridDB — pour les jeux hors Steam</label>
+        <input id="rSgdb" placeholder="Colle ta clé ici" autocomplete="off">
+        <div class="aide">Sans elle, seuls les jeux vendus sur Steam ont une vraie jaquette.
+          Avec elle, Nintendo, PlayStation et le rétro en ont une aussi.
+          Gratuite sur <a href="https://www.steamgriddb.com/profile/preferences/api" target="_blank" rel="noopener">steamgriddb.com</a>
+          (compte → Preferences → API → Generate key).</div>
       </div>
       <div class="champ">
         <label for="rCle">Clé API RAWG — facultatif</label>
@@ -918,17 +949,21 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
     </div>
     <div class="boite-bd">
       <div class="champ">
+        <label for="oLien">Lien YouTube</label>
+        <div class="ligne">
+          <input id="oLien" placeholder="https://youtu.be/…" autocomplete="off">
+          <button class="btn" id="bChercheOst" title="Retrouver le titre et le jeu">🔍</button>
+        </div>
+        <div class="aide" id="oLienAide"></div>
+        <div id="oApercu"></div>
+      </div>
+      <div class="champ">
         <label for="oTitre">Titre du morceau</label>
-        <input id="oTitre" placeholder="One-Winged Angel" autocomplete="off">
+        <input id="oTitre" placeholder="Rempli tout seul" autocomplete="off">
       </div>
       <div class="champ">
         <label for="oJeu">Jeu</label>
-        <input id="oJeu" placeholder="Final Fantasy VII" autocomplete="off">
-      </div>
-      <div class="champ">
-        <label for="oLien">Lien YouTube</label>
-        <input id="oLien" placeholder="https://youtu.be/…" autocomplete="off">
-        <div class="aide" id="oLienAide"></div>
+        <input id="oJeu" placeholder="Rempli tout seul" autocomplete="off">
       </div>
       <div class="duo">
         <div class="champ">
@@ -972,6 +1007,17 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
       <div id="defiDetail"></div>
       <div id="defiCorps"></div>
     </div>
+  </div>
+</div>
+
+<!-- ===== MODALE D'UN DÉFI ===== -->
+<div class="modale sur" id="mDefi">
+  <div class="boite petite">
+    <div class="boite-hd">
+      <h2 id="dTitre">Défi</h2>
+      <button class="ico" data-ferme="mDefi">✕</button>
+    </div>
+    <div class="boite-bd" id="dCorps"></div>
   </div>
 </div>
 
@@ -1047,7 +1093,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 /* =========================================================
    FGL — FelGamesList
    ========================================================= */
-const VERSION = '0.7';
+const VERSION = '0.8';
 
 /* ---------- Constantes ---------- */
 const PLATEFORMES = ['PC (Steam)','PlayStation','Xbox','Nintendo Switch','Mobile','Rétro','Autre'];
@@ -1175,7 +1221,7 @@ let centTmp = false;     // case « fait à 100 % » en cours de saisie
 function dataVierge(){
   return {
     version: 7,
-    reglages: { cleRawg:'', theme:'sombre', anim:true },
+    reglages: { cleRawg:'', cleSgdb:'', theme:'sombre', anim:true },
     cloud: { login:'', gistData:'', gistProfil:'', auto:true, syncAt:'', majAt:'', connus:[] },
     defis: {},              // id du défi → jour du déblocage
     osts: [],               // bandes originales
@@ -1205,6 +1251,7 @@ function migre(){
   if(!DATA.profil)   DATA.profil   = v.profil;
   if(!DATA.cloud)    DATA.cloud    = v.cloud;
   for(const k in v.cloud) if(DATA.cloud[k] === undefined) DATA.cloud[k] = v.cloud[k];
+  if(DATA.reglages.cleSgdb === undefined) DATA.reglages.cleSgdb = '';
   if(!Array.isArray(DATA.cloud.connus)) DATA.cloud.connus = [];
   if(!DATA.defis || typeof DATA.defis !== 'object') DATA.defis = {};
   if(!Array.isArray(DATA.osts)) DATA.osts = [];
@@ -1556,6 +1603,17 @@ function supprimeJeu(){
    ----------------------------------------------------------------- */
 const CLE_RAWG_SITE = '30b0437a08844d00a27b4a600f5f8ea7';
 
+/* -----------------------------------------------------------------
+   CLÉ STEAMGRIDDB — pour les jaquettes des jeux qui ne sont PAS sur Steam
+   (Nintendo, PlayStation, rétro…). Gratuite en 30 secondes :
+   compte sur steamgriddb.com → Preferences → API → Generate key.
+   Colle-la entre les guillemets, ou dans ⚙️ Réglages.
+   ----------------------------------------------------------------- */
+const CLE_SGDB_SITE = '';
+function cleSgdb(){
+  return (DATA.reglages.cleSgdb || '').trim() || CLE_SGDB_SITE.trim();
+}
+
 /* clé perso (Réglages) prioritaire, sinon celle du site */
 function cleRawg(){
   return (DATA.reglages.cleRawg || '').trim() || CLE_RAWG_SITE.trim();
@@ -1570,7 +1628,7 @@ let rattrapeEnCours = false;
 async function rattrapeJaquettes(){
   if(rattrapeEnCours) return;
   if(!cleRawg()){ toast('Clé RAWG manquante.'); return; }
-  const L = DATA.jeux.filter(g => g.title && !String(g.cover || '').includes('steamstatic'));
+  const L = DATA.jeux.filter(g => g.title && !estJaquette(g.cover));
   if(!L.length){ toast('Toutes tes jaquettes sont déjà en place.'); return; }
   if(!confirm(L.length + ' jeu(x) à traiter.\n\nFGL va chercher la vraie jaquette de chacun. '
     + 'Ça prend quelques secondes par jeu, laisse l\'onglet ouvert.')) return;
@@ -1584,7 +1642,7 @@ async function rattrapeJaquettes(){
         const i = await infosRawg(g.title);
         if(i){
           const img = await jaquette(i);
-          if(img && img !== g.cover && img.includes('steamstatic')){ g.cover = img; ok++; }
+          if(img && img !== g.cover && estJaquette(img)){ g.cover = img; ok++; }
           if(!g.rawgId) g.rawgId = i.id;
         }
       }catch(e){ console.warn('jaquette', g.title, e); }
@@ -1626,27 +1684,64 @@ async function appIdSteam(rawgId){
   return null;
 }
 
-/* Renvoie la meilleure image dispo : jaquette Steam sinon capture RAWG */
+/* SteamGridDB : la seule source qui couvre AUSSI les jeux hors Steam
+   (Nintendo, PlayStation, rétro). Silencieuse si aucune clé n'est fournie. */
+async function jaquetteSgdb(nom){
+  const cle = cleSgdb();
+  if(!cle || !nom) return '';
+  const tete = { 'Authorization': 'Bearer ' + cle };
+  const r1 = await fetch('https://www.steamgriddb.com/api/v2/search/autocomplete/'
+    + encodeURIComponent(nom), { headers: tete });
+  if(!r1.ok) throw new Error('HTTP ' + r1.status);
+  const j1 = await r1.json();
+  const jeu = j1 && j1.data && j1.data[0];
+  if(!jeu) return '';
+  const r2 = await fetch('https://www.steamgriddb.com/api/v2/grids/game/' + jeu.id
+    + '?dimensions=600x900&types=static&nsfw=false', { headers: tete });
+  if(!r2.ok) throw new Error('HTTP ' + r2.status);
+  const j2 = await r2.json();
+  const g = j2 && j2.data && j2.data[0];
+  return (g && g.url) ? g.url : '';
+}
+
+/* Meilleure image disponible, dans l'ordre :
+   1. jaquette Steam (jeux PC)  2. SteamGridDB (toutes plateformes)  3. capture RAWG */
 async function jaquette(info){
   if(!info) return '';
   const cle = 'j' + info.id;
   if(cacheJaquette.has(cle)) return cacheJaquette.get(cle) || info.cover || '';
   let trouvee = '';
+
   try{
     const app = await appIdSteam(info.id);
     if(app){
-      const url = 'https://cdn.cloudflare.steamstatic.com/steam/apps/' + app + '/library_600x900_2x.jpg';
-      if(await imageOK(url)) trouvee = url;
-      else{
-        const url2 = 'https://cdn.cloudflare.steamstatic.com/steam/apps/' + app + '/library_600x900.jpg';
-        if(await imageOK(url2)) trouvee = url2;
+      const base = 'https://cdn.cloudflare.steamstatic.com/steam/apps/' + app + '/';
+      const essais = ['library_600x900_2x.jpg', 'library_600x900.jpg'];
+      for(const f of essais){
+        if(await imageOK(base + f)){ trouvee = base + f; break; }
       }
     }
   }catch(e){
-    console.warn('jaquette', e);
+    console.warn('jaquette Steam', e);
   }
+
+  if(!trouvee){
+    try{
+      const u = await jaquetteSgdb(info.nom);
+      if(u && await imageOK(u)) trouvee = u;
+    }catch(e){
+      console.warn('jaquette SteamGridDB', e);
+    }
+  }
+
   cacheJaquette.set(cle, trouvee);
   return trouvee || info.cover || '';
+}
+/* une vraie jaquette, par opposition à une capture d'écran RAWG */
+function estJaquette(url){
+  const u = String(url || '');
+  return u.indexOf('steamstatic') >= 0 || u.indexOf('steamgriddb') >= 0
+      || u.indexOf('cdn2.steamgriddb') >= 0;
 }
 
 /* Bouton ⤓ : remplit la note Metacritic tout seul */
@@ -2283,11 +2378,10 @@ function rendDefis(){
     + '<div class="jauge" style="flex:1"><i style="width:' + pct + '%"></i></div>'
     + '<div class="jauge-t">' + faits + ' / ' + total + ' · ' + pct + ' %</div></div>';
 
-  const d = defiOuvert ? DEFIS.find(x => x.id === defiOuvert) : null;
-  $('#defiDetail').innerHTML = d
-    ? detailDefi(d)
-    : '<div class="d-detail"><div class="e">🎯</div><div><h3>Choisis un défi</h3>'
-      + '<p>Clique sur une vignette : tu verras exactement quoi faire et où tu en es.</p></div></div>';
+  $('#defiDetail').innerHTML = '<div class="d-detail"><div class="e">🎯</div><div>'
+    + '<h3>' + faits + ' défis sur ' + total + '</h3>'
+    + '<p>Clique sur n\'importe quelle vignette : une fiche s\'ouvre avec exactement '
+    + 'ce qu\'il faut faire et où tu en es.</p></div></div>';
 
   const cats = [];
   DEFIS.forEach(x => { if(cats.indexOf(x.cat) < 0) cats.push(x.cat); });
@@ -2311,15 +2405,27 @@ function rendDefis(){
   $('#defiCorps').innerHTML = h;
 }
 
-function detailDefi(d){
+/* Fiche d'un défi : ce qu'il faut faire, et où on en est */
+function ouvreDefi(id){
+  const d = DEFIS.find(x => x.id === id);
+  if(!d) return;
+  defiOuvert = id;
   const fait = !!DATA.defis[d.id];
   const pr = progresDefi(d);
-  return '<div class="d-detail"><div class="e">' + d.e + '</div><div style="flex:1">'
-    + '<h3>' + esc(d.n) + '</h3><p>' + esc(d.o) + '</p>'
+  const pc = pr[1] ? Math.min(100, Math.round(pr[0] / pr[1] * 100)) : 0;
+
+  $('#dTitre').textContent = fait ? 'Défi débloqué' : 'Défi à relever';
+  $('#dCorps').innerHTML = '<div class="d-fiche">'
+    + '<span class="e" style="' + (fait ? '' : 'filter:grayscale(1);opacity:.7') + '">' + d.e + '</span>'
+    + '<h3>' + esc(d.n) + '</h3>'
+    + '<div class="cat">' + esc(d.cat) + '</div>'
+    + '<div class="d-quoi"><b>Ce qu\'il faut faire</b>' + esc(d.o) + '</div>'
     + (fait
-        ? '<div class="prog">✅ Débloqué le ' + esc(jourFr(DATA.defis[d.id])) + '</div>'
-        : '<div class="prog">' + Math.min(pr[0], pr[1]) + ' / ' + pr[1] + '</div>')
-    + '</div></div>';
+        ? '<div class="d-fait">✅ Débloqué le ' + esc(jourFr(DATA.defis[d.id])) + '</div>'
+        : '<div class="d-etat">' + Math.min(pr[0], pr[1]) + ' / ' + pr[1] + '</div>'
+          + '<div class="jauge"><i style="width:' + pc + '%"></i></div>')
+    + '</div>';
+  ouvre('mDefi');
 }
 
 /* =========================================================
@@ -2341,6 +2447,96 @@ function ostPublic(o){
 }
 function sourceOsts(){ return lecture ? (lecture.osts || []) : (DATA.osts || []); }
 
+/* ---------- Remplissage automatique d'une OST ----------
+   YouTube expose le titre d'une vidéo sans clé d'API via oEmbed. Si l'appel
+   échoue (réseau, CORS), on ne casse rien : les champs restent à remplir. */
+const cacheYT = new Map();
+/* dernières valeurs écrites automatiquement, pour ne pas écraser une correction */
+let ostPoses = { oTitre:'', oJeu:'' };
+async function infosYoutube(vid){
+  if(!vid) return null;
+  if(cacheYT.has(vid)) return cacheYT.get(vid);
+  const u = 'https://www.youtube.com/oembed?format=json&url='
+    + encodeURIComponent('https://www.youtube.com/watch?v=' + vid);
+  const rep = await fetch(u);
+  if(!rep.ok) throw new Error('HTTP ' + rep.status);
+  const js = await rep.json();
+  const info = { titre: js.title || '', chaine: js.author_name || '' };
+  cacheYT.set(vid, info);
+  return info;
+}
+
+/* « Final Fantasy VII - One-Winged Angel » → jeu + morceau.
+   On teste les deux sens et on garde celui que RAWG reconnaît. */
+function coupeTitre(t){
+  const seps = [' — ', ' – ', ' - ', ' | ', ' ~ ', ' : '];
+  for(const sp of seps){
+    const i = t.indexOf(sp);
+    if(i > 0) return [t.slice(0, i).trim(), t.slice(i + sp.length).trim()];
+  }
+  return [null, t.trim()];
+}
+function nettoieOst(t){
+  return String(t || '')
+    .replace(/\[[^\]]*\]|\([^)]*\)/g, ' ')          // [HD], (Official), (OST)…
+    .replace(/\b(ost|soundtrack|original soundtrack|bgm|theme|music|extended|full version)\b/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+async function chercheOst(auto){
+  const vid = idYoutube($('#oLien').value);
+  if(!vid){
+    if(!auto) toast('Colle d\'abord un lien YouTube.');
+    return;
+  }
+  const aide = $('#oLienAide');
+  // la loupe force ; le remplissage auto ne touche jamais à une saisie perso
+  const libre = (ch, cle) => !ch.value.trim() || ch.value.trim() === ostPoses[cle];
+  const peutTitre = !auto || libre($('#oTitre'), 'oTitre');
+  const peutJeu   = !auto || libre($('#oJeu'), 'oJeu');
+  if(!peutTitre && !peutJeu) return;
+
+  aide.textContent = 'Recherche des infos…';
+  let info = null;
+  try{
+    info = await infosYoutube(vid);
+  }catch(e){
+    console.warn('oEmbed', e);
+    aide.textContent = 'Miniature récupérée. Le titre n\'a pas pu être lu : à écrire à la main.';
+    return;
+  }
+  if(!info || !info.titre){ aide.textContent = 'Vidéo reconnue ✅'; return; }
+
+  const propre = nettoieOst(info.titre);
+  const parts = coupeTitre(propre);
+  let jeu = parts[0], morceau = parts[1];
+
+  // on demande à RAWG lequel des deux morceaux est un vrai jeu
+  if(jeu && cleRawg()){
+    try{
+      let ok = await infosRawg(jeu);
+      if(!ok){
+        const inv = await infosRawg(morceau);
+        if(inv){ const t = jeu; jeu = morceau; morceau = t; ok = inv; }
+      }
+      if(ok) jeu = ok.nom;                 // nom officiel du jeu
+    }catch(e){ console.warn('RAWG OST', e); }
+  }
+
+  if(peutTitre && morceau){ $('#oTitre').value = morceau; ostPoses.oTitre = morceau; }
+  if(peutJeu && jeu){ $('#oJeu').value = jeu; ostPoses.oJeu = jeu; }
+  aide.textContent = 'Trouvé : ' + info.titre;
+}
+
+function apercuOst(){
+  const vid = idYoutube($('#oLien').value);
+  $('#oApercu').innerHTML = vid
+    ? '<img src="' + esc(vignetteYT(vid)) + '" alt="" '
+      + 'style="width:100%;border-radius:10px;margin-top:10px;display:block">'
+    : '';
+}
+
 let ostEnCours = null;
 function ouvreOst(id){
   ostEnCours = id || null;
@@ -2352,15 +2548,21 @@ function ouvreOst(id){
   $('#oNote').value  = (o && o.note != null) ? o.note : '';
   $('#oAvis').value  = o ? (o.comment || '') : '';
   $('#bSuppOst').style.display = o ? '' : 'none';
-  majLienOst();
+  $('#oLienAide').textContent = '';
+  ostPoses = { oTitre:'', oJeu:'' };
+  apercuOst();
   ouvre('mOst');
-  setTimeout(() => $('#oTitre').focus(), 60);
+  setTimeout(() => $('#oLien').focus(), 60);
 }
+let ostT = null;
 function majLienOst(){
   const id = idYoutube($('#oLien').value);
-  $('#oLienAide').innerHTML = id
-    ? 'Vidéo reconnue ✅ — la miniature sera récupérée toute seule.'
-    : 'Colle l\'adresse de la vidéo (youtube.com ou youtu.be) : la miniature vient toute seule.';
+  $('#oLienAide').textContent = id
+    ? 'Vidéo reconnue ✅'
+    : 'Colle l\'adresse de la vidéo : titre, jeu et miniature arrivent tout seuls.';
+  apercuOst();
+  clearTimeout(ostT);
+  if(id) ostT = setTimeout(() => chercheOst(true), 700);
 }
 function sauveOst(){
   const titre = $('#oTitre').value.trim();
@@ -3356,6 +3558,7 @@ function init(){
   $('#bAdd').onclick = () => ouvreJeu(null);
   $('#bRegl').onclick = () => {
     $('#rCle').value = DATA.reglages.cleRawg || '';
+    $('#rSgdb').value = DATA.reglages.cleSgdb || '';
     $('#rAnim').textContent = DATA.reglages.anim ? 'Animé ✓' : 'Coupé';
     $('#rAnim').classList.toggle('on', DATA.reglages.anim);
     ouvre('mRegl');
@@ -3384,6 +3587,7 @@ function init(){
   $('#bSauveOst').onclick = sauveOst;
   $('#bSuppOst').onclick = suppOst;
   $('#oLien').addEventListener('input', majLienOst);
+  $('#bChercheOst').onclick = () => chercheOst(false);
   $('#oTitre').addEventListener('keydown', e => { if(e.key === 'Enter') sauveOst(); });
   $('#q').addEventListener('input', e => { UI.q = e.target.value; rendGrille(); });
 
@@ -3418,7 +3622,7 @@ function init(){
     const u = e.target.closest('[data-user]');
     if(u){ ouvreLecture(u.dataset.user); return; }
     const df = e.target.closest('[data-defi]');
-    if(df){ defiOuvert = df.dataset.defi; rendDefis(); return; }
+    if(df){ ouvreDefi(df.dataset.defi); return; }
     const os = e.target.closest('[data-ost]');
     if(os){ ouvreOstVoir(os.dataset.ost); return; }
     const eo = e.target.closest('[data-editost]');
@@ -3509,6 +3713,7 @@ function init(){
   };
   $('#bSauveRegl').onclick = () => {
     DATA.reglages.cleRawg = $('#rCle').value.trim();
+    DATA.reglages.cleSgdb = $('#rSgdb').value.trim();
     sauve(); ferme('mRegl');
     toast('Réglages enregistrés.');
   };
