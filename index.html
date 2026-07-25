@@ -1204,4 +1204,2366 @@ function migre(){
   if(!DATA.reglages) DATA.reglages = v.reglages;
   if(!DATA.profil)   DATA.profil   = v.profil;
   if(!DATA.cloud)    DATA.cloud    = v.cloud;
-  for(const k in v.cloud) 
+  for(const k in v.cloud) if(DATA.cloud[k] === undefined) DATA.cloud[k] = v.cloud[k];
+  if(!Array.isArray(DATA.cloud.connus)) DATA.cloud.connus = [];
+  if(!DATA.defis || typeof DATA.defis !== 'object') DATA.defis = {};
+  if(!Array.isArray(DATA.osts)) DATA.osts = [];
+  if(!DATA.tournoi || typeof DATA.tournoi !== 'object') DATA.tournoi = { jeux:null, ost:null };
+  if(!Array.isArray(DATA.palmares)) DATA.palmares = [];
+  if(!Array.isArray(DATA.jeux)) DATA.jeux = [];
+  for(const k in v.reglages) if(DATA.reglages[k] === undefined) DATA.reglages[k] = v.reglages[k];
+  for(const k in v.profil)   if(DATA.profil[k]   === undefined) DATA.profil[k]   = v.profil[k];
+  DATA.jeux.forEach(g => {
+    if(!g.id) g.id = uid();
+    if(!Array.isArray(g.achievements)) g.achievements = [];
+    if(!Array.isArray(g.genres)) g.genres = [];
+    if(g.achievementsTotal == null) g.achievementsTotal = g.achievements.length;
+    if(!g.addedAt) g.addedAt = isoLocal();
+    if(g.cent100 === undefined) g.cent100 = false;
+    // l'ancien statut « 100 % » devient « Terminé » + pastille dorée
+    if(g.status === 'cent'){ g.status = 'termine'; g.cent100 = true; }
+  });
+  if(!Array.isArray(DATA.profil.amis)) DATA.profil.amis = [];
+  if(!DATA.profil.visibilite) DATA.profil.visibilite = 'public';
+  DATA.version = 7;
+}
+/* écriture brute, sans toucher aux repères de synchro */
+function ecrit(){
+  try{
+    localStorage.setItem(CLE, JSON.stringify(DATA));
+  }catch(e){
+    console.error(e);
+    toast("Sauvegarde impossible : mémoire du navigateur pleine.");
+  }
+}
+/* enregistrement local + marquage « modifié depuis le dernier envoi » */
+function sauveLocal(){
+  DATA.profil.lastSeen = isoLocal();
+  DATA.cloud.majAt = isoLocal();
+  ecrit();
+}
+/* enregistrement normal : local puis envoi différé vers GitHub */
+function sauve(){
+  sauveLocal();
+  cloudPlanifie();
+}
+
+/* =========================================================
+   FOND VIVANT
+   ========================================================= */
+/* Mur d'affiches : une vraie mosaïque qui remplit l'écran, les mieux
+   notées en premier, puis on répète la collection pour ne pas laisser de trou. */
+function rendFond(){
+  const zone = $('#bgTiles');
+  const avecAff = DATA.jeux.filter(g => g.cover);
+  if(!avecAff.length){ zone.innerHTML = ''; return; }
+
+  const tri = avecAff.slice().sort((a, b) => (b.note || 0) - (a.note || 0));
+  const larg = window.innerWidth  || 1200;
+  const haut = window.innerHeight || 800;
+  const petit = larg <= 640;
+  const col = Math.max(3, Math.ceil(larg / (petit ? 120 : 158)));
+  const lig = Math.max(3, Math.ceil((haut * 1.3) / (petit ? 158 : 208)));
+  const total = Math.min(col * lig, 84);
+
+  let html = '';
+  for(let i = 0; i < total; i++){
+    const g = tri[i % tri.length];
+    html += '<div class="tuile" style="background-image:url(' + esc(g.cover) + ');'
+      + 'animation-delay:' + (-(i % 13) * 2) + 's"></div>';
+  }
+  zone.innerHTML = html;
+  extraitAccent(tri[0].cover);
+}
+
+/* la mosaïque se recalcule quand la fenêtre change de taille */
+let redimT = null;
+window.addEventListener('resize', () => {
+  clearTimeout(redimT);
+  redimT = setTimeout(() => { if(DATA) rendFond(); }, 320);
+});
+
+/* Couleur d'accent tirée de l'affiche du jeu n°1 */
+function extraitAccent(url){
+  if(!url) return;
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    try{
+      const c = document.createElement('canvas');
+      c.width = 12; c.height = 12;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, 12, 12);
+      const d = ctx.getImageData(0, 0, 12, 12).data;
+      let r=0, v=0, b=0, n=0;
+      for(let i=0; i<d.length; i+=4){
+        const mx = Math.max(d[i], d[i+1], d[i+2]);
+        const mn = Math.min(d[i], d[i+1], d[i+2]);
+        if(mx - mn < 26) continue;            // on saute les gris
+        r += d[i]; v += d[i+1]; b += d[i+2]; n++;
+      }
+      if(!n) return;
+      let R = r/n, V = v/n, B = b/n;
+      const lum = (R*0.299 + V*0.587 + B*0.114);
+      const k = lum < 105 ? 105/Math.max(lum,1) : 1;   // on éclaircit si trop sombre
+      R = Math.min(255, R*k); V = Math.min(255, V*k); B = Math.min(255, B*k);
+      const hex = '#' + [R,V,B].map(x => Math.round(x).toString(16).padStart(2,'0')).join('');
+      document.documentElement.style.setProperty('--accent', hex);
+    }catch(e){
+      // image qui refuse le canvas : on garde la couleur par défaut, ce n'est pas grave
+    }
+  };
+  img.onerror = () => {};
+  img.src = url;
+}
+
+/* Parallaxe douce */
+let pxT;
+window.addEventListener('mousemove', e => {
+  if(!DATA || !DATA.reglages.anim) return;
+  clearTimeout(pxT);
+  pxT = setTimeout(() => {
+    const x = (e.clientX / window.innerWidth - .5) * -26;
+    const y = (e.clientY / window.innerHeight - .5) * -26;
+    $('#bgTiles').style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
+  }, 40);
+});
+
+/* =========================================================
+   GRILLE
+   ========================================================= */
+/* la grille lit ma collection, ou celle qu'on consulte en lecture seule */
+function sourceJeux(){ return lecture ? (lecture.jeux || []) : DATA.jeux; }
+
+function jeuxFiltres(){
+  let L = sourceJeux().slice();
+  const q = UI.q.trim().toLowerCase();
+  if(q) L = L.filter(g => (g.title || '').toLowerCase().includes(q));
+  if(UI.statut) L = L.filter(g => g.status === UI.statut);
+  if(UI.plateforme) L = L.filter(g => g.platform === UI.plateforme);
+
+  const parNote = (a,b) => (b.note == null ? -1 : b.note) - (a.note == null ? -1 : a.note);
+  switch(UI.tri){
+    case 'ancien':  L.sort((a,b) => ms(a.addedAt) - ms(b.addedAt)); break;
+    case 'note':    L.sort(parNote); break;
+    case 'notebas': L.sort((a,b) => (a.note == null ? 99 : a.note) - (b.note == null ? 99 : b.note)); break;
+    case 'meta':    L.sort((a,b) => (b.metaUser || 0) - (a.metaUser || 0)); break;
+    case 'joue':    L.sort((a,b) => ms(b.lastPlayed) - ms(a.lastPlayed)); break;
+    case 'az':      L.sort((a,b) => (a.title || '').localeCompare(b.title || '', 'fr')); break;
+    default:        L.sort((a,b) => ms(b.addedAt) - ms(a.addedAt));
+  }
+  return L;
+}
+
+function rendGrille(){
+  const L = jeuxFiltres();
+  const g = $('#grille');
+  g.className = 'grid' + (UI.vue === 'liste' ? ' liste' : '');
+  $('#compte').textContent = L.length + (L.length > 1 ? ' jeux' : ' jeu');
+
+  if(!sourceJeux().length){
+    g.innerHTML = '';
+    $('#vide').innerHTML = lecture
+      ? '<div class="vide-etat"><div class="logo-g"></div><h2>Liste vide</h2><p>'
+        + esc(lecture.pseudo || lecture.login) + ' n\'a rien publié pour le moment.</p></div>'
+      : '<div class="vide-etat"><div class="logo-g"></div><h2>Ta bibliothèque est vide</h2>'
+        + '<p>Ajoute ton premier jeu : le fond du site se construira à partir de tes affiches.</p></div>';
+    return;
+  }
+  if(!L.length){
+    g.innerHTML = '';
+    $('#vide').innerHTML = '<div class="vide-etat"><h2>Rien ne correspond</h2>'
+      + '<p>Change de filtre ou vide la recherche.</p></div>';
+    return;
+  }
+  $('#vide').innerHTML = '';
+
+  g.innerHTML = L.map(j => {
+    const st = statutDe(j.status);
+    // en lecture seule les succès arrivent déjà comptés (trpObt / trpTot)
+    const obt = j.achievements ? j.achievements.filter(a => a.unlocked).length : (j.trpObt || 0);
+    const tot = j.achievements ? (j.achievementsTotal || j.achievements.length) : (j.trpTot || 0);
+    // l'affiche entière, centrée, posée sur une version floutée d'elle-même
+    const aff = j.cover
+      ? '<div class="flou" style="background-image:url(' + esc(j.cover) + ')"></div>'
+        + '<img src="' + esc(j.cover) + '" alt="" loading="lazy">'
+      : '<div class="vide">' + esc((j.title || '?').slice(0,1).toUpperCase()) + '</div>';
+    const note = j.note != null
+      ? '<div class="note-b">' + j.note.toFixed(1) + '</div>' : '';
+    // 100 % : coché à la main, ou tous les succès obtenus
+    const cent = !!j.cent100 || j.status === 'cent' || (tot > 0 && obt === tot);
+    const centB = cent ? '<div class="cent-b">100%</div>' : '';
+    const trp = tot ? '<div class="trp-b">🏆 ' + obt + '/' + tot + '</div>' : '';
+    const sous = [j.platform, j.lastPlayed ? depuisJour(j.lastPlayed) : ''].filter(Boolean).join(' · ');
+    const cible = lecture ? 'data-voir="' + j._i + '"' : 'data-jeu="' + j.id + '"';
+    return '<button class="carte" ' + cible + '>'
+      + '<div class="aff">' + aff + '<div class="coin-hd">' + centB + note + '</div>' + trp
+      + '<div class="stat-b" style="background:' + st.c + 'cc">' + st.nom + '</div></div>'
+      + '<div class="carte-txt">'
+      + '<div class="carte-t">' + esc(j.title) + '</div>'
+      + '<div class="carte-s">' + esc(sous) + '</div>'
+      + (UI.vue === 'liste' && cent ? '<div class="l-cent">100%</div>' : '')
+      + (UI.vue === 'liste' && j.note != null ? '<div class="l-note">' + j.note.toFixed(1) + '</div>' : '')
+      + '</div></button>';
+  }).join('');
+}
+
+/* =========================================================
+   ÉTOILES (0 à 10, demi-crans)
+   ========================================================= */
+function rendEtoiles(val){
+  const z = $('#jEtoiles');
+  let h = '';
+  for(let i = 1; i <= 10; i++){
+    const p = val == null ? 0 : Math.max(0, Math.min(1, val - (i-1))) * 100;
+    h += '<div class="et" data-e="' + i + '">★<span class="plein" style="width:' + p + '%">★</span></div>';
+  }
+  h += '<span class="note-txt">' + (val == null ? '—' : val.toFixed(1)) + '</span>';
+  if(val != null) h += '<button type="button" class="note-raz" id="bRaz">effacer</button>';
+  z.innerHTML = h;
+  const raz = $('#bRaz');
+  if(raz) raz.onclick = () => { noteTmp = null; rendEtoiles(null); };
+}
+function majCent(){
+  const b = $('#jCent');
+  b.textContent = centTmp ? '💯 Fait à 100 %' : 'Marquer 100 %';
+  b.classList.toggle('on', centTmp);
+}
+
+function initEtoiles(){
+  const z = $('#jEtoiles');
+  z.addEventListener('click', e => {
+    const et = e.target.closest('.et');
+    if(!et) return;
+    const i = +et.dataset.e;
+    const r = et.getBoundingClientRect();
+    const demi = (e.clientX - r.left) < r.width / 2;
+    noteTmp = demi ? i - 0.5 : i;
+    rendEtoiles(noteTmp);
+  });
+  z.addEventListener('mousemove', e => {
+    const et = e.target.closest('.et');
+    if(!et) return;
+    const i = +et.dataset.e;
+    const r = et.getBoundingClientRect();
+    const demi = (e.clientX - r.left) < r.width / 2;
+    apercuEtoiles(demi ? i - 0.5 : i);
+  });
+  z.addEventListener('mouseleave', () => apercuEtoiles(noteTmp));
+}
+function apercuEtoiles(val){
+  const ets = document.querySelectorAll('#jEtoiles .et');
+  ets.forEach((el, k) => {
+    const i = k + 1;
+    const p = val == null ? 0 : Math.max(0, Math.min(1, val - (i-1))) * 100;
+    el.querySelector('.plein').style.width = p + '%';
+  });
+  const t = document.querySelector('#jEtoiles .note-txt');
+  if(t) t.textContent = val == null ? '—' : val.toFixed(1);
+}
+
+/* =========================================================
+   MODALE JEU
+   ========================================================= */
+function ouvre(id){ $('#' + id).classList.add('on'); }
+function ferme(id){ $('#' + id).classList.remove('on'); }
+
+function ouvreJeu(id){
+  jeuEnCours = id;
+  rawgTmp = null;
+  const j = id ? DATA.jeux.find(x => x.id === id) : null;
+  $('#jTitreH').textContent = j ? 'Modifier' : 'Ajouter un jeu';
+  $('#jTitre').value   = j ? (j.title || '') : '';
+  $('#jPlat').value    = j ? (j.platform || PLATEFORMES[0]) : PLATEFORMES[0];
+  $('#jStat').value    = j ? (j.status || 'encours') : 'encours';
+  $('#jJoue').value    = j ? (j.lastPlayed || '') : dayLocal();
+  $('#jHeures').value  = j && j.playtime ? j.playtime : '';
+  $('#jMeta').value    = j && j.metaUser != null ? j.metaUser : '';
+  $('#jAff').value     = j ? (j.cover || '') : '';
+  $('#jGenres').value  = j ? (j.genres || []).join(', ') : '';
+  $('#jAvis').value    = j ? (j.comment || '') : '';
+  $('#jCherchAide').textContent = AIDE_AFF;
+  $('#jMetaAide').textContent = AIDE_META;
+  genresPoses = '';
+  dernierAuto = '';
+  noteTmp = j ? (j.note != null ? j.note : null) : null;
+  rendEtoiles(noteTmp);
+  centTmp = j ? !!j.cent100 : false;
+  majCent();
+  $('#bSuppr').style.display = j ? '' : 'none';
+  $('#bTrophees').style.display = j ? '' : 'none';
+  ouvre('mJeu');
+  if(!j) setTimeout(() => $('#jTitre').focus(), 60);
+}
+
+function sauveJeu(){
+  const titre = $('#jTitre').value.trim();
+  if(!titre){ toast('Il faut au moins un titre.'); $('#jTitre').focus(); return; }
+
+  const metaBrut = $('#jMeta').value.trim();
+  const meta = metaBrut === '' ? null : Math.max(0, Math.min(10, parseFloat(metaBrut)));
+  const champs = {
+    title: titre,
+    platform: $('#jPlat').value,
+    status: $('#jStat').value,
+    note: noteTmp,
+    lastPlayed: $('#jJoue').value || '',
+    playtime: parseInt($('#jHeures').value, 10) || 0,
+    metaUser: (meta == null || isNaN(meta)) ? null : meta,
+    cent100: centTmp,
+    cover: $('#jAff').value.trim(),
+    genres: $('#jGenres').value.split(',').map(s => s.trim()).filter(Boolean),
+    comment: $('#jAvis').value.trim(),
+    updatedAt: isoLocal()
+  };
+
+  let cible;
+  if(jeuEnCours){
+    const j = DATA.jeux.find(x => x.id === jeuEnCours);
+    Object.assign(j, champs);
+    cible = j.id;
+    toast('Modifié.');
+  }else{
+    const nouveau = Object.assign({
+      id: uid(), rawgId: rawgTmp, achievements: [], achievementsTotal: 0, addedAt: isoLocal()
+    }, champs);
+    DATA.jeux.push(nouveau);
+    cible = nouveau.id;
+    rawgTmp = null;
+    toast('Ajouté à ta liste.');
+  }
+  sauve(); ferme('mJeu'); toutRendre();
+  completeAuto(cible);          // complète genres et affiche en tâche de fond
+}
+
+function supprimeJeu(){
+  if(!jeuEnCours) return;
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!confirm('Supprimer « ' + (j ? j.title : '') +' » ? C\'est définitif.')) return;
+  DATA.jeux = DATA.jeux.filter(x => x.id !== jeuEnCours);
+  sauve(); ferme('mJeu'); toutRendre();
+  toast('Supprimé.');
+}
+
+/* =========================================================
+   RAWG — affiche + infos
+   ========================================================= */
+/* -----------------------------------------------------------------
+   CLÉ RAWG DU SITE
+   Colle ta clé entre les guillemets ci-dessous : tout le monde en
+   profite sans rien avoir à saisir. Elle est lisible par qui ouvre
+   le code de la page, c'est le prix à payer pour un site sans serveur.
+   ----------------------------------------------------------------- */
+const CLE_RAWG_SITE = '30b0437a08844d00a27b4a600f5f8ea7';
+
+/* clé perso (Réglages) prioritaire, sinon celle du site */
+function cleRawg(){
+  return (DATA.reglages.cleRawg || '').trim() || CLE_RAWG_SITE.trim();
+}
+
+/* Texte d'aide par défaut sous le champ Metacritic */
+const AIDE_META = '⤓ récupère la note de la presse via RAWG. La note des joueurs '
+  + '(« User Score ») n\'est lisible par aucun site : ↗ ouvre la page, tu la recopies si tu la préfères.';
+
+/* Remplace les captures d'écran par de vraies jaquettes sur toute la collection */
+let rattrapeEnCours = false;
+async function rattrapeJaquettes(){
+  if(rattrapeEnCours) return;
+  if(!cleRawg()){ toast('Clé RAWG manquante.'); return; }
+  const L = DATA.jeux.filter(g => g.title && !String(g.cover || '').includes('steamstatic'));
+  if(!L.length){ toast('Toutes tes jaquettes sont déjà en place.'); return; }
+  if(!confirm(L.length + ' jeu(x) à traiter.\n\nFGL va chercher la vraie jaquette de chacun. '
+    + 'Ça prend quelques secondes par jeu, laisse l\'onglet ouvert.')) return;
+  rattrapeEnCours = true;
+  let ok = 0;
+  try{
+    for(let k = 0; k < L.length; k++){
+      const g = L[k];
+      toast('Jaquettes : ' + (k + 1) + ' / ' + L.length + '…');
+      try{
+        const i = await infosRawg(g.title);
+        if(i){
+          const img = await jaquette(i);
+          if(img && img !== g.cover && img.includes('steamstatic')){ g.cover = img; ok++; }
+          if(!g.rawgId) g.rawgId = i.id;
+        }
+      }catch(e){ console.warn('jaquette', g.title, e); }
+    }
+    sauve(); toutRendre();
+    toast(ok + ' jaquette(s) mise(s) à jour sur ' + L.length + '.');
+  }finally{
+    rattrapeEnCours = false;
+  }
+}
+
+/* ---------- Jaquettes ----------
+   RAWG ne renvoie qu'une capture d'écran 16/9. La vraie jaquette verticale
+   existe sur le CDN de Steam : on récupère l'identifiant Steam du jeu via
+   RAWG, puis on teste l'image avant de l'adopter. */
+const cacheJaquette = new Map();
+
+function imageOK(url){
+  return new Promise(res => {
+    const im = new Image();
+    im.onload  = () => res(im.naturalWidth > 10);
+    im.onerror = () => res(false);
+    im.src = url;
+  });
+}
+
+async function appIdSteam(rawgId){
+  if(!rawgId || !cleRawg()) return null;
+  const rep = await fetch('https://api.rawg.io/api/games/' + encodeURIComponent(rawgId)
+    + '?key=' + encodeURIComponent(cleRawg()));
+  if(!rep.ok) throw new Error('HTTP ' + rep.status);
+  const js = await rep.json();
+  const L = js.stores || [];
+  for(const st of L){
+    const url = st.url || '';
+    const m = url.match(/store\.steampowered\.com\/app\/(\d+)/);
+    if(m) return m[1];
+  }
+  return null;
+}
+
+/* Renvoie la meilleure image dispo : jaquette Steam sinon capture RAWG */
+async function jaquette(info){
+  if(!info) return '';
+  const cle = 'j' + info.id;
+  if(cacheJaquette.has(cle)) return cacheJaquette.get(cle) || info.cover || '';
+  let trouvee = '';
+  try{
+    const app = await appIdSteam(info.id);
+    if(app){
+      const url = 'https://cdn.cloudflare.steamstatic.com/steam/apps/' + app + '/library_600x900_2x.jpg';
+      if(await imageOK(url)) trouvee = url;
+      else{
+        const url2 = 'https://cdn.cloudflare.steamstatic.com/steam/apps/' + app + '/library_600x900.jpg';
+        if(await imageOK(url2)) trouvee = url2;
+      }
+    }
+  }catch(e){
+    console.warn('jaquette', e);
+  }
+  cacheJaquette.set(cle, trouvee);
+  return trouvee || info.cover || '';
+}
+
+/* Bouton ⤓ : remplit la note Metacritic tout seul */
+async function chercheMeta(){
+  const titre = $('#jTitre').value.trim();
+  const aide = $('#jMetaAide');
+  if(!titre){ toast('Écris d\'abord le titre.'); return; }
+  if(!cleRawg()){ toast('Clé RAWG manquante.'); return; }
+  aide.textContent = 'Recherche de la note…';
+  try{
+    const i = await infosRawg(titre);
+    if(!i){ aide.textContent = 'Jeu introuvable côté RAWG.'; return; }
+    retientRawgId(i.id);
+    if(i.meta == null){
+      aide.textContent = 'Aucune note Metacritic pour ce jeu — à saisir à la main avec ↗.';
+      return;
+    }
+    $('#jMeta').value = (i.meta / 10).toFixed(1);
+    aide.textContent = 'Note presse récupérée : ' + (i.meta / 10).toFixed(1)
+      + '/10 (' + i.meta + '/100 sur Metacritic).';
+  }catch(e){
+    console.warn('Metacritic auto', e);
+    aide.textContent = 'Récupération impossible. Réessaie ou saisis la note à la main.';
+  }
+}
+
+/* Texte d'aide par défaut sous le champ Affiche */
+const AIDE_AFF = 'Le 🔍 va chercher l\'affiche et les genres à partir du titre. '
+  + 'Sinon : clic droit sur une image → « Copier l\'adresse de l\'image ».';
+
+/* Dernière valeur écrite automatiquement dans le champ Genres :
+   sert à ne jamais écraser ce que l'utilisateur a tapé lui-même. */
+let genresPoses = '';
+let dernierAuto = '';
+
+/* Écrit les genres. force = true pour le bouton 🔍 (action explicite). */
+function poseGenres(liste, force){
+  if(!liste || !liste.length) return;
+  const champ = $('#jGenres');
+  const actuel = champ.value.trim();
+  if(!force && actuel && actuel !== genresPoses) return;   // saisie perso : on n'y touche pas
+  champ.value = liste.join(', ');
+  genresPoses = champ.value;
+}
+
+/* Une seule recherche par titre et par session */
+const cacheRawg = new Map();
+async function infosRawg(titre){
+  const cle = titre.trim().toLowerCase();
+  if(!cle || !cleRawg()) return null;
+  if(cacheRawg.has(cle)) return cacheRawg.get(cle);
+  const url = 'https://api.rawg.io/api/games?key=' + encodeURIComponent(cleRawg())
+    + '&search=' + encodeURIComponent(titre) + '&page_size=1';
+  const rep = await fetch(url);
+  if(!rep.ok) throw new Error('HTTP ' + rep.status);
+  const js = await rep.json();
+  const r = js.results && js.results[0];
+  const info = r ? {
+    id: r.id,
+    nom: r.name || titre,
+    cover: r.background_image || '',
+    genres: (r.genres || []).map(g => g.name),
+    annee: r.released ? r.released.slice(0,4) : '',
+    meta: (typeof r.metacritic === 'number') ? r.metacritic : null   // note presse /100
+  } : null;
+  cacheRawg.set(cle, info);
+  return info;
+}
+
+/* Bouton 🔍 : recherche explicite, corrige aussi le titre */
+async function chercheRawg(){
+  const titre = $('#jTitre').value.trim();
+  const aide = $('#jCherchAide');
+  if(!titre){ toast('Écris d\'abord le titre.'); return; }
+  if(!cleRawg()){
+    aide.textContent = 'Aucune clé RAWG disponible.';
+    toast('Clé RAWG manquante.');
+    return;
+  }
+  aide.textContent = 'Recherche en cours…';
+  try{
+    const i = await infosRawg(titre);
+    if(!i){ aide.textContent = 'Aucun jeu trouvé sous ce nom.'; return; }
+    $('#jTitre').value = i.nom;
+    aide.textContent = 'Jeu trouvé, recherche de la jaquette…';
+    const img = await jaquette(i);
+    if(img) $('#jAff').value = img;
+    poseGenres(i.genres, true);          // clic sur 🔍 : les genres sont refaits
+    dernierAuto = i.nom.trim().toLowerCase();
+    retientRawgId(i.id);
+    aide.textContent = 'Trouvé : ' + i.nom + (i.annee ? ' (' + i.annee + ')' : '');
+  }catch(e){
+    console.error(e);
+    aide.textContent = 'La recherche a échoué. Vérifie ta connexion.';
+  }
+}
+
+function retientRawgId(id){
+  if(jeuEnCours){
+    const j = DATA.jeux.find(x => x.id === jeuEnCours);
+    if(j) j.rawgId = id;
+  }else{
+    rawgTmp = id;
+  }
+}
+
+/* Remplissage automatique quand on quitte le champ Titre :
+   affiche et genres, sans toucher à ce que l'utilisateur a déjà écrit. */
+async function autoInfos(){
+  if(!$('#mJeu').classList.contains('on')) return;   // modale déjà fermée
+  const titre = $('#jTitre').value.trim();
+  if(!titre || !cleRawg()) return;
+  const dejaFait = titre.toLowerCase() === dernierAuto;
+  const manque = !$('#jAff').value.trim() || !$('#jGenres').value.trim();
+  if(dejaFait && !manque) return;
+  dernierAuto = titre.toLowerCase();
+  const aide = $('#jCherchAide');
+  aide.textContent = 'Recherche des infos…';
+  try{
+    const i = await infosRawg(titre);
+    if(!i){ aide.textContent = 'Aucun jeu trouvé sous ce nom.'; return; }
+    if(!$('#jAff').value.trim()){
+      const img = await jaquette(i);
+      if(img) $('#jAff').value = img;
+    }
+    poseGenres(i.genres, false);         // genres posés dès que le jeu est reconnu
+    retientRawgId(i.id);
+    aide.textContent = 'Jeu reconnu : ' + i.nom + (i.annee ? ' (' + i.annee + ')' : '');
+  }catch(e){
+    console.warn('RAWG auto', e);
+    aide.textContent = AIDE_AFF;
+  }
+}
+
+/* Filet de sécurité : après l'enregistrement, on complète en tâche de fond
+   les genres et l'affiche encore vides (import, ajout rapide, ancien jeu). */
+async function completeAuto(id){
+  const j = DATA.jeux.find(x => x.id === id);
+  if(!j || !j.title || !cleRawg()) return;
+  if(j.cover && j.genres && j.genres.length && j.rawgId) return;
+  try{
+    const i = await infosRawg(j.title);
+    if(!i) return;
+    let bouge = false;
+    if(!j.rawgId && i.id){ j.rawgId = i.id; bouge = true; }
+    if(!j.cover){
+      const img = await jaquette(i);
+      if(img){ j.cover = img; bouge = true; }
+    }
+    if((!j.genres || !j.genres.length) && i.genres.length){ j.genres = i.genres; bouge = true; }
+    if(bouge){ sauve(); toutRendre(); }
+  }catch(e){
+    console.warn('RAWG auto', e);
+  }
+}
+let rawgTmp = null;
+
+/* =========================================================
+   SUCCÈS
+   ========================================================= */
+function classeRarete(p){
+  if(p == null) return {c:'br', t:''};
+  if(p <= 5)  return {c:'or', t:p.toFixed(1) + '%'};
+  if(p <= 15) return {c:'ar', t:p.toFixed(1) + '%'};
+  return {c:'br', t:p.toFixed(1) + '%'};
+}
+function couleurBadge(nom){
+  let h = 0;
+  for(let i = 0; i < nom.length; i++) h = (h * 31 + nom.charCodeAt(i)) % 360;
+  return 'linear-gradient(150deg,hsl(' + h + ',52%,42%),hsl(' + ((h+42)%360) + ',58%,26%))';
+}
+
+function ouvreTrophees(){
+  $('#trpFt').style.display = '';   // mes succès : les boutons reviennent
+  if(!jeuEnCours) return;
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!j) return;
+  $('#trpTitre').textContent = '🏆 ' + j.title;
+  rendTrophees();
+  ouvre('mTrp');
+}
+
+function rendTrophees(){
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!j) return;
+  const z = $('#trpCorps');
+  const L = j.achievements;
+
+  if(!L.length){
+    z.innerHTML = '<div class="trp-vide">Aucun succès chargé pour ce jeu.<br>'
+      + 'Clique sur <b>Charger les succès</b> pour récupérer la liste officielle avec ses icônes, '
+      + 'ou ajoute-les à la main.</div>';
+    return;
+  }
+  const obt = L.filter(a => a.unlocked).length;
+  const tot = j.achievementsTotal || L.length;
+  const pct = tot ? Math.round(obt / tot * 100) : 0;
+
+  let h = htmlJauge(obt, tot);
+
+  h += htmlTrophees(L, tot, true);
+  z.innerHTML = h;
+}
+
+/* Grille de succès, réutilisée pour ma liste (cochable) et pour celle
+   d'un membre (lecture seule). */
+function htmlTrophees(L, tot, interactif){
+  let h = '<div class="trp-grille">';
+  L.forEach(a => {
+    const r = classeRarete(a.rarity);
+    const img = a.icon
+      ? '<img src="' + esc(a.icon) + '" alt="" loading="lazy">'
+      : '<div class="gen" style="background:' + couleurBadge(a.name || '?') + '">🏆</div>';
+    const bal = interactif ? 'button' : 'div';
+    const att = interactif ? ' data-trp="' + esc(a.id) + '"' : '';
+    h += '<' + bal + ' class="trp ' + (a.unlocked ? 'on' : 'off') + '"' + att
+      + ' title="' + esc(a.name) + (a.desc ? ' — ' + esc(a.desc) : '') + '">'
+      + '<div class="img">' + img
+      + (r.t ? '<span class="rar ' + r.c + '">' + r.t + '</span>' : '')
+      + (a.unlocked && a.date ? '<span class="dt">' + esc(a.date.slice(8,10) + '/' + a.date.slice(5,7) + '/' + a.date.slice(0,4)) + '</span>' : '')
+      + (!a.unlocked ? '<span class="cad">🔒</span>' : '')
+      + '</div><div class="nom">' + esc(a.name) + '</div></' + bal + '>';
+  });
+  return h + '</div>';
+}
+
+/* En-tête de progression, partagé lui aussi */
+function htmlJauge(obt, tot){
+  const pct = tot ? Math.round(obt / tot * 100) : 0;
+  return '<div class="trp-hd">'
+    + '<div class="jauge"><i style="width:' + pct + '%"></i></div>'
+    + '<div class="jauge-t">' + obt + ' / ' + tot + ' · ' + pct + ' %'
+    + (obt === tot && tot > 0 ? ' 💯' : '') + '</div></div>';
+}
+
+async function chargeTrophees(){
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!j) return;
+  if(!cleRawg()){ toast('Clé RAWG manquante → ⚙️ Réglages.'); return; }
+
+  const z = $('#trpCorps');
+  z.innerHTML = '<div class="trp-vide">Chargement des succès…</div>';
+  try{
+    // 1. retrouver l'id RAWG si on ne l'a pas
+    if(!j.rawgId){
+      const u = 'https://api.rawg.io/api/games?key=' + encodeURIComponent(cleRawg())
+        + '&search=' + encodeURIComponent(j.title) + '&page_size=1';
+      const rp = await fetch(u);
+      if(!rp.ok) throw new Error('HTTP ' + rp.status);
+      const js = await rp.json();
+      if(!js.results || !js.results[0]) throw new Error('introuvable');
+      j.rawgId = js.results[0].id;
+    }
+    // 2. récupérer les succès (plusieurs pages)
+    let url = 'https://api.rawg.io/api/games/' + j.rawgId + '/achievements?key=' + encodeURIComponent(cleRawg());
+    const trouves = [];
+    let pages = 0;
+    while(url && pages < 6 && trouves.length < 300){
+      const rep = await fetch(url);
+      if(!rep.ok) throw new Error('HTTP ' + rep.status);
+      const js = await rep.json();
+      (js.results || []).forEach(a => trouves.push(a));
+      url = js.next || null;
+      pages++;
+    }
+    if(!trouves.length){
+      z.innerHTML = '<div class="trp-vide">La base RAWG n\'a aucun succès pour ce jeu.<br>'
+        + 'C\'est fréquent pour les exclusivités PlayStation et Xbox : ajoute-les à la main '
+        + 'en collant l\'adresse de l\'icône depuis PSNProfiles ou TrueAchievements.</div>';
+      return;
+    }
+    // 3. fusionner sans perdre ce qui est déjà débloqué
+    const dejaOk = {};
+    j.achievements.forEach(a => { if(a.unlocked) dejaOk[a.name] = a.date || ''; });
+    j.achievements = trouves.map(a => ({
+      id: 'a_' + a.id,
+      name: a.name || 'Succès',
+      desc: a.description || '',
+      icon: a.image || '',
+      rarity: a.percent != null ? parseFloat(a.percent) : null,
+      source: 'steam',
+      unlocked: Object.prototype.hasOwnProperty.call(dejaOk, a.name),
+      date: dejaOk[a.name] || ''
+    }));
+    j.achievementsTotal = j.achievements.length;
+    sauve(); rendTrophees(); rendGrille();
+    toast(trouves.length + ' succès chargés. Coche ceux que t\'as eus.');
+  }catch(e){
+    console.error(e);
+    z.innerHTML = '<div class="trp-vide">Le chargement a échoué.<br>'
+      + 'Vérifie ta clé RAWG et ta connexion, puis réessaie.</div>';
+  }
+}
+
+function basculeTrophee(aid){
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!j) return;
+  const a = j.achievements.find(x => x.id === aid);
+  if(!a) return;
+  const avant = j.achievements.filter(x => x.unlocked).length;
+  a.unlocked = !a.unlocked;
+  a.date = a.unlocked ? dayLocal() : '';
+  const apres = j.achievements.filter(x => x.unlocked).length;
+  const total = j.achievementsTotal || j.achievements.length;
+  sauve(); rendTrophees(); rendGrille();
+  if(total > 0 && apres === total && avant < total) confettis();   // 100 % atteint
+}
+
+function ajouteTropheeManuel(){
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!j) return;
+  const nom = prompt('Nom du succès :');
+  if(!nom) return;
+  const icone = prompt('Adresse de l\'icône (facultatif) :\nClic droit sur l\'image → « Copier l\'adresse de l\'image »') || '';
+  j.achievements.push({
+    id: 'a_m_' + Date.now().toString(36),
+    name: nom.trim(), desc:'', icon: icone.trim(),
+    rarity: null, source:'manuel', unlocked: true, date: dayLocal()
+  });
+  j.achievementsTotal = Math.max(j.achievementsTotal, j.achievements.length);
+  sauve(); rendTrophees(); rendGrille();
+}
+
+/* =========================================================
+   PROFIL + TOP 10
+   ========================================================= */
+function top10(){
+  return DATA.jeux
+    .filter(g => g.note != null)
+    .sort((a,b) =>
+      (b.note - a.note)
+      || ((b.metaUser || 0) - (a.metaUser || 0))
+      || (a.title || '').localeCompare(b.title || '', 'fr'))
+    .slice(0, 10);
+}
+
+function rendProfil(){
+  const p = DATA.profil;
+  const notes = DATA.jeux.filter(g => g.note != null).map(g => g.note);
+  const moy = notes.length ? (notes.reduce((a,b) => a+b, 0) / notes.length) : null;
+  const heures = DATA.jeux.reduce((a,g) => a + (g.playtime || 0), 0);
+  const finis = DATA.jeux.filter(g => g.status === 'termine' || g.status === 'cent').length;
+
+  const ini = (p.pseudo || 'N').slice(0,1).toUpperCase();
+  const srcAv = monAvatar();
+  const av = srcAv ? imgAvatar('pf-av', srcAv, ini) : '<div class="pf-av">' + esc(ini) + '</div>';
+  const miniAv = $('#miniAv');
+  miniAv.outerHTML = srcAv
+    ? imgAvatar('av', srcAv, ini, 'miniAv')
+    : '<span class="av" id="miniAv">' + esc(ini) + '</span>';
+
+  let h = '<div class="pf-tete">' + av + '<div>'
+    + '<div class="pf-nom">' + esc(p.pseudo || 'Sans pseudo') + '</div>'
+    + '<div class="pf-bio">' + (p.bio ? esc(p.bio) : 'Pas encore de bio') + '</div>'
+    + '</div></div>';
+
+  h += '<div class="stats">'
+    + '<div class="stat"><b>' + DATA.jeux.length + '</b><span>jeux</span></div>'
+    + '<div class="stat"><b>' + finis + '</b><span>finis</span></div>'
+    + '<div class="stat"><b>' + (moy == null ? '—' : moy.toFixed(1)) + '</b><span>moyenne</span></div>'
+    + '<div class="stat"><b>' + heures + '</b><span>heures</span></div>'
+    + '</div>';
+
+  const faits = DEFIS.filter(x => DATA.defis[x.id]).length;
+  h += '<button class="d-resume" id="bDefis"><span style="font-size:22px">🎯</span>'
+    + '<div style="flex:1"><b>' + faits + ' / ' + DEFIS.length + '</b> défis débloqués'
+    + '<div class="aide" style="margin:2px 0 0">Clique pour voir lesquels et comment obtenir les autres.</div>'
+    + '</div></button>';
+
+  const T = top10();
+  h += '<div class="titre-s">🏅 Mon top 10</div>';
+  if(!T.length){
+    h += '<div class="aide" style="margin-bottom:18px">Note tes jeux : le classement se construit tout seul.</div>';
+  }else{
+    h += '<div class="top">';
+    T.forEach((j, i) => {
+      const aff = j.cover
+        ? '<img class="top-a" src="' + esc(j.cover) + '" alt="" loading="lazy">'
+        : '<div class="top-a"></div>';
+      const rang = ['or', 'argent', 'bronze'][i];
+      const medaille = ['🥇', '🥈', '🥉'][i];
+      h += '<button class="top-l' + (rang ? ' podium ' + rang : '') + '" data-jeu="' + j.id + '">'
+        + '<span class="top-r">' + (medaille || (i+1)) + '</span>' + aff
+        + '<span class="top-n">' + esc(j.title) + '</span>'
+        + '<span class="top-v">' + j.note.toFixed(1) + '</span></button>';
+    });
+    h += '</div>';
+  }
+
+  h += '<div class="titre-s">✏️ Mes infos</div>'
+    + '<div class="champ"><label for="pPseudo">Pseudo</label>'
+    + '<input id="pPseudo" value="' + esc(p.pseudo) + '"></div>'
+    + '<div class="champ"><label for="pBio">Bio</label>'
+    + '<textarea id="pBio" placeholder="Deux mots sur toi">' + esc(p.bio) + '</textarea></div>';
+
+  const vis = p.visibilite || 'public';
+  h += '<div class="champ"><label for="pVis">Qui peut voir ma liste</label>'
+    + '<select id="pVis">'
+    + '<option value="public"' + (vis === 'public' ? ' selected' : '') + '>Tout le monde</option>'
+    + '<option value="amis"'   + (vis === 'amis'   ? ' selected' : '') + '>Mes amis seulement</option>'
+    + '<option value="prive"'  + (vis === 'prive'  ? ' selected' : '') + '>Personne</option>'
+    + '</select>'
+    + '<div class="aide">« Personne » vide vraiment ton profil en ligne. « Mes amis » est une règle '
+    + 'd\'affichage dans FGL : un gist public reste techniquement lisible par qui connaît son adresse.</div></div>';
+
+  h += '<button class="btn pri" id="bSauveProfil">Enregistrer mon profil</button>';
+
+  h += '<div class="titre-s" style="margin-top:22px">👥 Mes amis</div>'
+    + '<div class="ligne"><input id="pAmi" placeholder="pseudo GitHub" autocomplete="off">'
+    + '<button class="btn" id="bAddAmi">+</button></div>';
+  const amis = p.amis || [];
+  h += '<div class="chips" id="pAmis">'
+    + (amis.length
+        ? amis.map(l => '<span class="chip">' + esc(l)
+            + '<button data-ami="' + esc(l) + '" title="Retirer">✕</button></span>').join('')
+        : '<div class="aide">Ajoute les pseudos GitHub de tes potes : ils apparaissent dans 👥 Utilisateurs.</div>')
+    + '</div>';
+
+  $('#pfCorps').innerHTML = h;
+
+  $('#bDefis').onclick = ouvreDefis;
+  $('#bSauveProfil').onclick = () => {
+    p.pseudo = $('#pPseudo').value.trim() || 'Sans pseudo';
+    p.bio    = $('#pBio').value.trim();
+    p.visibilite = $('#pVis').value;
+    sauve(); rendProfil();
+    if(connecte()) cloudPushProfil().catch(e => console.warn(e));
+    toast('Profil enregistré.');
+  };
+  const ajouteAmi = () => {
+    const l = $('#pAmi').value.trim().replace(/^@/, '');
+    if(!l) return;
+    const bas = l.toLowerCase();
+    if((p.amis || []).some(x => String(x).toLowerCase() === bas)){
+      toast('Déjà dans tes amis.'); return;
+    }
+    p.amis = (p.amis || []).concat(l);
+    sauve(); rendProfil();
+    if(connecte()) cloudPushProfil().catch(e => console.warn(e));
+    toast(l + ' ajouté.');
+  };
+  $('#bAddAmi').onclick = ajouteAmi;
+  $('#pAmi').addEventListener('keydown', e => { if(e.key === 'Enter') ajouteAmi(); });
+}
+
+/* =========================================================
+   EXPORT / IMPORT
+   ========================================================= */
+function exporte(){
+  const blob = new Blob([JSON.stringify(DATA, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'fgl-sauvegarde-' + dayLocal() + '.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('Sauvegarde téléchargée.');
+}
+function importe(fichier){
+  const fr = new FileReader();
+  fr.onload = () => {
+    try{
+      const nv = JSON.parse(fr.result);
+      if(!nv || !Array.isArray(nv.jeux)) throw new Error('format');
+      const rempl = confirm(
+        'Remplacer ta liste actuelle (' + DATA.jeux.length + ' jeux) par celle du fichier ('
+        + nv.jeux.length + ' jeux) ?\n\nOK = remplacer   ·   Annuler = fusionner les deux');
+      if(rempl){
+        DATA = nv;
+      }else{
+        const vus = new Set(DATA.jeux.map(g => (g.title || '').toLowerCase()));
+        nv.jeux.forEach(g => {
+          if(!vus.has((g.title || '').toLowerCase())){
+            g.id = uid();
+            DATA.jeux.push(g);
+          }
+        });
+      }
+      migre(); sauve(); toutRendre();
+      toast('Import terminé : ' + DATA.jeux.length + ' jeux.');
+    }catch(e){
+      console.error(e);
+      toast('Fichier illisible. Prends un export FGL (.json).');
+    }
+  };
+  fr.readAsText(fichier);
+}
+
+/* =========================================================
+   THÈME & RÉGLAGES
+   ========================================================= */
+function appliqueTheme(){
+  const t = DATA.reglages.theme;
+  document.documentElement.dataset.theme = t;
+  $('#bTheme').textContent = t === 'sombre' ? '🌙' : '☀️';
+  document.querySelector('meta[name=theme-color]')
+    .setAttribute('content', t === 'sombre' ? '#12101a' : '#f4f1f7');
+  document.body.classList.toggle('sansanim', !DATA.reglages.anim);
+}
+
+/* =========================================================
+   DÉFIS
+   ========================================================= */
+function estCent(g){
+  const A = g.achievements || [];
+  const tot = g.achievementsTotal || A.length;
+  return !!g.cent100 || (tot > 0 && A.filter(a => a.unlocked).length === tot);
+}
+const nbCent    = () => DATA.jeux.filter(estCent).length;
+const nbTrp     = () => DATA.jeux.reduce((n, g) => n + (g.achievements || []).filter(a => a.unlocked).length, 0);
+const nbHeures  = () => DATA.jeux.reduce((n, g) => n + (Number(g.playtime) || 0), 0);
+const nbNotes   = () => DATA.jeux.filter(g => g.note != null).length;
+const nbAvis    = () => DATA.jeux.filter(g => (g.comment || '').trim()).length;
+const nbPlats   = () => new Set(DATA.jeux.map(g => g.platform).filter(Boolean)).size;
+const nbAmis    = () => (DATA.profil.amis || []).length;
+/* « tous mes jeux ont X » : la cible monte avec la collection, minimum 5 */
+function couvre(test){
+  const L = DATA.jeux;
+  return [L.filter(test).length, Math.max(5, L.length)];
+}
+
+const DEFIS = [
+  // ----- Collection
+  {id:'jeu1',  e:'🎮', cat:'Collection', n:'Premier jeu',    o:'Ajoute ton premier jeu à la liste.',            p:() => [DATA.jeux.length, 1]},
+  {id:'jeu10', e:'📚', cat:'Collection', n:'Collectionneur', o:'Atteins 10 jeux dans ta liste.',                p:() => [DATA.jeux.length, 10]},
+  {id:'jeu25', e:'🗄️', cat:'Collection', n:'Bibliothèque',  o:'Atteins 25 jeux dans ta liste.',                p:() => [DATA.jeux.length, 25]},
+  {id:'jeu50', e:'🏛️', cat:'Collection', n:'Ludothèque',    o:'Atteins 50 jeux dans ta liste.',                p:() => [DATA.jeux.length, 50]},
+  {id:'plat4', e:'🕹️', cat:'Collection', n:'Touche-à-tout', o:'Aie des jeux sur 4 plateformes différentes.',   p:() => [nbPlats(), 4]},
+
+  // ----- Complétion
+  {id:'cent1',  e:'💯', cat:'Complétion', n:'Premier 100 %',      o:'Termine un jeu à 100 %.',                   p:() => [nbCent(), 1]},
+  {id:'cent5',  e:'🏅', cat:'Complétion', n:'Perfectionniste',    o:'Termine 5 jeux à 100 %.',                   p:() => [nbCent(), 5]},
+  {id:'cent10', e:'👑', cat:'Complétion', n:'Maniaque du platine',o:'Termine 10 jeux à 100 %.',                  p:() => [nbCent(), 10]},
+  {id:'trp1',   e:'🏆', cat:'Complétion', n:'Premier succès',     o:'Coche un succès dans un de tes jeux.',      p:() => [nbTrp(), 1]},
+  {id:'trp100', e:'🎖️', cat:'Complétion', n:'Chasseur de succès', o:'Coche 100 succès au total.',                p:() => [nbTrp(), 100]},
+
+  // ----- Notes et avis
+  {id:'note1',   e:'⭐', cat:'Notes et avis', n:'Premier verdict', o:'Mets une note à un jeu.',                   p:() => [nbNotes(), 1]},
+  {id:'note10',  e:'🌟', cat:'Notes et avis', n:'Chef-d\'œuvre',   o:'Mets 10/10 à un jeu.',                      p:() => [DATA.jeux.filter(g => g.note === 10).length, 1]},
+  {id:'noteBas', e:'💔', cat:'Notes et avis', n:'Sans pitié',      o:'Mets moins de 3/10 à un jeu.',              p:() => [DATA.jeux.filter(g => g.note != null && g.note < 3).length, 1]},
+  {id:'avis10',  e:'✍️', cat:'Notes et avis', n:'Critique',        o:'Écris un avis sur 10 jeux.',                p:() => [nbAvis(), 10]},
+  {id:'note25',  e:'📝', cat:'Notes et avis', n:'Juré',            o:'Note 25 jeux.',                             p:() => [nbNotes(), 25]},
+
+  // ----- Catalogue soigné
+  {id:'affiches', e:'🖼️', cat:'Catalogue soigné', n:'Vitrine',   o:'Une affiche sur chacun de tes jeux (5 minimum).',              p:() => couvre(g => !!g.cover)},
+  {id:'genres',   e:'🏷️', cat:'Catalogue soigné', n:'Rangé',     o:'Des genres sur chacun de tes jeux (5 minimum).',               p:() => couvre(g => (g.genres || []).length > 0)},
+  {id:'plats',    e:'🎯', cat:'Catalogue soigné', n:'Étiqueté',   o:'Une plateforme sur chacun de tes jeux (5 minimum).',           p:() => couvre(g => !!g.platform)},
+  {id:'dates10',  e:'📅', cat:'Catalogue soigné', n:'Bonne mémoire', o:'Renseigne la dernière session de 10 jeux.',                 p:() => [DATA.jeux.filter(g => !!g.lastPlayed).length, 10]},
+
+  // ----- Social
+  {id:'cloud',     e:'☁️', cat:'Social', n:'Dans les nuages', o:'Connecte ton compte GitHub (bouton ☁️).',                p:() => [DATA.cloud.login ? 1 : 0, 1]},
+  {id:'ami1',      e:'🤝', cat:'Social', n:'Premier ami',     o:'Ajoute un ami dans Mon Profil.',                          p:() => [nbAmis(), 1]},
+  {id:'ami5',      e:'👥', cat:'Social', n:'Bande de potes',  o:'Aie 5 amis dans ta liste.',                               p:() => [nbAmis(), 5]},
+  {id:'visite',    e:'👀', cat:'Social', n:'Curieux',         o:'Ouvre la liste d\'un membre depuis la page Utilisateurs.', ev:true},
+  {id:'visiteTrp', e:'🔍', cat:'Social', n:'Fouineur',        o:'Ouvre le détail des succès d\'un membre.',                 ev:true},
+
+  // ----- Temps de jeu
+  {id:'h100',   e:'⏱️', cat:'Temps de jeu', n:'Cent heures', o:'Cumule 100 heures de jeu.',              p:() => [Math.round(nbHeures()), 100]},
+  {id:'h500',   e:'⌛', cat:'Temps de jeu', n:'Vétéran',      o:'Cumule 500 heures de jeu.',              p:() => [Math.round(nbHeures()), 500]},
+  {id:'h100un', e:'🔂', cat:'Temps de jeu', n:'Obsession',    o:'Dépasse 100 heures sur un seul jeu.',    p:() => [DATA.jeux.filter(g => (Number(g.playtime) || 0) > 100).length, 1]},
+
+  // ----- OST
+  {id:'ost1',  e:'🎵', cat:'OST', n:'Première OST', o:'Ajoute une OST à ta liste.',   p:() => [(DATA.osts || []).length, 1]},
+  {id:'ost10', e:'🎧', cat:'OST', n:'Mélomane',     o:'Atteins 10 OST.',              p:() => [(DATA.osts || []).length, 10]},
+  {id:'ost25', e:'🎼', cat:'OST', n:'Discothèque',  o:'Atteins 25 OST.',              p:() => [(DATA.osts || []).length, 25]},
+
+  // ----- Tournoi
+  {id:'tour1', e:'🏟️', cat:'Tournoi', n:'Organisateur', o:'Va au bout d\'un tournoi.',  p:() => [(DATA.palmares || []).length, 1]},
+  {id:'tour5', e:'🥇', cat:'Tournoi', n:'Grand chelem',  o:'Va au bout de 5 tournois.', p:() => [(DATA.palmares || []).length, 5]},
+
+  // ----- Cachés
+  {id:'secret', e:'🕵️', cat:'Cachés', n:'Insistant',   o:'Un chiffre en bas de page n\'aime pas qu\'on insiste.', ev:true},
+  {id:'nuit',   e:'🌙', cat:'Cachés', n:'Noctambule',  o:'Ouvre FGL entre 3 h et 5 h du matin.',                  ev:true},
+  {id:'theme',  e:'💡', cat:'Cachés', n:'Interrupteur',o:'Passe en thème clair, puis reviens au sombre.',         ev:true}
+];
+
+function progresDefi(d){
+  if(d.ev) return [DATA.defis[d.id] ? 1 : 0, 1];
+  try{ return d.p(); }catch(e){ return [0, 1]; }
+}
+
+/* Recalculé à chaque rendu : les défis se débloquent rétroactivement,
+   et la date du déblocage est figée une fois pour toutes. */
+function verifieDefis(silencieux){
+  if(!DATA || !DATA.defis) return [];
+  const neufs = [];
+  DEFIS.forEach(d => {
+    if(DATA.defis[d.id]) return;
+    const pr = progresDefi(d);
+    if(pr[1] > 0 && pr[0] >= pr[1]){
+      DATA.defis[d.id] = dayLocal();
+      neufs.push(d);
+    }
+  });
+  if(neufs.length){
+    ecrit();
+    if(!silencieux) celebreDefis(neufs);
+  }
+  return neufs;
+}
+
+function celebreDefis(neufs){
+  confettis();
+  if(neufs.length > 3){
+    toast(neufs.length + ' défis débloqués d\'un coup !');
+    ouvreDefis();
+  }else{
+    neufs.forEach((d, i) => setTimeout(() => toast('Défi débloqué : ' + d.e + ' ' + d.n), i * 1500));
+  }
+  rendProfil();
+}
+
+/* Pour les défis qui ne se déduisent pas de la collection */
+function marqueDefi(id){
+  if(!DATA || !DATA.defis || DATA.defis[id]) return;
+  const d = DEFIS.find(x => x.id === id);
+  if(!d) return;
+  DATA.defis[id] = dayLocal();
+  ecrit();
+  celebreDefis([d]);
+}
+
+function jourFr(j){
+  return j && j.length >= 10 ? j.slice(8,10) + '/' + j.slice(5,7) + '/' + j.slice(0,4) : '';
+}
+
+let defiOuvert = null;
+function ouvreDefis(){ rendDefis(); ouvre('mDefis'); }
+
+function rendDefis(){
+  const total = DEFIS.length;
+  const faits = DEFIS.filter(d => DATA.defis[d.id]).length;
+  const pct = Math.round(faits / total * 100);
+  $('#defiBandeau').innerHTML = '<div class="d-bandeau">'
+    + '<div class="jauge" style="flex:1"><i style="width:' + pct + '%"></i></div>'
+    + '<div class="jauge-t">' + faits + ' / ' + total + ' · ' + pct + ' %</div></div>';
+
+  const d = defiOuvert ? DEFIS.find(x => x.id === defiOuvert) : null;
+  $('#defiDetail').innerHTML = d
+    ? detailDefi(d)
+    : '<div class="d-detail"><div class="e">🎯</div><div><h3>Choisis un défi</h3>'
+      + '<p>Clique sur une vignette : tu verras exactement quoi faire et où tu en es.</p></div></div>';
+
+  const cats = [];
+  DEFIS.forEach(x => { if(cats.indexOf(x.cat) < 0) cats.push(x.cat); });
+  let h = '';
+  cats.forEach(c => {
+    const L = DEFIS.filter(x => x.cat === c);
+    const n = L.filter(x => DATA.defis[x.id]).length;
+    h += '<div class="d-cat">' + esc(c) + ' · ' + n + '/' + L.length + '</div><div class="d-grille">';
+    L.forEach(x => {
+      const fait = !!DATA.defis[x.id];
+      const pr = progresDefi(x);
+      const pc = pr[1] ? Math.min(100, Math.round(pr[0] / pr[1] * 100)) : 0;
+      h += '<button class="d ' + (fait ? 'on' : 'off') + '" data-defi="' + esc(x.id) + '">'
+        + '<span class="e">' + x.e + '</span>'
+        + '<div class="nm">' + esc(x.n) + '</div>'
+        + (fait ? '' : '<div class="jg"><i style="width:' + pc + '%"></i></div>')
+        + '</button>';
+    });
+    h += '</div>';
+  });
+  $('#defiCorps').innerHTML = h;
+}
+
+function detailDefi(d){
+  const fait = !!DATA.defis[d.id];
+  const pr = progresDefi(d);
+  return '<div class="d-detail"><div class="e">' + d.e + '</div><div style="flex:1">'
+    + '<h3>' + esc(d.n) + '</h3><p>' + esc(d.o) + '</p>'
+    + (fait
+        ? '<div class="prog">✅ Débloqué le ' + esc(jourFr(DATA.defis[d.id])) + '</div>'
+        : '<div class="prog">' + Math.min(pr[0], pr[1]) + ' / ' + pr[1] + '</div>')
+    + '</div></div>';
+}
+
+/* =========================================================
+   OST
+   ========================================================= */
+function idYoutube(url){
+  const t = String(url || '').trim();
+  const m = t.match(/(?:youtube\.com\/(?:watch\?(?:[^&]*&)*v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  if(m) return m[1];
+  if(/^[A-Za-z0-9_-]{11}$/.test(t)) return t;
+  return '';
+}
+const vignetteYT = id => id ? 'https://img.youtube.com/vi/' + id + '/hqdefault.jpg' : '';
+const lienYT     = id => id ? 'https://www.youtube.com/watch?v=' + id : '';
+
+function ostPublic(o){
+  return { titre:o.titre || '', jeu:o.jeu || '', videoId:o.videoId || '',
+           note:(o.note == null ? null : o.note), comment:o.comment || '' };
+}
+function sourceOsts(){ return lecture ? (lecture.osts || []) : (DATA.osts || []); }
+
+let ostEnCours = null;
+function ouvreOst(id){
+  ostEnCours = id || null;
+  const o = id ? (DATA.osts || []).find(x => x.id === id) : null;
+  $('#ostTitreM').textContent = o ? 'Modifier l\'OST' : 'Ajouter une OST';
+  $('#oTitre').value = o ? o.titre : '';
+  $('#oJeu').value   = o ? o.jeu : '';
+  $('#oLien').value  = o ? lienYT(o.videoId) : '';
+  $('#oNote').value  = (o && o.note != null) ? o.note : '';
+  $('#oAvis').value  = o ? (o.comment || '') : '';
+  $('#bSuppOst').style.display = o ? '' : 'none';
+  majLienOst();
+  ouvre('mOst');
+  setTimeout(() => $('#oTitre').focus(), 60);
+}
+function majLienOst(){
+  const id = idYoutube($('#oLien').value);
+  $('#oLienAide').innerHTML = id
+    ? 'Vidéo reconnue ✅ — la miniature sera récupérée toute seule.'
+    : 'Colle l\'adresse de la vidéo (youtube.com ou youtu.be) : la miniature vient toute seule.';
+}
+function sauveOst(){
+  const titre = $('#oTitre').value.trim();
+  if(!titre){ toast('Il faut au moins un titre.'); return; }
+  const lien = $('#oLien').value.trim();
+  const vid = idYoutube(lien);
+  if(lien && !vid){ toast('Ce lien YouTube n\'est pas reconnu.'); return; }
+  const note = $('#oNote').value === '' ? null : Math.max(0, Math.min(10, parseFloat($('#oNote').value)));
+  const champs = {
+    titre: titre,
+    jeu: $('#oJeu').value.trim(),
+    videoId: vid,
+    note: (note == null || isNaN(note)) ? null : note,
+    comment: $('#oAvis').value.trim(),
+    updatedAt: isoLocal()
+  };
+  if(ostEnCours){
+    const o = (DATA.osts || []).find(x => x.id === ostEnCours);
+    Object.assign(o, champs);
+    toast('OST modifiée.');
+  }else{
+    DATA.osts.push(Object.assign({ id: uid(), addedAt: isoLocal() }, champs));
+    toast('OST ajoutée.');
+  }
+  sauve(); ferme('mOst'); rendOst(); verifieDefis();
+}
+function suppOst(){
+  if(!ostEnCours) return;
+  if(!confirm('Supprimer cette OST ?')) return;
+  DATA.osts = (DATA.osts || []).filter(x => x.id !== ostEnCours);
+  sauve(); ferme('mOst'); rendOst();
+  toast('OST supprimée.');
+}
+
+function rendOst(){
+  const z = $('#ostGrille');
+  const L = sourceOsts();
+  $('#ostTitreV').textContent = lecture
+    ? '🎵 Les OST de ' + (lecture.pseudo || lecture.login)
+    : '🎵 Mes OST';
+  $('#ostCompte').textContent = L.length + (L.length > 1 ? ' morceaux' : ' morceau');
+  $('#bAddOst').style.display = lecture ? 'none' : '';
+  if(!L.length){
+    z.innerHTML = '';
+    $('#ostVide').innerHTML = '<div class="vide-etat"><div class="logo-g"></div>'
+      + '<h2>' + (lecture ? 'Aucune OST' : 'Pas encore d\'OST') + '</h2>'
+      + '<p>' + (lecture
+          ? 'Ce membre n\'a rien publié de ce côté-là.'
+          : 'Colle le lien YouTube d\'un thème que tu adores : la miniature arrive toute seule.')
+      + '</p></div>';
+    return;
+  }
+  $('#ostVide').innerHTML = '';
+  z.innerHTML = L.map((o, i) => {
+    const vig = vignetteYT(o.videoId);
+    const img = vig
+      ? '<img src="' + esc(vig) + '" alt="" loading="lazy">'
+      : '';
+    return '<button class="ost-c" data-ost="' + (lecture ? 'l' + i : esc(o.id)) + '">'
+      + '<div class="ost-v">' + img + '<div class="ost-play">▶</div>'
+      + (o.note != null ? '<div class="ost-n">' + o.note.toFixed(1) + '</div>' : '')
+      + '</div>'
+      + '<div class="ost-t"><b>' + esc(o.titre) + '</b>'
+      + '<span>' + esc(o.jeu || 'Jeu inconnu') + '</span></div></button>';
+  }).join('');
+}
+
+function ouvreOstVoir(ref){
+  const L = sourceOsts();
+  const o = String(ref).indexOf('l') === 0 ? L[+String(ref).slice(1)] : L.find(x => x.id === ref);
+  if(!o) return;
+  $('#ovTitre').textContent = o.titre || 'OST';
+  const vid = o.videoId;
+  let h = '';
+  if(vid){
+    h += '<div class="ov-lect"><iframe src="https://www.youtube-nocookie.com/embed/' + esc(vid) + '" '
+      + 'title="' + esc(o.titre) + '" loading="lazy" allowfullscreen '
+      + 'allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture"></iframe></div>';
+  }
+  h += '<div class="voir-l"><span>Jeu</span><b>' + esc(o.jeu || '—') + '</b></div>'
+    + (o.note != null ? '<div class="voir-l"><span>Ma note</span><b>' + o.note.toFixed(1) + ' / 10</b></div>' : '')
+    + (o.comment ? '<div class="voir-avis">' + esc(o.comment) + '</div>' : '');
+  h += '<div class="t-opts" style="justify-content:flex-start;margin-top:16px">';
+  if(vid){
+    h += '<a class="btn pri" href="' + esc(lienYT(vid)) + '" target="_blank" rel="noopener">▶ Ouvrir sur YouTube</a>';
+  }
+  if(!lecture) h += '<button class="btn" data-editost="' + esc(o.id) + '">✏️ Modifier</button>';
+  h += '</div>';
+  $('#ovCorps').innerHTML = h;
+  ouvre('mOstVoir');
+}
+
+/* =========================================================
+   TOURNOI
+   ========================================================= */
+function melange(L){
+  for(let i = L.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = L[i]; L[i] = L[j]; L[j] = t;
+  }
+  return L;
+}
+function itemsTournoi(type){
+  if(type === 'ost'){
+    return (DATA.osts || []).map(o => ({
+      id:o.id, t:o.titre, s:o.jeu || '', c:vignetteYT(o.videoId), n:(o.note == null ? 0 : o.note)
+    }));
+  }
+  return DATA.jeux.map(g => ({
+    id:g.id, t:g.title, s:g.platform || '', c:g.cover || '', n:(g.note == null ? 0 : g.note)
+  }));
+}
+function taillesPossibles(n){
+  return [4, 8, 16, 32].filter(t => n >= t);
+}
+function lanceTournoi(type, taille, mode){
+  let L = itemsTournoi(type);
+  if(mode === 'notes') L = L.slice().sort((a, b) => b.n - a.n);
+  else melange(L);
+  L = L.slice(0, taille);
+  melange(L);                       // l'ordre des duels reste imprévisible
+  DATA.tournoi[type] = { type:type, taille:taille, ronde:L, i:0, suivants:[], tour:1, fini:false, gagnant:null };
+  ecrit(); rendTournoi();
+}
+function choisitDuel(quel){
+  const type = UI.tourType || 'jeux';
+  const t = DATA.tournoi[type];
+  if(!t || t.fini) return;
+  const a = t.ronde[t.i], b = t.ronde[t.i + 1];
+  t.suivants.push(quel === 'a' ? a : (b || a));
+  t.i += 2;
+  if(t.i >= t.ronde.length){
+    if(t.suivants.length === 1){
+      t.fini = true;
+      t.gagnant = t.suivants[0];
+      DATA.palmares.unshift({
+        type: type, date: isoLocal(), taille: t.taille,
+        gagnant: { t:t.gagnant.t, c:t.gagnant.c }
+      });
+      DATA.palmares = DATA.palmares.slice(0, 20);
+      confettis();
+      sauve();
+      verifieDefis();
+      rendTournoi();
+      return;
+    }
+    t.ronde = t.suivants;
+    t.suivants = [];
+    t.i = 0;
+    t.tour++;
+  }
+  ecrit(); rendTournoi();
+}
+function carteTournoi(it, quel, type){
+  const img = it.c ? '<img src="' + esc(it.c) + '" alt="" loading="lazy">' : '';
+  return '<button class="t-c' + (type === 'ost' ? ' ost' : '') + '" data-duel="' + quel + '">'
+    + '<div class="t-img">' + img + '</div>'
+    + '<b>' + esc(it.t) + '</b><span>' + esc(it.s || '') + '</span></button>';
+}
+function rendTournoi(){
+  const z = $('#tourZone');
+  const type = UI.tourType || 'jeux';
+  const t = (DATA.tournoi || {})[type];
+  const nom = type === 'ost' ? 'OST' : 'jeux';
+
+  let h = '<div class="t-hd"><h2>🏟️ Tournoi</h2>'
+    + '<p>Un duel, un choix, pas de match nul. Le vainqueur passe au tour suivant.</p></div>'
+    + '<div class="t-opts" style="margin-bottom:24px">'
+    + '<button class="puce' + (type === 'jeux' ? ' on' : '') + '" data-ttype="jeux">🎮 Jeux</button>'
+    + '<button class="puce' + (type === 'ost'  ? ' on' : '') + '" data-ttype="ost">🎵 OST</button>'
+    + '</div>';
+
+  if(t && t.fini && t.gagnant){
+    const img = t.gagnant.c ? '<img src="' + esc(t.gagnant.c) + '" alt="">' : '';
+    h += '<div class="t-gagnant">'
+      + '<div class="t-img' + (type === 'ost' ? ' ost' : '') + '" '
+      + 'style="' + (type === 'ost' ? 'aspect-ratio:16/9' : '') + '">' + img + '</div>'
+      + '<h3>🥇 ' + esc(t.gagnant.t) + '</h3>'
+      + '<p class="carte-s">Vainqueur du tournoi à ' + t.taille + ' participants</p>'
+      + '<div class="t-opts"><button class="btn pri" data-trelance="' + type + '">Nouveau tournoi</button></div>'
+      + '</div>';
+  }else if(t){
+    const a = t.ronde[t.i], b = t.ronde[t.i + 1];
+    if(!b){ choisitDuel('a'); return; }        // nombre impair : passage direct
+    const duels = Math.ceil(t.ronde.length / 2);
+    const num = Math.floor(t.i / 2) + 1;
+    const reste = t.ronde.length;
+    const titre = reste === 2 ? 'Finale' : (reste === 4 ? 'Demi-finales' : (reste === 8 ? 'Quarts de finale' : 'Tour ' + t.tour));
+    h += '<div class="t-hd" style="margin-top:0"><p><b>' + titre + '</b> · duel ' + num + ' / ' + duels + '</p></div>'
+      + '<div class="t-jauge"><i style="width:' + Math.round((num - 1) / duels * 100) + '%"></i></div>'
+      + '<div class="t-duel">' + carteTournoi(a, 'a', type)
+      + '<div class="t-vs">VS</div>' + carteTournoi(b, 'b', type) + '</div>'
+      + '<div class="t-opts"><button class="btn dgr" data-tstop="' + type + '">Abandonner</button></div>';
+  }else{
+    const dispo = itemsTournoi(type).length;
+    const tailles = taillesPossibles(dispo);
+    h += '<div class="t-reglage">';
+    if(!tailles.length){
+      h += '<div class="vide-etat"><div class="logo-g"></div><h2>Pas assez de ' + nom + '</h2>'
+        + '<p>Il en faut au moins 4 pour lancer un tournoi. Tu en as ' + dispo + '.</p></div>';
+    }else{
+      h += '<div class="titre-s">Combien de participants ?</div><div class="t-opts">'
+        + tailles.map(x => '<button class="puce" data-tsize="' + x + '">' + x + '</button>').join('')
+        + '</div>'
+        + '<div class="titre-s">Comment les choisir ?</div><div class="t-opts">'
+        + '<button class="puce on" data-tmode="notes">Les mieux notés</button>'
+        + '<button class="puce" data-tmode="hasard">Au hasard</button>'
+        + '</div>'
+        + '<p class="aide" style="margin-top:16px">Choisis une taille pour lancer. '
+        + 'Tu peux fermer l\'onglet en cours de route : le tournoi reprend où tu l\'as laissé.</p>';
+    }
+    h += '</div>';
+  }
+
+  const pal = (DATA.palmares || []).filter(x => x.type === type);
+  if(pal.length){
+    h += '<div class="t-pal"><div class="titre-s">🏆 Palmarès</div>';
+    pal.slice(0, 10).forEach(x => {
+      h += '<div class="t-pal-l">'
+        + (x.gagnant.c ? '<img src="' + esc(x.gagnant.c) + '" alt="">' : '<img alt="">')
+        + '<div><b>' + esc(x.gagnant.t) + '</b><div class="carte-s">à ' + x.taille + ' participants</div></div>'
+        + '<div class="d">' + esc(jourFr(String(x.date).slice(0,10))) + '</div></div>';
+    });
+    h += '</div>';
+  }
+  z.innerHTML = h;
+}
+function championsPublics(){
+  const c = {};
+  ['jeux', 'ost'].forEach(ty => {
+    const x = (DATA.palmares || []).find(y => y.type === ty);
+    if(x) c[ty] = { t:x.gagnant.t, c:x.gagnant.c };
+  });
+  return c;
+}
+
+/* =========================================================
+   CLOUD GITHUB — gists, synchro, présence
+   ========================================================= */
+const CLE_TOKEN = 'fgl_gh_token';
+const F_DATA    = 'fgl-data.json';
+const F_PROFIL  = 'fgl-profile.json';
+const F_SUCCES  = 'fgl-succes.json';
+
+function ghToken(){ return (localStorage.getItem(CLE_TOKEN) || '').trim(); }
+function connecte(){ return !!ghToken(); }
+
+/* Appel à l'API GitHub. Sans token ça marche aussi (lecture publique, 60 appels/h). */
+async function gh(chemin, opts){
+  const o = opts || {};
+  const h = Object.assign({'Accept':'application/vnd.github+json'}, o.headers || {});
+  const t = ghToken();
+  if(t) h['Authorization'] = 'Bearer ' + t;
+  const rep = await fetch('https://api.github.com' + chemin, Object.assign({}, o, {headers:h}));
+  if(rep.status === 401) throw new Error('token');
+  if(rep.status === 403 || rep.status === 429) throw new Error('limite');
+  if(!rep.ok) throw new Error('HTTP ' + rep.status);
+  if(rep.status === 204) return null;
+  return rep.json();
+}
+function messageCloud(e){
+  const m = String((e && e.message) || e);
+  if(m === 'token')  return 'Token refusé par GitHub. Recolle-le (permission « gist »).';
+  if(m === 'limite') return 'Limite d\'appels GitHub atteinte, réessaie dans une heure.';
+  return 'GitHub n\'a pas répondu correctement (' + m + ').';
+}
+/* Lit le contenu d'un fichier de gist, même si GitHub l'a tronqué. */
+async function contenuFichier(f){
+  if(!f) return null;
+  if(f.truncated && f.raw_url){
+    const r = await fetch(f.raw_url, {cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return r.text();
+  }
+  return f.content;
+}
+
+/* ---------- Ce qu'on publie ---------- */
+function payloadData(){
+  // le token n'est JAMAIS envoyé, et la clé RAWG reste sur l'appareil
+  return {
+    app:'FGL', version:7, syncAt: isoLocal(),
+    profil: DATA.profil, jeux: DATA.jeux,
+    defis: DATA.defis, osts: DATA.osts, palmares: DATA.palmares
+  };
+}
+/* version allégée d'un jeu, pour le profil public */
+function jeuPublic(g){
+  const A = g.achievements || [];
+  return {
+    title: g.title, cover: g.cover || '', note: g.note == null ? null : g.note,
+    status: g.status || 'encours', platform: g.platform || '',
+    playtime: g.playtime || 0, metaUser: g.metaUser == null ? null : g.metaUser,
+    lastPlayed: g.lastPlayed || '', genres: g.genres || [], comment: g.comment || '',
+    trpObt: A.filter(a => a.unlocked).length,
+    trpTot: g.achievementsTotal || A.length,
+    cent100: !!g.cent100
+  };
+}
+/* Le détail des succès part dans un fichier séparé du même gist :
+   le profil reste léger (il est réécrit toutes les 2 min pour la présence),
+   et les autres ne téléchargent le gros fichier que s'ils cliquent « détails ». */
+const BUDGET_SUCCES = 900000;   // ~0,9 Mo, large sous la limite d'un gist
+
+function payloadSucces(){
+  const construit = (avecTexte, avecIconeVerrou) => {
+    const jeux = {};
+    DATA.jeux.forEach(g => {
+      const A = g.achievements || [];
+      if(!A.length) return;
+      jeux[String(g.title || '').toLowerCase()] = A.map(a => {
+        const o = {
+          n: a.name || '',
+          u: a.unlocked ? 1 : 0,
+          d: a.date || '',
+          r: (typeof a.rarity === 'number') ? a.rarity : null
+        };
+        if(a.icon && (a.unlocked || avecIconeVerrou)) o.i = a.icon;
+        if(avecTexte && a.desc) o.t = String(a.desc).slice(0, 140);
+        return o;
+      });
+    });
+    return { app:'FGL', version:6, maj: isoLocal(), jeux };
+  };
+  let js = construit(true, true);
+  if(JSON.stringify(js).length > BUDGET_SUCCES) js = construit(false, true);
+  if(JSON.stringify(js).length > BUDGET_SUCCES) js = construit(false, false);
+  return js;
+}
+
+function payloadProfil(){
+  const p = DATA.profil;
+  const partage = p.visibilite !== 'prive';
+  return {
+    app:'FGL', version:7,
+    login: DATA.cloud.login || '', pseudo: p.pseudo || 'Sans pseudo',
+    avatar: monAvatar(), bio: p.bio || '',
+    visibilite: p.visibilite || 'public',
+    amis: p.amis || [],
+    lastSeen: isoLocal(),
+    connus: (DATA.cloud.connus || []).slice(0, 80),   // fait circuler l'annuaire
+    defis: Object.keys(DATA.defis || {}),
+    osts: partage ? (DATA.osts || []).map(ostPublic) : [],
+    champions: championsPublics(),
+    nbJeux: partage ? DATA.jeux.length : 0,
+    top10: partage ? top10().map(jeuPublic) : [],
+    jeux:  partage ? DATA.jeux.map(jeuPublic) : []
+  };
+}
+
+/* ---------- Retrouver / créer les deux gists ---------- */
+async function cloudTrouveGists(){
+  const L = await gh('/gists?per_page=100');
+  (L || []).forEach(g => {
+    if(!g.files) return;
+    if(g.files[F_DATA]   && !DATA.cloud.gistData)   DATA.cloud.gistData   = g.id;
+    if(g.files[F_PROFIL] && !DATA.cloud.gistProfil) DATA.cloud.gistProfil = g.id;
+    if(g.owner && g.owner.login && !DATA.cloud.login) DATA.cloud.login = g.owner.login;
+  });
+  ecrit();
+}
+
+/* ---------- Envoyer ---------- */
+let pushT = null, cloudOccupe = false;
+
+function cloudPlanifie(){
+  if(!connecte() || !DATA.cloud.auto) return;
+  clearTimeout(pushT);
+  pushT = setTimeout(() => cloudPush(true), 6000);
+}
+
+/* complet = true : on republie aussi le détail des succès (gros fichier).
+   La présence, elle, ne touche qu'au profil léger. */
+async function cloudPushProfil(complet){
+  if(!connecte()) return;
+  const fichiers = { 'fgl-profile.json': { content: JSON.stringify(payloadProfil()) } };
+  if(complet) fichiers['fgl-succes.json'] = { content: JSON.stringify(payloadSucces()) };
+  const corps = {
+    description: 'FGL — profil public',
+    files: fichiers
+  };
+  if(DATA.cloud.gistProfil){
+    await gh('/gists/' + DATA.cloud.gistProfil, {method:'PATCH', body: JSON.stringify(corps)});
+  }else{
+    const g = await gh('/gists', {method:'POST', body: JSON.stringify(Object.assign({public:true}, corps))});
+    DATA.cloud.gistProfil = g.id;
+    if(g.owner && g.owner.login && !DATA.cloud.login) DATA.cloud.login = g.owner.login;
+    ecrit();
+  }
+}
+
+async function cloudPush(silencieux){
+  if(!connecte()){ toast('Connecte ton compte GitHub d\'abord.'); return false; }
+  if(cloudOccupe) return false;
+  cloudOccupe = true;
+  clearTimeout(pushT);
+  try{
+    const corps = {
+      description: 'FGL — sauvegarde (ne pas supprimer)',
+      files: { 'fgl-data.json': { content: JSON.stringify(payloadData(), null, 1) } }
+    };
+    if(DATA.cloud.gistData){
+      await gh('/gists/' + DATA.cloud.gistData, {method:'PATCH', body: JSON.stringify(corps)});
+    }else{
+      const g = await gh('/gists', {method:'POST', body: JSON.stringify(Object.assign({public:false}, corps))});
+      DATA.cloud.gistData = g.id;
+      if(g.owner && g.owner.login && !DATA.cloud.login) DATA.cloud.login = g.owner.login;
+    }
+    await cloudPushProfil(true);
+    DATA.cloud.syncAt = isoLocal();
+    DATA.cloud.majAt  = DATA.cloud.syncAt;
+    ecrit(); majEtatCloud();
+    if(!silencieux) toast('Sauvegarde envoyée sur GitHub.');
+    return true;
+  }catch(e){
+    console.error(e);
+    toast(messageCloud(e));
+    majEtatCloud();
+    return false;
+  }finally{
+    cloudOccupe = false;
+  }
+}
+
+/* ---------- Récupérer ---------- */
+async function litGistData(){
+  if(!DATA.cloud.gistData) await cloudTrouveGists();
+  if(!DATA.cloud.gistData) return null;
+  const g = await gh('/gists/' + DATA.cloud.gistData);
+  const txt = await contenuFichier(g.files && g.files[F_DATA]);
+  if(!txt) return null;
+  const d = JSON.parse(txt);
+  if(!d || !Array.isArray(d.jeux)) throw new Error('format');
+  return d;
+}
+function appliqueDistant(d){
+  DATA.jeux = d.jeux || [];
+  if(d.profil) DATA.profil = Object.assign(DATA.profil, d.profil);
+  if(d.defis && typeof d.defis === 'object') DATA.defis = d.defis;
+  if(Array.isArray(d.osts)) DATA.osts = d.osts;
+  if(Array.isArray(d.palmares)) DATA.palmares = d.palmares;
+  migre();
+  DATA.cloud.syncAt = d.syncAt || isoLocal();
+  DATA.cloud.majAt  = DATA.cloud.syncAt;   // rien de neuf en local depuis
+  ecrit();
+  lecture = null;
+  toutRendre();
+}
+async function cloudPull(manuel){
+  if(!connecte()){ toast('Connecte ton compte GitHub d\'abord.'); return; }
+  try{
+    const d = await litGistData();
+    if(!d){ toast('Aucune sauvegarde trouvée sur ton compte.'); return; }
+    if(manuel && DATA.jeux.length){
+      const ok = confirm('Remplacer ta liste de cet appareil (' + DATA.jeux.length
+        + ' jeux) par celle de GitHub (' + (d.jeux || []).length + ' jeux) ?');
+      if(!ok) return;
+    }
+    appliqueDistant(d);
+    toast('Collection récupérée : ' + DATA.jeux.length + ' jeux.');
+  }catch(e){
+    console.error(e);
+    toast(messageCloud(e));
+  }
+}
+
+/* ---------- Connexion / déconnexion ---------- */
+async function cloudConnecte(token){
+  if(!token){ toast('Colle ton token GitHub.'); return; }
+  localStorage.setItem(CLE_TOKEN, token);
+  try{
+    try{
+      const me = await gh('/user');
+      if(me && me.login){
+        DATA.cloud.login = me.login;
+        DATA.profil.githubLogin = me.login;
+      }
+    }catch(e){
+      if(String(e.message) === 'token') throw e;   // vraiment invalide
+      // sinon on retrouvera le login via les gists
+    }
+    await cloudTrouveGists();
+    ecrit(); majEtatCloud();
+    toast('Connecté' + (DATA.cloud.login ? ' : ' + DATA.cloud.login : '') + '.');
+    await cloudDemarre();
+  }catch(e){
+    console.error(e);
+    localStorage.removeItem(CLE_TOKEN);
+    majEtatCloud();
+    toast(messageCloud(e));
+  }
+}
+function cloudDeconnecte(){
+  if(!confirm('Se déconnecter de GitHub ?\n\nTes jeux restent sur cet appareil et les gists restent sur ton compte.')) return;
+  localStorage.removeItem(CLE_TOKEN);
+  clearInterval(presT); presT = null;
+  DATA.cloud.login = '';
+  ecrit(); majEtatCloud();
+  toast('Déconnecté.');
+}
+
+/* ---------- Démarrage : on décide qui gagne ---------- */
+async function cloudDemarre(){
+  majEtatCloud();
+  if(!connecte()) return;
+  try{
+    await cloudTrouveGists();
+    const d = await litGistData();
+    const distant = ms(d && d.syncAt);
+    const localMaj = ms(DATA.cloud.majAt);
+    if(d && distant > localMaj){
+      // GitHub est plus récent que la dernière modif faite ici : on récupère
+      appliqueDistant(d);
+      toast('Collection récupérée depuis GitHub (' + DATA.jeux.length + ' jeux).');
+    }else if(DATA.cloud.auto){
+      await cloudPush(true);
+    }
+    presenceDemarre();
+    majEtatCloud();
+  }catch(e){
+    console.warn(e);
+    majEtatCloud(messageCloud(e));
+  }
+}
+
+/* ---------- Présence ---------- */
+let presT = null;
+function presenceDemarre(){
+  if(!connecte()) return;
+  cloudPushProfil().catch(e => console.warn(e));
+  clearInterval(presT);
+  presT = setInterval(() => {
+    if(document.visibilityState === 'visible') cloudPushProfil().catch(e => console.warn(e));
+  }, 120000);
+}
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && connecte()) cloudPushProfil().catch(e => console.warn(e));
+});
+/* dernier signe de vie à la fermeture de l'onglet */
+window.addEventListener('pagehide', () => {
+  const t = ghToken();
+  if(!t || !DATA || !DATA.cloud.gistProfil) return;
+  try{
+    fetch('https://api.github.com/gists/' + DATA.cloud.gistProfil, {
+      method:'PATCH', keepalive:true,
+      headers:{'Authorization':'Bearer ' + t, 'Accept':'application/vnd.github+json'},
+      body: JSON.stringify({files:{'fgl-profile.json':{content: JSON.stringify(payloadProfil())}}})
+    });
+  }catch(e){ /* rien à faire, la page se ferme */ }
+});
+
+/* ---------- État affiché dans la modale ---------- */
+function ouvreCloud(){
+  $('#clToken').value = '';
+  majEtatCloud();
+  ouvre('mCloud');
+}
+function majEtatCloud(erreur){
+  const z = $('#clEtat');
+  if(!z) return;
+  if(erreur){
+    z.innerHTML = '<span class="dot"></span><span>' + esc(erreur) + '</span>';
+  }else if(connecte()){
+    z.innerHTML = '<span class="dot on"></span><span>Connecté'
+      + (DATA.cloud.login ? ' — <b>' + esc(DATA.cloud.login) + '</b>' : '') + '</span>';
+  }else{
+    z.innerHTML = '<span class="dot"></span><span>Hors ligne — tes jeux vivent seulement sur cet appareil.</span>';
+  }
+  const a = $('#bAuto');
+  if(a){
+    a.textContent = DATA.cloud.auto ? 'Auto ✓' : 'Auto coupé';
+    a.classList.toggle('on', !!DATA.cloud.auto);
+  }
+  const s = $('#clSync');
+  if(s){
+    s.textContent = DATA.cloud.syncAt
+      ? 'Dernier envoi : ' + DATA.cloud.syncAt.slice(8,10) + '/' + DATA.cloud.syncAt.slice(5,7)
+        + '/' + DATA.cloud.syncAt.slice(0,4) + ' à ' + DATA.cloud.syncAt.slice(11,16)
+      : 'Jamais envoyé pour l\'instant.';
+  }
+  const b = $('#bCloud');
+  if(b) b.classList.toggle('on', connecte());
+}
+
+/* =========================================================
+   UTILISATEURS
+   ========================================================= */
+let filtreU = 'tous';             // tous | amis | enligne
+const CACHE = new Map();          // login → { t, p }
+const CACHE_MS = 5 * 60 * 1000;   // durée de cache par défaut
+let USERS = [];
+let annuaire = null;
+let pauseAPI = 0;                 // date jusqu'à laquelle on arrête d'appeler GitHub
+
+/* Sans token GitHub : 60 appels/h par adresse IP. Avec token : 5000/h.
+   On adapte donc le nombre de profils lus et la fraîcheur demandée. */
+function maxProfils(){ return connecte() ? 40 : 12; }
+function ttlAuto(){    return connecte() ? 45000 : 10 * 60000; }
+
+/* users.json posé à côté de index.html dans le dépôt */
+async function chargeAnnuaire(){
+  if(annuaire) return annuaire;
+  try{
+    const rep = await fetch('users.json', {cache:'no-store'});
+    if(!rep.ok) throw new Error('HTTP ' + rep.status);
+    const js = await rep.json();
+    const L = Array.isArray(js) ? js : (js.users || js.logins || []);
+    annuaire = L.map(x => (typeof x === 'string' ? x : (x && x.login))).filter(Boolean);
+  }catch(e){
+    annuaire = [];   // pas de fichier : ce n'est pas une erreur
+  }
+  return annuaire;
+}
+
+/* ttl = âge maximum accepté pour une réponse déjà en cache (ms) */
+async function profilDe(login, ttl){
+  const age = (ttl == null ? CACHE_MS : ttl);
+  const cle = login.toLowerCase();
+  const c = CACHE.get(cle);
+  if(c && Date.now() - c.t < age) return c.p;
+  try{
+    const L = await gh('/users/' + encodeURIComponent(login) + '/gists?per_page=100');
+    let f = null, fSucces = null;
+    for(const g of (L || [])){
+      if(g.files && g.files[F_PROFIL]){
+        f = g.files[F_PROFIL];
+        fSucces = g.files[F_SUCCES] || null;
+        break;
+      }
+    }
+    if(!f){ CACHE.set(cle, {t:Date.now(), p:null}); return null; }
+    const r = await fetch(f.raw_url, {cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const p = JSON.parse(await r.text());
+    p.login = login;
+    p._succes = fSucces ? fSucces.raw_url : '';
+    (p.jeux || []).forEach((g, i) => { g._i = i; });
+    CACHE.set(cle, {t:Date.now(), p});
+    return p;
+  }catch(e){
+    if(String(e.message) === 'limite') throw e;   // on remonte pour arrêter la boucle
+    console.warn('profil ' + login, e);
+    return c ? c.p : null;
+  }
+}
+
+/* Qui apparaît dans l'annuaire : tout le monde, sauf ceux qui ont
+   explicitement choisi « Personne ». */
+function profilVisible(p){
+  if(!p) return false;
+  return (p.visibilite || 'public') !== 'prive';
+}
+
+/* Qui peut ouvrir la liste de quelqu'un : « amis » exige la réciprocité. */
+function peutVoirListe(p){
+  if(!p) return false;
+  const v = p.visibilite || 'public';
+  if(v === 'prive') return false;
+  if(v === 'amis'){
+    const moi = (DATA.cloud.login || '').toLowerCase();
+    if(!moi) return false;
+    return (p.amis || []).some(x => String(x).toLowerCase() === moi);
+  }
+  return true;
+}
+
+function estAmi(login){
+  const l = String(login || '').toLowerCase();
+  return (DATA.profil.amis || []).some(x => String(x).toLowerCase() === l);
+}
+
+/* Détail des succès d'un membre : téléchargé seulement à la demande */
+const CACHE_SUCCES = new Map();
+async function succesDe(p){
+  if(!p || !p._succes) return null;
+  const cle = String(p.login).toLowerCase();
+  if(CACHE_SUCCES.has(cle)) return CACHE_SUCCES.get(cle);
+  const r = await fetch(p._succes, {cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  const js = await r.json();
+  CACHE_SUCCES.set(cle, js);
+  return js;
+}
+
+/* ---------- Présence, recalculée en local chaque seconde ---------- */
+function etatPresence(iso){
+  const t = ms(iso);
+  if(!t) return {on:false, txt:'Jamais vu'};
+  const ecart = Date.now() - t;
+  if(ecart < 5 * 60000) return {on:true, txt:'En ligne'};
+  return {on:false, txt:'Déconnecté depuis ' + duree(t)};
+}
+function duree(t){
+  const mn = Math.floor((Date.now() - t) / 60000);
+  if(mn < 60) return Math.max(mn, 1) + ' min';
+  const h = Math.floor(mn / 60);
+  if(h < 24) return h + ' h';
+  const j = Math.floor(h / 24);
+  if(j < 31) return j + ' jour' + (j > 1 ? 's' : '');
+  // au-delà : vrai calcul calendaire
+  const d0 = new Date(t), d1 = new Date();
+  let mo = (d1.getFullYear() - d0.getFullYear()) * 12 + (d1.getMonth() - d0.getMonth());
+  if(d1.getDate() < d0.getDate()) mo--;
+  if(mo < 1) mo = 1;
+  if(mo < 12) return mo + ' mois';
+  const an = Math.floor(mo / 12);
+  return an + ' an' + (an > 1 ? 's' : '');
+}
+function majPresence(){
+  document.querySelectorAll('[data-seen]').forEach(el => {
+    const e = etatPresence(el.dataset.seen);
+    el.innerHTML = '<span class="dot' + (e.on ? ' on' : '') + '"></span>' + esc(e.txt);
+  });
+}
+
+/* ---------- Chargement + rendu ---------- */
+let chargeEnCours = false;
+async function chargeUsers(ttl){
+  if(chargeEnCours) return;
+  if(pauseAPI && Date.now() < pauseAPI) return;   // limite atteinte, on laisse souffler
+  chargeEnCours = true;
+  const z = $('#uGrille');
+  if(!USERS.length) z.innerHTML = '<div class="vide-etat">Chargement des profils…</div>';
+  try{
+    const moi = (DATA.cloud.login || '').toLowerCase();
+    const vus = new Set();
+    const file = [];
+    const pousse = l => {
+      const nom = String(l || '').trim().replace(/^@/, '');
+      const b = nom.toLowerCase();
+      if(!nom || b === moi || vus.has(b)) return;
+      vus.add(b); file.push(nom);
+    };
+    // graines : mes amis, l'annuaire du dépôt, et tous ceux déjà croisés
+    (DATA.profil.amis || []).forEach(pousse);
+    (await chargeAnnuaire()).forEach(pousse);
+    (DATA.cloud.connus || []).forEach(pousse);
+
+    const res = [];
+    let lus = 0;
+    while(file.length && lus < maxProfils()){       // jamais de boucle sans limite
+      const l = file.shift();
+      lus++;
+      const p = await profilDe(l, ttl);
+      if(!p) continue;
+      // de proche en proche : les gens qu'il connaît entrent dans l'annuaire
+      (p.amis || []).forEach(pousse);
+      (p.connus || []).forEach(pousse);
+      if(profilVisible(p)) res.push(p);
+    }
+    // on garde la mémoire du réseau pour la prochaine fois
+    DATA.cloud.connus = Array.from(vus).slice(0, 80);
+    ecrit();
+
+    res.sort((a, b) => {
+      const oa = etatPresence(a.lastSeen).on ? 0 : 1;
+      const ob = etatPresence(b.lastSeen).on ? 0 : 1;
+      if(oa !== ob) return oa - ob;
+      const na = (b.nbJeux || 0) - (a.nbJeux || 0);
+      if(na) return na;
+      return String(a.pseudo || a.login).localeCompare(String(b.pseudo || b.login), 'fr');
+    });
+    USERS = res;
+    pauseAPI = 0;
+  }catch(e){
+    console.warn(e);
+    if(String(e.message) === 'limite'){
+      pauseAPI = Date.now() + 10 * 60000;
+      toast(connecte()
+        ? 'Limite d\'appels GitHub atteinte, pause de 10 minutes.'
+        : 'Limite GitHub atteinte (60 appels/h sans compte). Connecte ton token dans ☁️.');
+    }
+  }finally{
+    chargeEnCours = false;
+    rendUsers();
+  }
+}
+
+function usersAffiches(){
+  return USERS.filter(p => {
+    if(filtreU === 'amis')    return estAmi(p.login);
+    if(filtreU === 'enligne') return etatPresence(p.lastSeen).on;
+    return true;
+  });
+}
+
+function rendUsers(){
+  const z = $('#uGrille');
+  const L = usersAffiches();
+  $('#uCompte').textContent = L.length + (L.length > 1 ? ' profils' : ' profil');
+  document.querySelectorAll('#uPuces .puce').forEach(b => {
+    b.classList.toggle('on', b.dataset.fu === filtreU);
+  });
+  if(USERS.length && !L.length){
+    z.innerHTML = '<div class="vide-etat"><p>Personne dans cette catégorie pour le moment.</p></div>';
+    return;
+  }
+  if(!USERS.length){
+    z.innerHTML = '<div class="vide-etat"><div class="logo-g"></div><h2>Personne pour l\'instant</h2>'
+      + '<p>L\'annuaire se remplit tout seul : dès qu\'un membre te connaît, tu vois aussi '
+      + 'tous ceux qu\'il connaît. Pour amorcer, ajoute un pseudo GitHub dans <b>Mon Profil</b> '
+      + 'ou fais-toi lister dans le <b>users.json</b> du dépôt.</p>'
+      + (connecte() ? '' : '<p class="aide">Sans compte GitHub connecté, FGL ne lit que '
+          + maxProfils() + ' profils et rafraîchit moins souvent : GitHub limite à 60 appels par heure.</p>')
+      + '</div>';
+    return;
+  }
+  z.innerHTML = L.map(p => {
+    const ini = (p.pseudo || p.login || '?').slice(0,1).toUpperCase();
+    const srcAv = avatarGH(p.login) || (p.avatar || '').trim();
+    const av = srcAv ? imgAvatar('u-av', srcAv, ini) : '<div class="u-av">' + esc(ini) + '</div>';
+    const top = (p.top10 || []).slice(0, 3).map(g => g.cover
+      ? '<img src="' + esc(g.cover) + '" alt="" loading="lazy" title="' + esc(g.title) + '">'
+      : '<div class="u-vide" title="' + esc(g.title) + '"></div>').join('');
+    const e = etatPresence(p.lastSeen);
+    const ferme = !peutVoirListe(p);
+    return '<button class="u-carte' + (ferme ? ' ferme' : '') + '" data-user="' + esc(p.login) + '">'
+      + (ferme ? '<div class="u-lock" title="Liste réservée à ses amis">🔒</div>' : '')
+      + (estAmi(p.login) ? '<div class="u-ami">ami</div>' : '')
+      + '<div class="u-tete">' + av + '<div>'
+      + '<div class="u-nom">' + esc(p.pseudo || p.login) + '</div>'
+      + '<div class="u-log">@' + esc(p.login) + '</div>'
+      + '<div class="pastille" data-seen="' + esc(p.lastSeen || '') + '">'
+      + '<span class="dot' + (e.on ? ' on' : '') + '"></span>' + esc(e.txt) + '</div>'
+      + '</div></div>'
+      + (p.bio ? '<div class="u-bio">' + esc(p.bio) + '</div>' : '')
+      + (top ? '<div class="u-top">' + top + '</div>' : '')
+      + '<div class="u-bas"><span>' + (p.nbJeux || 0) + ' jeux</span>'
+      + '<span>' + (ferme ? 'liste privée' : 'liste ouverte') + '</span>'
+      + '</div></button>';
+  }).join('');
+}
+
+/* ---------- Lecture seule ---------- */
+function ouvreLecture(login){
+  const p = USERS.find(x => String(x.login).toLowerCase() === String(login).toLowerCase());
+  if(!p) return;
+  if(!peutVoirListe(p)){
+    toast((p.pseudo || p.login) + ' réserve sa liste à ses amis.');
+    return;
+  }
+  marqueDefi('visite');
+  lecture = p;
+  UI.q = ''; $('#q').value = '';
+  montreVue('accueil');
+  rendBandeau(); majFiltres(); rendGrille();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function quitteLecture(){
+  lecture = null;
+  rendBandeau(); montreVue('users'); majFiltres(); rendGrille();
+}
+function rendBandeau(){
+  const z = $('#bandeau');
+  const add = $('#bAdd');
+  if(!lecture){
+    z.innerHTML = '';
+    if(add) add.style.display = '';
+    return;
+  }
+  if(add) add.style.display = 'none';
+  const ini = (lecture.pseudo || lecture.login || '?').slice(0,1).toUpperCase();
+  const srcAv = avatarGH(lecture.login) || (lecture.avatar || '').trim();
+  const av = srcAv ? imgAvatar('av-b', srcAv, ini) : '<div class="av-b">' + esc(ini) + '</div>';
+  const e = etatPresence(lecture.lastSeen);
+  z.innerHTML = '<div class="bandeau">' + av
+    + '<div><b>Tu regardes la liste de ' + esc(lecture.pseudo || lecture.login) + '</b>'
+    + '<div class="pastille" data-seen="' + esc(lecture.lastSeen || '') + '">'
+    + '<span class="dot' + (e.on ? ' on' : '') + '"></span>' + esc(e.txt) + '</div></div>'
+    + '<div class="espace"></div>'
+    + '<button class="btn" id="bRetourL">← Revenir à ma liste</button></div>';
+  $('#bRetourL').onclick = quitteLecture;
+}
+function ouvreVoir(i){
+  const g = (lecture && lecture.jeux || [])[i];
+  if(!g) return;
+  const st = statutDe(g.status);
+  const aff = g.cover
+    ? '<img class="voir-aff" src="' + esc(g.cover) + '" alt="">'
+    : '<div class="voir-aff rien"></div>';
+  const ligne = (nom, val) => val ? '<div class="voir-l"><span>' + nom + '</span><b>' + val + '</b></div>' : '';
+  $('#voirTitre').textContent = g.title || 'Jeu';
+  $('#voirCorps').innerHTML = '<div class="voir-tete">' + aff + '<div style="flex:1">'
+    + '<div class="stat-b" style="position:static;display:inline-block;background:' + st.c + 'cc">'
+    + st.nom + '</div>'
+    + (g.note != null ? '<div class="note-txt" style="margin:10px 0 0;font-size:26px">'
+        + g.note.toFixed(1) + '<span style="font-size:13px;color:var(--muted)"> / 10</span></div>' : '')
+    + (g.genres && g.genres.length ? '<div class="carte-s" style="margin-top:8px">'
+        + esc(g.genres.join(' · ')) + '</div>' : '')
+    + '</div></div>'
+    + ligne('Plateforme', esc(g.platform))
+    + ligne('Metacritic joueurs', g.metaUser != null ? g.metaUser.toFixed(1) : '')
+    + ligne('Temps de jeu', g.playtime ? g.playtime + ' h' : '')
+    + ligne('Dernière fois joué', g.lastPlayed ? esc(depuisJour(g.lastPlayed)) : '')
+    + ligne('Succès', g.trpTot ? g.trpObt + ' / ' + g.trpTot : '')
+    + (g.comment ? '<div class="voir-avis">' + esc(g.comment) + '</div>' : '')
+    + (g.trpTot
+        ? '<button class="btn pri" style="margin-top:16px;width:100%" data-voirtrp="' + i + '">'
+          + '🏆 Voir les ' + g.trpTot + ' succès en détail</button>'
+        : '');
+  ouvre('mVoir');
+}
+
+/* Succès d'un membre, en lecture seule */
+async function ouvreTropheesLecture(i){
+  const g = (lecture && lecture.jeux || [])[i];
+  if(!g) return;
+  const qui = lecture.pseudo || lecture.login;
+  marqueDefi('visiteTrp');
+  $('#trpTitre').textContent = g.title + ' — succès de ' + qui;
+  $('#trpFt').style.display = 'none';       // on ne coche pas ceux des autres
+  $('#trpCorps').innerHTML = '<div class="trp-vide">Chargement des succès…</div>';
+  ouvre('mTrp');
+  try{
+    const tout = await succesDe(lecture);
+    const L = (tout && tout.jeux) ? tout.jeux[String(g.title || '').toLowerCase()] : null;
+    if(!L || !L.length){
+      $('#trpCorps').innerHTML = '<div class="trp-vide">'
+        + esc(qui) + ' n\'a pas encore publié le détail de ses succès pour ce jeu.<br>'
+        + 'Le compteur ' + (g.trpObt || 0) + ' / ' + g.trpTot + ' reste juste : le détail '
+        + 'apparaîtra dès qu\'il ouvrira FGL une fois.</div>';
+      return;
+    }
+    const liste = L.map(a => ({
+      id: '', name: a.n || '', desc: a.t || '', icon: a.i || '',
+      unlocked: !!a.u, date: a.d || '',
+      rarity: (typeof a.r === 'number') ? a.r : null
+    }));
+    const obt = liste.filter(a => a.unlocked).length;
+    $('#trpCorps').innerHTML = htmlJauge(obt, g.trpTot || liste.length)
+      + htmlTrophees(liste, g.trpTot || liste.length, false);
+  }catch(e){
+    console.warn('succès distants', e);
+    $('#trpCorps').innerHTML = '<div class="trp-vide">Impossible de récupérer ses succès pour le moment.</div>';
+  }
+}
+
+/* ---------- Bascule des vues ---------- */
+function montreVue(v){
+  UI.vue2 = v;
+  $('#vueAccueil').style.display = v === 'accueil' ? '' : 'none';
+  $('#vueUsers').style.display   = v === 'users'   ? '' : 'none';
+  $('#vueOst').style.display     = v === 'ost'     ? '' : 'none';
+  $('#vueTournoi').style.display = v === 'tournoi' ? '' : 'none';
+  $('#bUsers').classList.toggle('on', v === 'users');
+  $('#bOst').classList.toggle('on', v === 'ost');
+  $('#bTournoi').classList.toggle('on', v === 'tournoi');
+  if(v === 'ost') rendOst();
+  if(v === 'tournoi') rendTournoi();
+}
+
+/* =========================================================
+   RENDU GLOBAL + DÉMARRAGE
+   ========================================================= */
+function toutRendre(){
+  verifieDefis();
+  rendBandeau();
+  rendOst();
+  rendGrille();
+  rendFond();
+  rendProfil();
+  majFiltres();
+}
+function majFiltres(){
+  const plats = Array.from(new Set(sourceJeux().map(g => g.platform).filter(Boolean))).sort();
+  const sel = $('#fPlat');
+  const val = UI.plateforme;
+  sel.innerHTML = '<option value="">Toutes plateformes</option>'
+    + plats.map(p => '<option value="' + esc(p) + '">' + esc(p) + '</option>').join('');
+  sel.value = plats.includes(val) ? val : '';
+  UI.plateforme = sel.value;
+}
+
+function init(){
+  charge();
+  appliqueTheme();
+
+  $('#vTag').textContent = VERSION;
+  $('#pied').textContent = 'FelGamesList ' + VERSION + ' — tes données restent dans ce navigateur';
+
+  // listes déroulantes
+  $('#jPlat').innerHTML = PLATEFORMES.map(p => '<option>' + esc(p) + '</option>').join('');
+  $('#jStat').innerHTML = STATUTS.map(s => '<option value="' + s.id + '">' + s.nom + '</option>').join('');
+  $('#puces').innerHTML = '<button class="puce on" data-st="">Tous</button>'
+    + STATUTS.map(s => '<button class="puce" data-st="' + s.id + '">' + s.nom + '</button>').join('');
+  $('#puces').style.display = 'flex';
+  $('#puces').style.gap = '6px';
+  $('#puces').style.flexWrap = 'wrap';
+
+  initEtoiles();
+
+  // en-tête
+  $('#bAdd').onclick = () => ouvreJeu(null);
+  $('#bRegl').onclick = () => {
+    $('#rCle').value = DATA.reglages.cleRawg || '';
+    $('#rAnim').textContent = DATA.reglages.anim ? 'Animé ✓' : 'Coupé';
+    $('#rAnim').classList.toggle('on', DATA.reglages.anim);
+    ouvre('mRegl');
+  };
+  let passeParClair = false;
+  $('#bTheme').onclick = () => {
+    DATA.reglages.theme = DATA.reglages.theme === 'sombre' ? 'clair' : 'sombre';
+    if(DATA.reglages.theme === 'clair') passeParClair = true;
+    else if(passeParClair) marqueDefi('theme');
+    sauve(); appliqueTheme();
+  };
+
+  // le chiffre du bas de page n'aime pas qu'on insiste
+  let clicsPied = 0, dernierClic = 0;
+  $('#pied').addEventListener('click', () => {
+    const t = Date.now();
+    clicsPied = (t - dernierClic < 1200) ? clicsPied + 1 : 1;
+    dernierClic = t;
+    if(clicsPied >= 7){ clicsPied = 0; marqueDefi('secret'); }
+  });
+
+  // vues OST et tournoi
+  $('#bOst').onclick = () => montreVue(UI.vue2 === 'ost' ? 'accueil' : 'ost');
+  $('#bTournoi').onclick = () => montreVue(UI.vue2 === 'tournoi' ? 'accueil' : 'tournoi');
+  $('#bAddOst').onclick = () => ouvreOst(null);
+  $('#bSauveOst').onclick = sauveOst;
+  $('#bSuppOst').onclick = suppOst;
+  $('#oLien').addEventListener('input', majLienOst);
+  $('#oTitre').addEventListener('keydown', e => { if(e.key === 'Enter') sauveOst(); });
+  $('#q').addEventListener('input', e => { UI.q = e.target.value; rendGrille(); });
+
+  // filtres
+  $('#puces').addEventListener('click', e => {
+    const b = e.target.closest('.puce');
+    if(!b) return;
+    UI.statut = b.dataset.st;
+    document.querySelectorAll('#puces .puce').forEach(x => x.classList.toggle('on', x === b));
+    rendGrille();
+  });
+  $('#fPlat').onchange = e => { UI.plateforme = e.target.value; rendGrille(); };
+  $('#fTri').onchange  = e => { UI.tri = e.target.value; rendGrille(); };
+  $('#bVue').onclick = () => {
+    UI.vue = UI.vue === 'grille' ? 'liste' : 'grille';
+    $('#bVue').textContent = UI.vue === 'grille' ? '▦' : '☰';
+    rendGrille();
+  };
+
+  // clic sur une carte ou une ligne du top 10
+  document.body.addEventListener('click', e => {
+    const c = e.target.closest('[data-jeu]');
+    if(c){ ouvreJeu(c.dataset.jeu); return; }
+    const t = e.target.closest('[data-trp]');
+    if(t){ basculeTrophee(t.dataset.trp); return; }
+    const f = e.target.closest('[data-ferme]');
+    if(f){ ferme(f.dataset.ferme); return; }
+    const vt = e.target.closest('[data-voirtrp]');
+    if(vt){ ouvreTropheesLecture(+vt.dataset.voirtrp); return; }
+    const v = e.target.closest('[data-voir]');
+    if(v){ ouvreVoir(+v.dataset.voir); return; }
+    const u = e.target.closest('[data-user]');
+    if(u){ ouvreLecture(u.dataset.user); return; }
+    const df = e.target.closest('[data-defi]');
+    if(df){ defiOuvert = df.dataset.defi; rendDefis(); return; }
+    const os = e.target.closest('[data-ost]');
+    if(os){ ouvreOstVoir(os.dataset.ost); return; }
+    const eo = e.target.closest('[data-editost]');
+    if(eo){ ferme('mOstVoir'); ouvreOst(eo.dataset.editost); return; }
+    const tt = e.target.closest('[data-ttype]');
+    if(tt){ UI.tourType = tt.dataset.ttype; rendTournoi(); return; }
+    const ts = e.target.closest('[data-tsize]');
+    if(ts){
+      const mode = document.querySelector('[data-tmode].on');
+      lanceTournoi(UI.tourType || 'jeux', +ts.dataset.tsize, mode ? mode.dataset.tmode : 'notes');
+      return;
+    }
+    const tm = e.target.closest('[data-tmode]');
+    if(tm){
+      document.querySelectorAll('[data-tmode]').forEach(b => b.classList.toggle('on', b === tm));
+      return;
+    }
+    const du = e.target.closest('[data-duel]');
+    if(du){ choisitDuel(du.dataset.duel); return; }
+    const tst = e.target.closest('[data-tstop]');
+    if(tst){
+      if(confirm('Abandonner ce tournoi ?')){ DATA.tournoi[tst.dataset.tstop] = null; ecrit(); rendTournoi(); }
+      return;
+    }
+    const tre = e.target.closest('[data-trelance]');
+    if(tre){ DATA.tournoi[tre.dataset.trelance] = null; ecrit(); rendTournoi(); return; }
+    const fu = e.target.closest('[data-fu]');
+    if(fu){ filtreU = fu.dataset.fu; rendUsers(); return; }
+    const am = e.target.closest('[data-ami]');
+    if(am){
+      DATA.profil.amis = (DATA.profil.amis || []).filter(x => String(x) !== am.dataset.ami);
+      sauve(); rendProfil();
+      if(connecte()) cloudPushProfil().catch(err => console.warn(err));
+      return;
+    }
+  });
+
+  // fermer en cliquant le fond noir
+  document.querySelectorAll('.modale').forEach(m => {
+    m.addEventListener('click', e => { if(e.target === m) m.classList.remove('on'); });
+  });
+  document.addEventListener('keydown', e => {
+    if(e.key !== 'Escape') return;
+    document.querySelectorAll('.modale.on').forEach(m => m.classList.remove('on'));
+    $('#panProfil').classList.remove('on');
+  });
+
+  // modale jeu
+  $('#bSauve').onclick    = sauveJeu;
+  $('#bSuppr').onclick    = supprimeJeu;
+  $('#bCherche').onclick  = chercheRawg;
+  $('#bTrophees').onclick = ouvreTrophees;
+  $('#bMeta').onclick = () => {
+    const t = $('#jTitre').value.trim();
+    if(!t){ toast('Écris d\'abord le titre.'); return; }
+    window.open('https://www.metacritic.com/search/' + encodeURIComponent(t) + '/', '_blank', 'noopener');
+  };
+  $('#jTitre').addEventListener('keydown', e => { if(e.key === 'Enter') sauveJeu(); });
+  // genres + affiche remplis tout seuls dès qu'on quitte le champ titre
+  $('#jTitre').addEventListener('change', autoInfos);
+  $('#bMetaAuto').onclick = chercheMeta;
+  $('#bJaquettes').onclick = rattrapeJaquettes;
+
+  // bouton « fait à 100 % »
+  $('#jCent').onclick = () => {
+    centTmp = !centTmp;
+    majCent();
+    if(centTmp) confettis();
+  };
+
+  // succès
+  $('#bChargeTrp').onclick = chargeTrophees;
+  $('#bAjoutTrp').onclick  = ajouteTropheeManuel;
+
+  // profil
+  $('#bProfil').onclick = () => {
+    const p = $('#panProfil');
+    p.classList.toggle('on');
+    if(p.classList.contains('on')) rendProfil();
+  };
+
+  // réglages
+  $('#rAnim').onclick = () => {
+    DATA.reglages.anim = !DATA.reglages.anim;
+    $('#rAnim').textContent = DATA.reglages.anim ? 'Animé ✓' : 'Coupé';
+    $('#rAnim').classList.toggle('on', DATA.reglages.anim);
+    sauve(); appliqueTheme();
+  };
+  $('#bSauveRegl').onclick = () => {
+    DATA.reglages.cleRawg = $('#rCle').value.trim();
+    sauve(); ferme('mRegl');
+    toast('Réglages enregistrés.');
+  };
+  $('#bExport').onclick = exporte;
+  $('#bImport').onclick = () => $('#fichierImport').click();
+  $('#fichierImport').onchange = e => {
+    if(e.target.files[0]) importe(e.target.files[0]);
+    e.target.value = '';
+  };
+
+  // vues
+  $('#bUsers').onclick = () => {
+    if(UI.vue2 === 'users'){ montreVue('accueil'); return; }
+    montreVue('users');
+    chargeUsers();               // cache de 5 min accepté à l'ouverture
+  };
+  $('#bMajUsers').onclick = () => { pauseAPI = 0; chargeUsers(0); };   // forcé
+
+  // cloud
+  $('#bCloud').onclick   = ouvreCloud;
+  $('#bConnecte').onclick = () => cloudConnecte($('#clToken').value.trim());
+  $('#clToken').addEventListener('keydown', e => {
+    if(e.key === 'Enter') cloudConnecte($('#clToken').value.trim());
+  });
+  $('#bDeco').onclick = cloudDeconnecte;
+  $('#bPush').onclick = () => cloudPush(false);
+  $('#bPull').onclick = () => cloudPull(true);
+  $('#bAuto').onclick = () => {
+    DATA.cloud.auto = !DATA.cloud.auto;
+    ecrit(); majEtatCloud();
+    toast(DATA.cloud.auto ? 'Envoi automatique activé.' : 'Envoi automatique coupé.');
+  };
+
+  // présence : texte recalculé en local chaque seconde
+  setInterval(majPresence, 1000);
+  // et vraies données rafraîchies toutes les 60 s, uniquement sur la page Utilisateurs
+  setInterval(() => {
+    if(UI.vue2 === 'users' && document.visibilityState === 'visible') chargeUsers(ttlAuto());
+  }, 60000);
+
+  // noctambule
+  const heure = new Date().getHours();
+  if(heure >= 3 && heure < 5) marqueDefi('nuit');
+
+  toutRendre();
+  cloudDemarre();
+
+  // appli installable : sans sw.js dans le dépôt, le site marche pareil
+  if('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){
+    navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW', e));
+  }
+  console.log('FGL ' + VERSION + ' prêt · ' + DATA.jeux.length + ' jeux');
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
