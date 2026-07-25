@@ -131,12 +131,12 @@ body.sansanim #bgTiles{transition:none}
 /* la couronne des 100 % */
 .av-w{position:relative;display:inline-block;line-height:0}
 .couronne{
-  position:absolute;top:-10px;left:50%;transform:translateX(-50%) rotate(-14deg);
+  position:absolute;top:-11px;left:-5px;transform:rotate(-30deg);
   font-size:16px;line-height:1;pointer-events:none;
   filter:drop-shadow(0 2px 5px rgba(0,0,0,.55));
 }
-.u-av ~ .couronne{font-size:21px;top:-13px}
-.pf-av ~ .couronne{font-size:26px;top:-16px}
+.u-av ~ .couronne{font-size:22px;top:-14px;left:-7px}
+.pf-av ~ .couronne{font-size:28px;top:-18px;left:-9px}
 
 @media (max-width:1000px){
   .hd-in{grid-template-columns:auto 1fr auto;gap:9px}
@@ -194,7 +194,7 @@ select{
 .compte{font-family:var(--mono);font-size:12px;color:var(--muted)}
 
 /* ===== GRILLE ===== */
-.grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));padding-bottom:40px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(124px,1fr));padding-bottom:40px}
 .carte{
   background:var(--ink2);border:1px solid var(--line);border-radius:var(--r);
   overflow:hidden;transition:.18s;text-align:left;display:flex;flex-direction:column;
@@ -354,7 +354,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);
 .top-l:nth-child(1) .top-r{color:var(--or)}
 .top-l:nth-child(2) .top-r{color:var(--argent)}
 .top-l:nth-child(3) .top-r{color:var(--bronze)}
-.top-a{width:32px;height:42px;border-radius:6px;object-fit:cover;background:var(--ink3);flex:0 0 32px}
+.top-a{width:32px;height:48px;border-radius:6px;object-fit:cover;background:var(--ink3);flex:0 0 32px}
 .top-n{flex:1;font-size:13.5px;font-weight:500;line-height:1.25;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .top-v{font-family:var(--mono);font-weight:700;color:var(--brass);font-size:14px}
@@ -483,7 +483,7 @@ body.sansanim .confetti{display:none}
 
 /* ===== FICHE EN LECTURE SEULE ===== */
 .voir-tete{display:flex;gap:15px;margin-bottom:16px}
-.voir-aff{width:112px;flex:0 0 112px;aspect-ratio:2/3;border-radius:11px;object-fit:cover;background:var(--ink3)}
+.voir-aff{width:104px;flex:0 0 104px;aspect-ratio:2/3;border-radius:11px;object-fit:cover;background:var(--ink3)}
 .voir-l{display:flex;justify-content:space-between;gap:14px;padding:8px 0;
   border-bottom:1px solid var(--line);font-size:13.5px}
 .voir-l span{color:var(--muted)}
@@ -577,8 +577,10 @@ body.sansanim .confetti{display:none}
 .ost-c:hover .ost-play{background:var(--accent);transform:translate(-50%,-50%) scale(1.08)}
 .ost-n{
   position:absolute;bottom:8px;right:8px;z-index:1;font-family:var(--mono);
-  font-weight:700;font-size:12px;padding:3px 7px;border-radius:7px;
-  background:rgba(10,8,16,.8);color:var(--brass);
+  font-weight:800;font-size:15px;letter-spacing:-.03em;
+  padding:4px 10px;border-radius:11px;color:#fff;
+  background:linear-gradient(160deg,rgba(8,6,14,.92),rgba(8,6,14,.76));
+  box-shadow:0 0 0 2px var(--nc,var(--brass)), 0 6px 18px rgba(0,0,0,.45);
 }
 .ost-t{padding:11px 12px 13px}
 .ost-t b{
@@ -706,9 +708,10 @@ body.sansanim .confetti{display:none}
   position:absolute;inset:0;background-size:cover;background-position:center;
   filter:blur(17px) saturate(1.35) brightness(.48);transform:scale(1.2);
 }
+/* l'image couvre tout le cadre : le flou ne se voit que si elle ne charge pas */
 .aff img{
   position:relative;width:100%;height:100%;
-  object-fit:contain;object-position:center;transition:transform .35s ease;
+  object-fit:cover;object-position:center;transition:transform .35s ease;
 }
 .aff::after{
   content:'';position:absolute;inset:0;pointer-events:none;
@@ -1071,9 +1074,9 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
       <div class="champ">
         <label for="rSgdb">Clé SteamGridDB — pour les jeux hors Steam</label>
         <input id="rSgdb" placeholder="Colle ta clé ici" autocomplete="off">
-        <div class="aide">Sans elle, seuls les jeux vendus sur Steam ont une vraie jaquette.
-          Avec elle, Nintendo, PlayStation et le rétro en ont une aussi.
-          Gratuite sur <a href="https://www.steamgriddb.com/profile/preferences/api" target="_blank" rel="noopener">steamgriddb.com</a>
+        <div class="aide">Une clé est <b>déjà intégrée au site</b> : tout le monde en profite sans rien faire.
+          Ce champ ne sert que si tu préfères utiliser ton propre quota — gratuite sur
+          <a href="https://www.steamgriddb.com/profile/preferences/api" target="_blank" rel="noopener">steamgriddb.com</a>
           (compte → Preferences → API → Generate key).</div>
       </div>
       <div class="champ">
@@ -1276,7 +1279,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 /* =========================================================
    FGL — FelGamesList
    ========================================================= */
-const VERSION = '0.9.3';
+const VERSION = '0.9.9';
 
 /* ---------- Constantes ---------- */
 const PLATEFORMES = ['PC (Steam)','PlayStation','Xbox','Nintendo Switch','Mobile','Rétro','Autre'];
@@ -1816,7 +1819,7 @@ const CLE_RAWG_SITE = '30b0437a08844d00a27b4a600f5f8ea7';
    compte sur steamgriddb.com → Preferences → API → Generate key.
    Colle-la entre les guillemets, ou dans ⚙️ Réglages.
    ----------------------------------------------------------------- */
-const CLE_SGDB_SITE = '';
+const CLE_SGDB_SITE = '33a4d8f56339bcc48ca45627e41f6154';
 
 /* -----------------------------------------------------------------
    CLÉ YOUTUBE DATA API v3 — recherche de vidéos depuis FGL.
@@ -1845,17 +1848,14 @@ const AIDE_META = '⤓ récupère la note de la presse via RAWG. La note des jou
 /* Au démarrage : quelques jaquettes manquantes par session, sans déranger.
    Toute la collection finit par se corriger d'elle-même au fil des ouvertures. */
 async function rattrapeDoucement(){
-  if(rattrapeEnCours || !cleRawg()) return;
-  const L = DATA.jeux.filter(g => g.title && !estJaquette(g.cover)).slice(0, 6);
+  if(rattrapeEnCours || !cleSgdb()) return;
+  const L = DATA.jeux.filter(g => g.title && !estJaquette(g.cover)).slice(0, 12);
   if(!L.length) return;
   let ok = 0;
   for(const g of L){
     try{
-      const i = await infosRawg(g.title);
-      if(!i) continue;
-      const img = await jaquette(i);
-      if(img && img !== g.cover && estJaquette(img)){ g.cover = img; ok++; }
-      if(!g.rawgId) g.rawgId = i.id;
+      const img = await jaquette(g.title);
+      if(img && img !== g.cover){ g.cover = img; ok++; }
     }catch(e){ console.warn('jaquette auto', g.title, e); }
   }
   if(ok){ sauve(); rendGrille(); rendFond(); console.log('FGL · ' + ok + ' jaquette(s) récupérée(s) en fond'); }
@@ -1865,35 +1865,39 @@ async function rattrapeDoucement(){
 let rattrapeEnCours = false;
 async function rattrapeJaquettes(){
   if(rattrapeEnCours) return;
-  if(!cleRawg()){ toast('Clé RAWG manquante.'); return; }
-  const L = DATA.jeux.filter(g => g.title && !estJaquette(g.cover));
-  if(!L.length){ toast('Toutes tes jaquettes sont déjà en place.'); return; }
-  if(!confirm(L.length + ' jeu(x) à traiter.\n\nFGL va chercher la vraie jaquette de chacun. '
-    + 'Ça prend quelques secondes par jeu, laisse l\'onglet ouvert.')) return;
+  if(!cleSgdb()){ toast('Clé SteamGridDB manquante.'); return; }
+  // on repasse sur tout : SteamGridDB est prioritaire, il peut faire mieux
+  // que ce qui avait été trouvé auparavant sur Steam ou Wikipédia
+  const L = DATA.jeux.filter(g => g.title);
+  if(!L.length){ toast('Aucun jeu dans ta liste.'); return; }
+  if(!confirm(L.length + ' jeu(x) à repasser.\n\nFGL va chercher la meilleure jaquette de chacun '
+    + 'en commençant par SteamGridDB. Compte quelques secondes par jeu et laisse l\'onglet ouvert.')) return;
   rattrapeEnCours = true;
   const bilan = {};
+  sgdbOK = 0; sgdbVide = 0; sgdbErreurs = 0;
   let ok = 0;
   try{
     for(let k = 0; k < L.length; k++){
       const g = L[k];
       toast('Jaquettes : ' + (k + 1) + ' / ' + L.length + '…');
       try{
-        const i = await infosRawg(g.title);
-        if(i){
-          const img = await jaquette(i);
-          if(img && img !== g.cover && estJaquette(img)){
-            g.cover = img; ok++;
-            const src = sourceJaquette(img);
-            bilan[src] = (bilan[src] || 0) + 1;
-          }
-          if(!g.rawgId) g.rawgId = i.id;
+        const img = await jaquette(g.title);
+        if(img && img !== g.cover){
+          g.cover = img; ok++;
+          bilan.SteamGridDB = (bilan.SteamGridDB || 0) + 1;
         }
       }catch(e){ console.warn('jaquette', g.title, e); }
     }
     sauve(); toutRendre();
     const detail = Object.keys(bilan).map(k => bilan[k] + ' via ' + k).join(', ');
     toast(ok + ' jaquette(s) sur ' + L.length + (detail ? ' — ' + detail : ''));
-    console.log('FGL · bilan des jaquettes', bilan, 'restées sans jaquette :', L.length - ok);
+    console.log('FGL · bilan des jaquettes', bilan,
+      '| sans jaquette :', L.length - ok,
+      '| SteamGridDB — trouvées :', sgdbOK, ', rien pour ce jeu :', sgdbVide,
+      ', appels refusés :', sgdbErreurs);
+    if(sgdbErreurs > 0 && sgdbOK === 0){
+      toast('SteamGridDB n\'a répondu à aucun appel — voir la console.');
+    }
   }finally{
     rattrapeEnCours = false;
   }
@@ -1904,6 +1908,8 @@ async function rattrapeJaquettes(){
    existe sur le CDN de Steam : on récupère l'identifiant Steam du jeu via
    RAWG, puis on teste l'image avant de l'adopter. */
 const cacheJaquette = new Map();
+/* diagnostic du rattrapage : combien SteamGridDB en a trouvé, raté, ou refusé */
+let sgdbOK = 0, sgdbVide = 0, sgdbErreurs = 0;
 
 function imageOK(url){
   return new Promise(res => {
@@ -1914,123 +1920,68 @@ function imageOK(url){
   });
 }
 
-async function appIdSteam(rawgId){
-  if(!rawgId || !cleRawg()) return null;
-  const rep = await fetch('https://api.rawg.io/api/games/' + encodeURIComponent(rawgId)
-    + '?key=' + encodeURIComponent(cleRawg()));
-  if(!rep.ok) throw new Error('HTTP ' + rep.status);
-  const js = await rep.json();
-  const L = js.stores || [];
-  for(const st of L){
-    const url = st.url || '';
-    const m = url.match(/store\.steampowered\.com\/app\/(\d+)/);
-    if(m) return m[1];
-  }
-  return null;
-}
-
-/* SteamGridDB : la seule source qui couvre AUSSI les jeux hors Steam
-   (Nintendo, PlayStation, rétro). Silencieuse si aucune clé n'est fournie. */
+/* Recherche d'une jaquette chez SteamGridDB à partir du seul titre. */
 async function jaquetteSgdb(nom){
   const cle = cleSgdb();
   if(!cle || !nom) return '';
   const tete = { 'Authorization': 'Bearer ' + cle };
+
   const r1 = await fetch('https://www.steamgriddb.com/api/v2/search/autocomplete/'
     + encodeURIComponent(nom), { headers: tete });
   if(!r1.ok) throw new Error('HTTP ' + r1.status);
   const j1 = await r1.json();
-  const jeu = j1 && j1.data && j1.data[0];
-  if(!jeu) return '';
-  const r2 = await fetch('https://www.steamgriddb.com/api/v2/grids/game/' + jeu.id
-    + '?dimensions=600x900&types=static&nsfw=false', { headers: tete });
-  if(!r2.ok) throw new Error('HTTP ' + r2.status);
-  const j2 = await r2.json();
-  const g = j2 && j2.data && j2.data[0];
-  return (g && g.url) ? g.url : '';
-}
+  const L = (j1 && j1.data) || [];
+  if(!L.length) return '';
 
-/* Wikipédia : l'image d'en-tête d'un article de jeu vidéo est presque
-   toujours la jaquette. Aucune clé, CORS autorisé via origin=*. */
-async function jaquetteWiki(nom){
-  if(!nom) return '';
-  const u = 'https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*'
-    + '&generator=search&gsrlimit=1'
-    + '&gsrsearch=' + encodeURIComponent(nom + ' video game')
-    + '&prop=pageimages&piprop=thumbnail&pithumbsize=800';
-  const r = await fetch(u);
-  if(!r.ok) throw new Error('HTTP ' + r.status);
-  const js = await r.json();
-  const pages = js && js.query && js.query.pages;
-  if(!pages) return '';
-  for(const k in pages){
-    const th = pages[k].thumbnail;
-    if(th && th.source) return th.source;
+  // on préfère le titre exact : « Final Fantasy VII » plutôt qu'un spin-off
+  const cible = String(nom).toLowerCase().trim();
+  const jeu = L.find(x => String(x.name || '').toLowerCase().trim() === cible) || L[0];
+
+  // 600x900 d'abord — c'est le format jaquette. Puis les autres verticaux.
+  // Les carrés (512x512, 1024x1024) ne sont pris qu'en tout dernier recours.
+  const essais = [
+    '?dimensions=600x900&types=static&nsfw=false',
+    '?dimensions=660x930,342x482&types=static&nsfw=false',
+    '?types=static&nsfw=false'
+  ];
+  for(const q of essais){
+    const r2 = await fetch('https://www.steamgriddb.com/api/v2/grids/game/' + jeu.id + q,
+      { headers: tete });
+    if(!r2.ok) continue;
+    const j2 = await r2.json();
+    const g = (j2 && j2.data) || [];
+    // à formats égaux on garde la plus haute : une vraie jaquette, pas une bannière
+    const vertical = g.filter(x => x && x.url && (!x.width || !x.height || x.height > x.width));
+    const choisi = vertical[0] || g[0];
+    if(choisi && choisi.url) return choisi.url;
   }
   return '';
 }
 
-/* Meilleure image disponible, dans l'ordre :
-   1. jaquette Steam (PC)  2. SteamGridDB (tout, avec clé)
-   3. Wikipédia (tout, sans clé)  4. capture RAWG */
-async function jaquette(info){
-  if(!info) return '';
-  const cle = 'j' + info.id;
-  if(cacheJaquette.has(cle)) return cacheJaquette.get(cle) || info.cover || '';
+/* SteamGridDB, et rien d'autre.
+   Pas de capture d'écran de secours : mieux vaut aucune image qu'une image
+   qui n'est pas une jaquette. Le titre suffit, aucune autre API n'intervient. */
+async function jaquette(nom){
+  const titre = String(nom || '').trim();
+  if(!titre) return '';
+  const cle = titre.toLowerCase();
+  if(cacheJaquette.has(cle)) return cacheJaquette.get(cle);
   let trouvee = '';
-
   try{
-    const app = await appIdSteam(info.id);
-    if(app){
-      // Steam a changé d'adresse au fil des ans : on essaie les trois
-      const essais = [
-        'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/' + app + '/library_600x900_2x.jpg',
-        'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/' + app + '/library_600x900.jpg',
-        'https://cdn.cloudflare.steamstatic.com/steam/apps/' + app + '/library_600x900_2x.jpg',
-        'https://cdn.cloudflare.steamstatic.com/steam/apps/' + app + '/library_600x900.jpg'
-      ];
-      for(const u of essais){
-        if(await imageOK(u)){ trouvee = u; break; }
-      }
-    }
+    const u = await jaquetteSgdb(titre);
+    if(u && await imageOK(u)){ trouvee = u; sgdbOK++; }
+    else sgdbVide++;
   }catch(e){
-    console.warn('jaquette Steam', e);
+    sgdbErreurs++;
+    if(sgdbErreurs === 1) console.warn('SteamGridDB inaccessible :', e);
   }
-
-  if(!trouvee){
-    try{
-      const u = await jaquetteSgdb(info.nom);
-      if(u && await imageOK(u)) trouvee = u;
-    }catch(e){
-      console.warn('jaquette SteamGridDB', e);
-    }
-  }
-
-  if(!trouvee){
-    try{
-      const u = await jaquetteWiki(info.nom);
-      if(u && await imageOK(u)) trouvee = u;
-    }catch(e){
-      console.warn('jaquette Wikipédia', e);
-    }
-  }
-
   cacheJaquette.set(cle, trouvee);
-  return trouvee || info.cover || '';
+  return trouvee;
 }
+
 /* une vraie jaquette, par opposition à une capture d'écran RAWG */
 function estJaquette(url){
-  const u = String(url || '');
-  return u.indexOf('steamstatic') >= 0
-      || u.indexOf('steamgriddb') >= 0
-      || u.indexOf('wikimedia.org') >= 0;
-}
-/* d'où vient une jaquette, pour le bilan du rattrapage */
-function sourceJaquette(url){
-  const u = String(url || '');
-  if(u.indexOf('steamstatic') >= 0) return 'Steam';
-  if(u.indexOf('steamgriddb') >= 0) return 'SteamGridDB';
-  if(u.indexOf('wikimedia.org') >= 0) return 'Wikipédia';
-  return '';
+  return String(url || '').indexOf('steamgriddb') >= 0;
 }
 
 /* Bouton ⤓ : remplit la note Metacritic tout seul */
@@ -2116,7 +2067,7 @@ async function chercheRawg(){
     if(!i){ aide.textContent = 'Aucun jeu trouvé sous ce nom.'; return; }
     $('#jTitre').value = i.nom;
     aide.textContent = 'Jeu trouvé, recherche de la jaquette…';
-    const img = await jaquette(i);
+    const img = await jaquette(i.nom);
     if(img) $('#jAff').value = img;
     poseGenres(i.genres, true);          // clic sur 🔍 : les genres sont refaits
     dernierAuto = i.nom.trim().toLowerCase();
@@ -2153,7 +2104,7 @@ async function autoInfos(){
     const i = await infosRawg(titre);
     if(!i){ aide.textContent = 'Aucun jeu trouvé sous ce nom.'; return; }
     if(!$('#jAff').value.trim()){
-      const img = await jaquette(i);
+      const img = await jaquette(i.nom);
       if(img) $('#jAff').value = img;
     }
     poseGenres(i.genres, false);         // genres posés dès que le jeu est reconnu
@@ -2177,7 +2128,7 @@ async function completeAuto(id){
     let bouge = false;
     if(!j.rawgId && i.id){ j.rawgId = i.id; bouge = true; }
     if(!j.cover){
-      const img = await jaquette(i);
+      const img = await jaquette(j.title);
       if(img){ j.cover = img; bouge = true; }
     }
     if((!j.genres || !j.genres.length) && i.genres.length){ j.genres = i.genres; bouge = true; }
@@ -3034,7 +2985,8 @@ function rendOst(){
     const img = vig
       ? '<img src="' + esc(vig) + '" alt="" loading="lazy">'
       : '';
-    return '<button class="ost-c" data-ost="' + (lecture ? 'l' + i : esc(o.id)) + '">'
+    const teinte = o.note != null ? ' style="--nc:' + couleurNote(o.note) + '"' : '';
+    return '<button class="ost-c" data-ost="' + (lecture ? 'l' + i : esc(o.id)) + '"' + teinte + '>'
       + '<div class="ost-v">' + img + '<div class="ost-play">▶</div>'
       + (o.note != null ? '<div class="ost-n">' + o.note.toFixed(1) + '</div>' : '')
       + '</div>'
