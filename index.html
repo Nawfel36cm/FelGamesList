@@ -412,6 +412,21 @@ body.sansanim .confetti{display:none}
 .voir-avis{margin-top:14px;font-size:13.5px;line-height:1.6;color:var(--paper);
   background:var(--ink2);border:1px solid var(--line);border-radius:11px;padding:13px 15px}
 
+/* ===== RÉSULTATS YOUTUBE ===== */
+.yt-res{display:flex;flex-direction:column;gap:7px;margin-top:11px}
+.yt-l{
+  display:flex;gap:11px;align-items:center;width:100%;text-align:left;
+  background:var(--ink3);border:1px solid transparent;border-radius:10px;
+  padding:7px;transition:.15s;
+}
+.yt-l:hover{border-color:var(--accent);transform:translateX(2px)}
+.yt-l img{width:84px;height:47px;object-fit:cover;border-radius:6px;flex:0 0 84px;background:var(--ink2)}
+.yt-l b{
+  display:-webkit-box;font-size:13px;font-weight:600;line-height:1.3;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.yt-l span{display:block;font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:3px}
+
 /* ===== OST ===== */
 .ost-grille{
   display:grid;gap:14px;padding-bottom:40px;
@@ -916,6 +931,12 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
           (compte → Preferences → API → Generate key).</div>
       </div>
       <div class="champ">
+        <label for="rYT">Clé YouTube Data API — facultatif</label>
+        <input id="rYT" placeholder="Une clé est déjà intégrée" autocomplete="off">
+        <div class="aide">Sert à chercher des vidéos depuis FGL. Une clé est déjà en place ;
+          mets la tienne seulement pour utiliser ton propre quota (~100 recherches/jour).</div>
+      </div>
+      <div class="champ">
         <label for="rCle">Clé API RAWG — facultatif</label>
         <input id="rCle" placeholder="Laisse vide : une clé est déjà intégrée" autocomplete="off">
         <div class="aide">FGL embarque déjà une clé, tu n'as rien à faire. Colle la tienne
@@ -949,9 +970,18 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
     </div>
     <div class="boite-bd">
       <div class="champ">
-        <label for="oLien">Lien YouTube</label>
+        <label for="oRech">Chercher sur YouTube</label>
+        <div class="ligne">
+          <input id="oRech" placeholder="elden ring main theme" autocomplete="off">
+          <button class="btn" id="bRechYT" title="Chercher">🔎</button>
+        </div>
+        <div id="oResultats"></div>
+      </div>
+      <div class="champ">
+        <label for="oLien">…ou colle le lien YouTube</label>
         <div class="ligne">
           <input id="oLien" placeholder="https://youtu.be/…" autocomplete="off">
+          <button class="btn" id="bColler" title="Coller le presse-papiers">📋</button>
           <button class="btn" id="bChercheOst" title="Retrouver le titre et le jeu">🔍</button>
         </div>
         <div class="aide" id="oLienAide"></div>
@@ -1093,7 +1123,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 /* =========================================================
    FGL — FelGamesList
    ========================================================= */
-const VERSION = '0.8';
+const VERSION = '0.9';
 
 /* ---------- Constantes ---------- */
 const PLATEFORMES = ['PC (Steam)','PlayStation','Xbox','Nintendo Switch','Mobile','Rétro','Autre'];
@@ -1221,7 +1251,7 @@ let centTmp = false;     // case « fait à 100 % » en cours de saisie
 function dataVierge(){
   return {
     version: 7,
-    reglages: { cleRawg:'', cleSgdb:'', theme:'sombre', anim:true },
+    reglages: { cleRawg:'', cleSgdb:'', cleYT:'', theme:'sombre', anim:true },
     cloud: { login:'', gistData:'', gistProfil:'', auto:true, syncAt:'', majAt:'', connus:[] },
     defis: {},              // id du défi → jour du déblocage
     osts: [],               // bandes originales
@@ -1252,6 +1282,7 @@ function migre(){
   if(!DATA.cloud)    DATA.cloud    = v.cloud;
   for(const k in v.cloud) if(DATA.cloud[k] === undefined) DATA.cloud[k] = v.cloud[k];
   if(DATA.reglages.cleSgdb === undefined) DATA.reglages.cleSgdb = '';
+  if(DATA.reglages.cleYT === undefined) DATA.reglages.cleYT = '';
   if(!Array.isArray(DATA.cloud.connus)) DATA.cloud.connus = [];
   if(!DATA.defis || typeof DATA.defis !== 'object') DATA.defis = {};
   if(!Array.isArray(DATA.osts)) DATA.osts = [];
@@ -1610,6 +1641,18 @@ const CLE_RAWG_SITE = '30b0437a08844d00a27b4a600f5f8ea7';
    Colle-la entre les guillemets, ou dans ⚙️ Réglages.
    ----------------------------------------------------------------- */
 const CLE_SGDB_SITE = '';
+
+/* -----------------------------------------------------------------
+   CLÉ YOUTUBE DATA API v3 — recherche de vidéos depuis FGL.
+   ⚠️ Restreins-la sur console.cloud.google.com : Identifiants → ta clé
+   → « Restrictions relatives aux applications » → Sites web → ajoute
+   https://onikaii-dev.github.io/*  — sinon n'importe qui peut brûler
+   ton quota depuis son propre site.
+   ----------------------------------------------------------------- */
+const CLE_YT_SITE = 'AIzaSyC624b2jo7raGqp2I1MF4fH8EnmERY4Yfg';
+function cleYT(){
+  return (DATA.reglages.cleYT || '').trim() || CLE_YT_SITE.trim();
+}
 function cleSgdb(){
   return (DATA.reglages.cleSgdb || '').trim() || CLE_SGDB_SITE.trim();
 }
@@ -1633,6 +1676,7 @@ async function rattrapeJaquettes(){
   if(!confirm(L.length + ' jeu(x) à traiter.\n\nFGL va chercher la vraie jaquette de chacun. '
     + 'Ça prend quelques secondes par jeu, laisse l\'onglet ouvert.')) return;
   rattrapeEnCours = true;
+  const bilan = {};
   let ok = 0;
   try{
     for(let k = 0; k < L.length; k++){
@@ -1642,13 +1686,19 @@ async function rattrapeJaquettes(){
         const i = await infosRawg(g.title);
         if(i){
           const img = await jaquette(i);
-          if(img && img !== g.cover && estJaquette(img)){ g.cover = img; ok++; }
+          if(img && img !== g.cover && estJaquette(img)){
+            g.cover = img; ok++;
+            const src = sourceJaquette(img);
+            bilan[src] = (bilan[src] || 0) + 1;
+          }
           if(!g.rawgId) g.rawgId = i.id;
         }
       }catch(e){ console.warn('jaquette', g.title, e); }
     }
     sauve(); toutRendre();
-    toast(ok + ' jaquette(s) mise(s) à jour sur ' + L.length + '.');
+    const detail = Object.keys(bilan).map(k => bilan[k] + ' via ' + k).join(', ');
+    toast(ok + ' jaquette(s) sur ' + L.length + (detail ? ' — ' + detail : ''));
+    console.log('FGL · bilan des jaquettes', bilan, 'restées sans jaquette :', L.length - ok);
   }finally{
     rattrapeEnCours = false;
   }
@@ -1704,8 +1754,29 @@ async function jaquetteSgdb(nom){
   return (g && g.url) ? g.url : '';
 }
 
+/* Wikipédia : l'image d'en-tête d'un article de jeu vidéo est presque
+   toujours la jaquette. Aucune clé, CORS autorisé via origin=*. */
+async function jaquetteWiki(nom){
+  if(!nom) return '';
+  const u = 'https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*'
+    + '&generator=search&gsrlimit=1'
+    + '&gsrsearch=' + encodeURIComponent(nom + ' video game')
+    + '&prop=pageimages&piprop=thumbnail&pithumbsize=600';
+  const r = await fetch(u);
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  const js = await r.json();
+  const pages = js && js.query && js.query.pages;
+  if(!pages) return '';
+  for(const k in pages){
+    const th = pages[k].thumbnail;
+    if(th && th.source) return th.source;
+  }
+  return '';
+}
+
 /* Meilleure image disponible, dans l'ordre :
-   1. jaquette Steam (jeux PC)  2. SteamGridDB (toutes plateformes)  3. capture RAWG */
+   1. jaquette Steam (PC)  2. SteamGridDB (tout, avec clé)
+   3. Wikipédia (tout, sans clé)  4. capture RAWG */
 async function jaquette(info){
   if(!info) return '';
   const cle = 'j' + info.id;
@@ -1734,14 +1805,32 @@ async function jaquette(info){
     }
   }
 
+  if(!trouvee){
+    try{
+      const u = await jaquetteWiki(info.nom);
+      if(u && await imageOK(u)) trouvee = u;
+    }catch(e){
+      console.warn('jaquette Wikipédia', e);
+    }
+  }
+
   cacheJaquette.set(cle, trouvee);
   return trouvee || info.cover || '';
 }
 /* une vraie jaquette, par opposition à une capture d'écran RAWG */
 function estJaquette(url){
   const u = String(url || '');
-  return u.indexOf('steamstatic') >= 0 || u.indexOf('steamgriddb') >= 0
-      || u.indexOf('cdn2.steamgriddb') >= 0;
+  return u.indexOf('steamstatic') >= 0
+      || u.indexOf('steamgriddb') >= 0
+      || u.indexOf('wikimedia.org') >= 0;
+}
+/* d'où vient une jaquette, pour le bilan du rattrapage */
+function sourceJaquette(url){
+  const u = String(url || '');
+  if(u.indexOf('steamstatic') >= 0) return 'Steam';
+  if(u.indexOf('steamgriddb') >= 0) return 'SteamGridDB';
+  if(u.indexOf('wikimedia.org') >= 0) return 'Wikipédia';
+  return '';
 }
 
 /* Bouton ⤓ : remplit la note Metacritic tout seul */
@@ -2447,6 +2536,70 @@ function ostPublic(o){
 }
 function sourceOsts(){ return lecture ? (lecture.osts || []) : (DATA.osts || []); }
 
+/* ---------- Recherche YouTube ----------
+   L'API officielle coûte 100 unités par recherche (quota : ~100/jour)
+   et 1 unité pour lire une vidéo précise : on privilégie donc la lecture. */
+async function rechercheYT(q){
+  const cle = cleYT();
+  if(!cle) throw new Error('sans-cle');
+  const u = 'https://www.googleapis.com/youtube/v3/search?part=snippet&type=video'
+    + '&maxResults=6&q=' + encodeURIComponent(q) + '&key=' + encodeURIComponent(cle);
+  const r = await fetch(u);
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  const js = await r.json();
+  return (js.items || []).map(x => ({
+    id: x.id && x.id.videoId,
+    titre: (x.snippet && x.snippet.title) || '',
+    chaine: (x.snippet && x.snippet.channelTitle) || ''
+  })).filter(x => x.id);
+}
+
+async function lanceRechercheYT(){
+  const q = $('#oRech').value.trim();
+  const z = $('#oResultats');
+  if(!q){ toast('Écris ce que tu cherches.'); return; }
+  z.innerHTML = '<div class="aide" style="margin-top:10px">Recherche…</div>';
+  try{
+    const L = await rechercheYT(q);
+    if(!L.length){ z.innerHTML = '<div class="aide" style="margin-top:10px">Aucun résultat.</div>'; return; }
+    z.innerHTML = '<div class="yt-res">' + L.map(v =>
+      '<button class="yt-l" data-yt="' + esc(v.id) + '">'
+      + '<img src="' + esc(vignetteYT(v.id)) + '" alt="" loading="lazy">'
+      + '<div><b>' + esc(v.titre) + '</b><span>' + esc(v.chaine) + '</span></div></button>'
+    ).join('') + '</div>';
+  }catch(e){
+    console.warn('recherche YouTube', e);
+    z.innerHTML = '<div class="aide" style="margin-top:10px">'
+      + (String(e.message) === 'sans-cle'
+          ? 'Aucune clé YouTube configurée (⚙️ Réglages).'
+          : 'La recherche a échoué — quota atteint ou clé refusée. Tu peux coller le lien à la main.')
+      + '</div>';
+  }
+}
+
+/* on choisit un résultat : le lien se pose et tout s'enchaîne */
+function choisitYT(vid){
+  $('#oLien').value = 'https://www.youtube.com/watch?v=' + vid;
+  $('#oResultats').innerHTML = '';
+  $('#oTitre').value = '';
+  $('#oJeu').value = '';
+  ostPoses = { oTitre:'', oJeu:'' };
+  apercuOst();
+  chercheOst(false);
+}
+
+/* bouton 📋 : lit le presse-papiers si le navigateur l'autorise */
+async function collerLien(){
+  try{
+    const t = await navigator.clipboard.readText();
+    if(!t || !t.trim()){ toast('Presse-papiers vide.'); return; }
+    $('#oLien').value = t.trim();
+    majLienOst();
+  }catch(e){
+    toast('Ton navigateur refuse la lecture du presse-papiers — colle avec Ctrl+V.');
+  }
+}
+
 /* ---------- Remplissage automatique d'une OST ----------
    YouTube expose le titre d'une vidéo sans clé d'API via oEmbed. Si l'appel
    échoue (réseau, CORS), on ne casse rien : les champs restent à remplir. */
@@ -2456,12 +2609,32 @@ let ostPoses = { oTitre:'', oJeu:'' };
 async function infosYoutube(vid){
   if(!vid) return null;
   if(cacheYT.has(vid)) return cacheYT.get(vid);
-  const u = 'https://www.youtube.com/oembed?format=json&url='
-    + encodeURIComponent('https://www.youtube.com/watch?v=' + vid);
-  const rep = await fetch(u);
-  if(!rep.ok) throw new Error('HTTP ' + rep.status);
-  const js = await rep.json();
-  const info = { titre: js.title || '', chaine: js.author_name || '' };
+  let info = null;
+
+  // 1. API officielle : 1 unité de quota, la plus fiable
+  if(cleYT()){
+    try{
+      const u = 'https://www.googleapis.com/youtube/v3/videos?part=snippet&id='
+        + encodeURIComponent(vid) + '&key=' + encodeURIComponent(cleYT());
+      const r = await fetch(u);
+      if(r.ok){
+        const js = await r.json();
+        const sn = js.items && js.items[0] && js.items[0].snippet;
+        if(sn) info = { titre: sn.title || '', chaine: sn.channelTitle || '' };
+      }
+    }catch(e){ console.warn('YouTube API', e); }
+  }
+
+  // 2. secours sans clé
+  if(!info){
+    const u = 'https://www.youtube.com/oembed?format=json&url='
+      + encodeURIComponent('https://www.youtube.com/watch?v=' + vid);
+    const r = await fetch(u);
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const js = await r.json();
+    info = { titre: js.title || '', chaine: js.author_name || '' };
+  }
+
   cacheYT.set(vid, info);
   return info;
 }
@@ -2479,7 +2652,10 @@ function coupeTitre(t){
 function nettoieOst(t){
   return String(t || '')
     .replace(/\[[^\]]*\]|\([^)]*\)/g, ' ')          // [HD], (Official), (OST)…
-    .replace(/\b(ost|soundtrack|original soundtrack|bgm|theme|music|extended|full version)\b/gi, ' ')
+    // on retire le bruit, jamais un mot qui peut faire partie du titre
+    // (« Main Theme », « Battle Music »… doivent survivre)
+    .replace(/\b(ost|soundtrack|original soundtrack|official video|official audio|lyrics|extended|full version)\b/gi, ' ')
+    .replace(/\s*[-–—|~:]\s*$/, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
@@ -3559,6 +3735,7 @@ function init(){
   $('#bRegl').onclick = () => {
     $('#rCle').value = DATA.reglages.cleRawg || '';
     $('#rSgdb').value = DATA.reglages.cleSgdb || '';
+    $('#rYT').value = DATA.reglages.cleYT || '';
     $('#rAnim').textContent = DATA.reglages.anim ? 'Animé ✓' : 'Coupé';
     $('#rAnim').classList.toggle('on', DATA.reglages.anim);
     ouvre('mRegl');
@@ -3588,6 +3765,9 @@ function init(){
   $('#bSuppOst').onclick = suppOst;
   $('#oLien').addEventListener('input', majLienOst);
   $('#bChercheOst').onclick = () => chercheOst(false);
+  $('#bRechYT').onclick = lanceRechercheYT;
+  $('#bColler').onclick = collerLien;
+  $('#oRech').addEventListener('keydown', e => { if(e.key === 'Enter') lanceRechercheYT(); });
   $('#oTitre').addEventListener('keydown', e => { if(e.key === 'Enter') sauveOst(); });
   $('#q').addEventListener('input', e => { UI.q = e.target.value; rendGrille(); });
 
@@ -3623,6 +3803,8 @@ function init(){
     if(u){ ouvreLecture(u.dataset.user); return; }
     const df = e.target.closest('[data-defi]');
     if(df){ ouvreDefi(df.dataset.defi); return; }
+    const yt = e.target.closest('[data-yt]');
+    if(yt){ choisitYT(yt.dataset.yt); return; }
     const os = e.target.closest('[data-ost]');
     if(os){ ouvreOstVoir(os.dataset.ost); return; }
     const eo = e.target.closest('[data-editost]');
@@ -3714,6 +3896,7 @@ function init(){
   $('#bSauveRegl').onclick = () => {
     DATA.reglages.cleRawg = $('#rCle').value.trim();
     DATA.reglages.cleSgdb = $('#rSgdb').value.trim();
+    DATA.reglages.cleYT = $('#rYT').value.trim();
     sauve(); ferme('mRegl');
     toast('Réglages enregistrés.');
   };
@@ -3753,6 +3936,21 @@ function init(){
   setInterval(() => {
     if(UI.vue2 === 'users' && document.visibilityState === 'visible') chargeUsers(ttlAuto());
   }, 60000);
+
+  // partage depuis YouTube (Android) : ?url=… ou ?text=…
+  try{
+    const par = new URLSearchParams(location.search);
+    const brut = [par.get('url'), par.get('text'), par.get('title')].filter(Boolean).join(' ');
+    const vid = idYoutube(brut) || idYoutube((brut.match(/https?:\/\/\S+/) || [''])[0]);
+    if(vid){
+      history.replaceState(null, '', location.pathname);
+      montreVue('ost');
+      ouvreOst(null);
+      $('#oLien').value = 'https://www.youtube.com/watch?v=' + vid;
+      apercuOst();
+      chercheOst(false);
+    }
+  }catch(e){ console.warn('partage', e); }
 
   // noctambule
   const heure = new Date().getHours();
