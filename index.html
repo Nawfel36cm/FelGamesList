@@ -81,21 +81,76 @@ body.sansanim #bgTiles{transition:none}
   background:color-mix(in srgb, var(--ink) 72%, transparent);
   border-bottom:1px solid var(--line);
 }
-.hd-in{display:flex;align-items:center;gap:12px;padding:11px 0;flex-wrap:wrap}
-.marque-b{display:flex;align-items:center;gap:10px;background:none;border:0;padding:0}
-.nav-h{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.nv{
-  display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 12px;
-  border-radius:11px;border:1px solid var(--line);background:var(--ink2);
-  font-size:13px;font-weight:500;color:var(--paper);transition:.15s;white-space:nowrap;
+.hd-in{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:9px 0}
+.hd-g{display:flex;align-items:center;gap:8px}
+.hd-d{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+
+/* le site frère, à gauche */
+.cw-b{
+  width:42px;height:42px;border-radius:12px;display:block;flex:0 0 42px;
+  background:var(--cinewawa) center/cover;transition:.15s;
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 55%,transparent), 0 4px 14px rgba(0,0,0,.4);
+  -webkit-touch-callout:none;user-select:none;-webkit-user-select:none;
 }
-.nv:hover{border-color:var(--accent);transform:translateY(-1px)}
-.nv.on{background:var(--accent);border-color:transparent;color:#fff}
-.nv > span{font-size:15px;line-height:1}
-.nv.cw > span{width:19px;height:19px;border-radius:5px;background:var(--cinewawa) center/cover;display:block}
-.nv.lie{border-color:color-mix(in srgb,var(--mint) 45%,transparent)}
-.nv.lie b{color:var(--mint)}
-@media (max-width:1080px){ .nv b{display:none} .nv{padding:0 11px;gap:0} }
+.cw-b:hover{transform:translateY(-2px)}
+.cw-b.presse{transform:scale(.94);box-shadow:0 0 0 3px var(--or)}
+
+/* le titre, au centre */
+.hd-c{display:flex;align-items:center;gap:12px;background:none;border:0;padding:0;justify-self:center}
+.hd-c .logo-m{width:42px;height:42px;border-radius:12px;flex:0 0 42px}
+.hd-c .marque{
+  font-family:var(--dsp);font-weight:800;font-size:25px;letter-spacing:.01em;
+  text-transform:uppercase;white-space:nowrap;line-height:1;
+}
+.hd-c small{font-family:var(--mono);font-size:10px;color:var(--muted)}
+
+/* les boutons ronds, à droite */
+.rd{
+  width:38px;height:38px;border-radius:11px;border:1px solid var(--line);
+  background:var(--ink2);display:grid;place-items:center;font-size:16px;transition:.15s;flex:0 0 38px;
+}
+.rd:hover{border-color:var(--accent);transform:translateY(-2px)}
+.rd.on{background:var(--accent);border-color:transparent}
+.sync{
+  display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 13px;border-radius:99px;
+  border:1px solid var(--line);background:var(--ink2);font-family:var(--mono);font-size:12.5px;
+  color:var(--muted);transition:.15s;
+}
+.sync:hover{border-color:var(--accent)}
+.sync i{width:8px;height:8px;border-radius:99px;background:var(--muted);flex:0 0 8px}
+.sync.lie i{background:var(--mint);box-shadow:0 0 0 3px color-mix(in srgb,var(--mint) 24%,transparent)}
+.sync.lie{color:var(--paper)}
+.moi{
+  display:inline-flex;align-items:center;gap:9px;height:38px;padding:0 14px 0 4px;
+  border-radius:99px;border:1px solid var(--line);background:var(--ink2);
+  font-size:13px;font-weight:600;transition:.15s;
+}
+.moi:hover{border-color:var(--accent)}
+.moi .av{width:30px;height:30px;font-size:12px}
+
+/* la couronne des 100 % */
+.av-w{position:relative;display:inline-block;line-height:0}
+.couronne{
+  position:absolute;top:-10px;left:50%;transform:translateX(-50%) rotate(-14deg);
+  font-size:16px;line-height:1;pointer-events:none;
+  filter:drop-shadow(0 2px 5px rgba(0,0,0,.55));
+}
+.u-av ~ .couronne{font-size:21px;top:-13px}
+.pf-av ~ .couronne{font-size:26px;top:-16px}
+
+@media (max-width:1000px){
+  .hd-in{grid-template-columns:auto 1fr auto;gap:9px}
+  .hd-c .marque{font-size:18px}
+  .hd-c small{display:none}
+  .moi b{display:none}
+  .moi{padding:0 4px}
+  .sync span{display:none}
+  .sync{padding:0 12px}
+}
+@media (max-width:620px){
+  .hd-c .marque{display:none}
+  .cw-b,.hd-c .logo-m{width:36px;height:36px;flex-basis:36px}
+}
 .marque{display:flex;align-items:baseline;gap:9px;font-family:var(--dsp);font-weight:800;
   font-size:26px;letter-spacing:-.03em;line-height:1}
 .marque em{font-style:normal;color:var(--accent)}
@@ -435,6 +490,18 @@ body.sansanim .confetti{display:none}
 .voir-l b{font-family:var(--mono);font-weight:700}
 .voir-avis{margin-top:14px;font-size:13.5px;line-height:1.6;color:var(--paper);
   background:var(--ink2);border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+
+/* ===== CHOIX JEUX / OSTs ===== */
+.choix-g{display:grid;gap:11px;grid-template-columns:1fr 1fr}
+.choix{
+  background:var(--ink2);border:1px solid var(--line);border-radius:14px;
+  padding:20px 14px;text-align:center;transition:.15s;
+}
+.choix:hover{border-color:var(--accent);transform:translateY(-3px)}
+.choix em{font-size:32px;font-style:normal;display:block;margin-bottom:9px;line-height:1}
+.choix b{display:block;font-size:14.5px;margin-bottom:3px}
+.choix span{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+@media (max-width:480px){ .choix-g{grid-template-columns:1fr} }
 
 /* ===== THÈMES ===== */
 .th-grille{display:grid;gap:13px;padding-bottom:40px;
@@ -783,24 +850,25 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 <!-- ===== EN-TÊTE ===== -->
 <header class="hd">
   <div class="wrap hd-in">
-    <button class="marque-b" id="bAccueil" title="Ma collection">
+    <div class="hd-g">
+      <a class="cw-b" id="bCine" href="https://onikaii-dev.github.io/Cinewawa/"
+         target="_blank" rel="noopener" title="Ciné'Wawa — mes films et séries"></a>
+    </div>
+    <button class="hd-c" id="bAccueil" title="Ma collection">
       <span class="logo-m"></span>
-      <span class="marque">FG<em>L</em> <small id="vTag"></small></span>
+      <span class="marque">FelGamesList</span>
+      <small id="vTag"></small>
     </button>
-    <div class="rech"><span>🔎</span><input id="q" placeholder="Chercher un jeu…" autocomplete="off"></div>
-    <div class="espace"></div>
-    <nav class="nav-h">
-      <button class="nv" id="bUsers"><span>👥</span><b>Membres</b></button>
-      <button class="nv" id="bOst"><span>🎵</span><b>OSTs</b></button>
-      <button class="nv" id="bTournoi"><span>🏟️</span><b>Tournoi</b></button>
-      <button class="nv" id="bThemes"><span>🎨</span><b>Thèmes</b></button>
-      <button class="nv" id="bCloud"><span>☁️</span><b id="cloudEtiq">Hors cloud</b></button>
-      <a class="nv cw" id="bCine" href="https://onikaii-dev.github.io/Cinewawa/"
-         target="_blank" rel="noopener" title="Ciné'Wawa — mes films et séries"><span></span><b>Ciné'Wawa</b></a>
-      <button class="ico" id="bTheme" title="Sombre / clair">🌙</button>
-      <button class="ico" id="bRegl" title="Réglages">⚙️</button>
-    </nav>
-    <button class="btn pri" id="bAdd">+ Ajouter</button>
+    <div class="hd-d">
+      <button class="rd" id="bUsers" title="Membres">👥</button>
+      <button class="rd" id="bOst" title="Mes OSTs">🎵</button>
+      <button class="rd" id="bTournoi" title="Tournoi">🏟️</button>
+      <button class="rd" id="bThemes" title="Thèmes">🎨</button>
+      <button class="rd" id="bTheme" title="Sombre / clair">🌙</button>
+      <button class="rd" id="bRegl" title="Réglages">⚙️</button>
+      <button class="sync" id="bCloud" title="Cloud GitHub"><i></i><span id="cloudEtiq">Hors cloud</span></button>
+      <button class="moi" id="hdMoi" title="Mon profil"></button>
+    </div>
   </div>
 </header>
 
@@ -811,6 +879,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
   <section id="vueAccueil">
   <!-- ===== FILTRES ===== -->
   <div class="bar" id="barre">
+    <div class="rech"><span>🔎</span><input id="q" placeholder="Chercher un jeu…" autocomplete="off"></div>
     <div id="puces"></div>
     <select id="fPlat"><option value="">Toutes plateformes</option></select>
     <select id="fTri">
@@ -825,6 +894,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
     <button class="ico" id="bVue" title="Changer de vue">▦</button>
     <div class="espace"></div>
     <div class="compte" id="compte"></div>
+    <button class="btn pri" id="bAdd">+ Ajouter</button>
   </div>
 
   <div class="grid" id="grille"></div>
@@ -851,10 +921,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
   <!-- ===== VUE OST ===== -->
   <section id="vueOst" style="display:none">
     <div class="bar">
-      <div id="ostPuces">
-        <button class="puce on" data-fo="moi">Mes OSTs</button>
-        <button class="puce" data-fo="autres">Celles des membres</button>
-      </div>
+      <div class="titre-s" style="margin:0" id="ostTitreV">🎵 Mes OSTs</div>
       <div class="espace"></div>
       <div class="compte" id="ostCompte"></div>
       <button class="btn pri" id="bAddOst">+ Ajouter une OST</button>
@@ -1115,6 +1182,17 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
   </div>
 </div>
 
+<!-- ===== MODALE CHOIX JEUX / OSTs ===== -->
+<div class="modale" id="mChoix">
+  <div class="boite petite">
+    <div class="boite-hd">
+      <h2 id="choixTitre">Que veux-tu voir ?</h2>
+      <button class="ico" data-ferme="mChoix">✕</button>
+    </div>
+    <div class="boite-bd"><div class="choix-g" id="choixCorps"></div></div>
+  </div>
+</div>
+
 <!-- ===== MODALE D'UN DÉFI ===== -->
 <div class="modale sur" id="mDefi">
   <div class="boite petite">
@@ -1198,7 +1276,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 /* =========================================================
    FGL — FelGamesList
    ========================================================= */
-const VERSION = '0.9.1';
+const VERSION = '0.9.3';
 
 /* ---------- Constantes ---------- */
 const PLATEFORMES = ['PC (Steam)','PlayStation','Xbox','Nintendo Switch','Mobile','Rétro','Autre'];
@@ -1317,6 +1395,15 @@ function avatarKO(img){
   const id = img.id ? ' id="' + img.id + '"' : '';
   img.outerHTML = '<div class="' + img.className + '"' + id + '>'
     + esc(img.dataset.ini || '?') + '</div>';
+}
+/* avatar + couronne éventuelle */
+function avatarComplet(cls, src, ini, couronne, id){
+  const dedans = src
+    ? imgAvatar(cls, src, ini, id)
+    : '<div class="' + cls + '"' + (id ? ' id="' + id + '"' : '') + '>' + esc(ini) + '</div>';
+  return '<span class="av-w">' + dedans
+    + (couronne ? '<span class="couronne" title="Tous les défis débloqués">👑</span>' : '')
+    + '</span>';
 }
 function imgAvatar(cls, src, ini, id){
   return '<img class="' + cls + '"' + (id ? ' id="' + id + '"' : '') + ' src="' + esc(src)
@@ -2289,11 +2376,18 @@ function rendProfil(){
 
   const ini = (p.pseudo || 'N').slice(0,1).toUpperCase();
   const srcAv = monAvatar();
-  const av = srcAv ? imgAvatar('pf-av', srcAv, ini) : '<div class="pf-av">' + esc(ini) + '</div>';
+  const roi = aLaCouronne();
+  const av = avatarComplet('pf-av', srcAv, ini, roi);
   const miniAv = $('#miniAv');
   miniAv.outerHTML = srcAv
     ? imgAvatar('av', srcAv, ini, 'miniAv')
     : '<span class="av" id="miniAv">' + esc(ini) + '</span>';
+  // la pastille de la barre du haut
+  const hm = $('#hdMoi');
+  if(hm){
+    hm.innerHTML = avatarComplet('av', srcAv, ini, roi)
+      + '<b>' + esc(p.pseudo || 'Moi') + '</b>';
+  }
 
   let h = '<div class="pf-tete">' + av + '<div>'
     + '<div class="pf-nom">' + esc(p.pseudo || 'Sans pseudo') + '</div>'
@@ -2554,6 +2648,35 @@ function celebreDefis(neufs){
     neufs.forEach((d, i) => setTimeout(() => toast('Défi débloqué : ' + d.e + ' ' + d.n), i * 1500));
   }
   rendProfil();
+}
+
+/* Le raccourci caché : tout débloquer d'un coup */
+function debloqueTout(){
+  if(!DATA || !DATA.defis) return;
+  const neufs = [];
+  DEFIS.forEach(d => {
+    if(!DATA.defis[d.id]){ DATA.defis[d.id] = dayLocal(); neufs.push(d); }
+  });
+  if(!neufs.length){ toast('Tu les avais déjà tous. 👑'); return; }
+  ecrit();
+  confettis();
+  setTimeout(confettis, 400);
+  toast('👑 ' + neufs.length + ' défi' + (neufs.length > 1 ? 's' : '') + ' débloqué'
+    + (neufs.length > 1 ? 's' : '') + ' d\'un coup !');
+  rendProfil();
+  rendDefis();
+  if(connecte()) cloudPushProfil().catch(e => console.warn(e));
+}
+
+/* tous les défis obtenus = couronne sur l'avatar */
+function aLaCouronne(){
+  return DEFIS.every(d => !!DATA.defis[d.id]);
+}
+function couronneMembre(p){
+  if(!p) return false;
+  const n = (p.defis || []).length;
+  const total = p.defisTotal || DEFIS.length;
+  return n > 0 && n >= total;
 }
 
 /* Pour les défis qui ne se déduisent pas de la collection */
@@ -2887,11 +3010,9 @@ function suppOst(){
 
 function rendOst(){
   const z = $('#ostGrille');
-  document.querySelectorAll('#ostPuces .puce').forEach(b =>
-    b.classList.toggle('on', b.dataset.fo === filtreOst));
-  $('#ostPuces').style.display = lecture ? 'none' : 'flex';
-
-  if(!lecture && filtreOst === 'autres'){ rendOstAutres(); return; }
+  $('#ostTitreV').textContent = lecture
+    ? '🎵 Les OSTs de ' + (lecture.pseudo || lecture.login)
+    : '🎵 Mes OSTs';
   const L = sourceOsts();
 
   $('#ostCompte').textContent = L.length + (L.length > 1 ? ' morceaux' : ' morceau');
@@ -2943,57 +3064,6 @@ function ouvreOstVoir(ref){
   }
   if(!lecture) h += '<button class="btn" data-editost="' + esc(o.id) + '">✏️ Modifier</button>';
   h += '</div>';
-  $('#ovCorps').innerHTML = h;
-  ouvre('mOstVoir');
-}
-
-/* Les OSTs de tout le monde, classées par note */
-function rendOstAutres(){
-  const z = $('#ostGrille');
-  const L = construitOstAutres();
-  $('#bAddOst').style.display = 'none';
-  $('#ostCompte').textContent = L.length + (L.length > 1 ? ' morceaux' : ' morceau');
-  if(!L.length){
-    z.innerHTML = '';
-    $('#ostVide').innerHTML = '<div class="vide-etat"><div class="logo-g"></div>'
-      + '<h2>Aucune OST partagée</h2><p>Personne du réseau n\'a encore ajouté de morceau, '
-      + 'ou l\'annuaire n\'est pas chargé. Ouvre 👥 Membres une fois, puis reviens.</p></div>';
-    return;
-  }
-  $('#ostVide').innerHTML = '';
-  z.innerHTML = L.map((o, i) => {
-    const vig = vignetteYT(o.videoId);
-    return '<button class="ost-c" data-osta="' + i + '">'
-      + '<div class="ost-v">'
-      + (vig ? '<img src="' + esc(vig) + '" alt="" loading="lazy">' : '')
-      + '<div class="ost-qui"><img src="' + esc(o.avatar) + '" alt="" loading="lazy">'
-      + esc(o.qui) + '</div>'
-      + '<div class="ost-play">▶</div>'
-      + (o.note != null ? '<div class="ost-n">' + o.note.toFixed(1) + '</div>' : '')
-      + '</div>'
-      + '<div class="ost-t"><b>' + esc(o.titre) + '</b>'
-      + '<span>' + esc(o.jeu || 'Jeu inconnu') + '</span></div></button>';
-  }).join('');
-}
-
-function ouvreOstAutre(i){
-  const o = ostAutres[i];
-  if(!o) return;
-  $('#ovTitre').textContent = o.titre || 'OST';
-  let h = '';
-  if(o.videoId){
-    h += '<div class="ov-lect"><iframe src="https://www.youtube-nocookie.com/embed/' + esc(o.videoId) + '" '
-      + 'title="' + esc(o.titre) + '" loading="lazy" allowfullscreen '
-      + 'allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture"></iframe></div>';
-  }
-  h += '<div class="voir-l"><span>Proposée par</span><b>' + esc(o.qui) + '</b></div>'
-    + '<div class="voir-l"><span>Jeu</span><b>' + esc(o.jeu || '—') + '</b></div>'
-    + (o.note != null ? '<div class="voir-l"><span>Sa note</span><b>' + o.note.toFixed(1) + ' / 10</b></div>' : '');
-  if(o.videoId){
-    h += '<div class="t-opts" style="justify-content:flex-start;margin-top:16px">'
-      + '<a class="btn pri" href="' + esc(lienYT(o.videoId)) + '" target="_blank" rel="noopener">▶ Ouvrir sur YouTube</a>'
-      + '</div>';
-  }
   $('#ovCorps').innerHTML = h;
   ouvre('mOstVoir');
 }
@@ -3282,29 +3352,6 @@ function htmlBoutonsReaction(login){
 }
 
 /* =========================================================
-   OSTs DES MEMBRES
-   ========================================================= */
-let filtreOst = 'moi';
-let ostAutres = [];
-
-function construitOstAutres(){
-  ostAutres = [];
-  USERS.forEach(u => {
-    (u.osts || []).forEach(o => {
-      if(!o || !o.titre) return;
-      ostAutres.push({
-        titre:o.titre, jeu:o.jeu || '', videoId:o.videoId || '',
-        note:(o.note == null ? null : o.note),
-        qui:(u.pseudo || u.login), login:u.login,
-        avatar:avatarGH(u.login)
-      });
-    });
-  });
-  ostAutres.sort((a, b) => (b.note == null ? -1 : b.note) - (a.note == null ? -1 : a.note));
-  return ostAutres;
-}
-
-/* =========================================================
    CLOUD GITHUB — gists, synchro, présence
    ========================================================= */
 const CLE_TOKEN = 'fgl_gh_token';
@@ -3411,6 +3458,7 @@ function payloadProfil(){
     lastSeen: isoLocal(),
     connus: (DATA.cloud.connus || []).slice(0, 80),   // fait circuler l'annuaire
     defis: Object.keys(DATA.defis || {}),
+    defisTotal: DEFIS.length,
     reactions: DATA.reactions || {},
     osts: partage ? (DATA.osts || []).map(ostPublic) : [],
     champions: championsPublics(),
@@ -3654,7 +3702,10 @@ function majEtatCloud(erreur){
   const b = $('#bCloud');
   if(b) b.classList.toggle('lie', connecte());
   const et = $('#cloudEtiq');
-  if(et) et.textContent = connecte() ? (DATA.cloud.login || 'Connecté') : 'Hors cloud';
+  if(et){
+    const h = DATA.cloud.syncAt ? DATA.cloud.syncAt.slice(11, 16) : '';
+    et.textContent = connecte() ? (h ? 'Sync ' + h : 'Connecté') : 'Hors cloud';
+  }
 }
 
 /* =========================================================
@@ -3883,7 +3934,7 @@ function rendUsers(){
   z.innerHTML = L.map(p => {
     const ini = (p.pseudo || p.login || '?').slice(0,1).toUpperCase();
     const srcAv = avatarGH(p.login) || (p.avatar || '').trim();
-    const av = srcAv ? imgAvatar('u-av', srcAv, ini) : '<div class="u-av">' + esc(ini) + '</div>';
+    const av = avatarComplet('u-av', srcAv, ini, couronneMembre(p));
     const top = (p.top10 || []).slice(0, 3).map(g => g.cover
       ? '<img src="' + esc(g.cover) + '" alt="" loading="lazy" title="' + esc(g.title) + '">'
       : '<div class="u-vide" title="' + esc(g.title) + '"></div>').join('');
@@ -3910,7 +3961,25 @@ function rendUsers(){
 }
 
 /* ---------- Lecture seule ---------- */
-function ouvreLecture(login){
+/* On demande d'abord ce qu'on veut consulter chez la personne */
+function demandeLecture(login){
+  const p = USERS.find(x => String(x.login).toLowerCase() === String(login).toLowerCase());
+  if(!p) return;
+  if(!peutVoirListe(p)){
+    toast((p.pseudo || p.login) + ' réserve sa liste à ses amis.');
+    return;
+  }
+  const nb = (p.nbJeux || 0), no = (p.osts || []).length;
+  $('#choixTitre').textContent = 'Chez ' + (p.pseudo || p.login);
+  $('#choixCorps').innerHTML =
+      '<button class="choix" data-lec="' + esc(p.login) + '|jeux"><em>🎮</em>'
+    + '<b>Ses jeux</b><span>' + nb + (nb > 1 ? ' jeux' : ' jeu') + '</span></button>'
+    + '<button class="choix" data-lec="' + esc(p.login) + '|ost"><em>🎵</em>'
+    + '<b>Ses OSTs</b><span>' + no + (no > 1 ? ' morceaux' : ' morceau') + '</span></button>';
+  ouvre('mChoix');
+}
+
+function ouvreLecture(login, quoi){
   const p = USERS.find(x => String(x.login).toLowerCase() === String(login).toLowerCase());
   if(!p) return;
   if(!peutVoirListe(p)){
@@ -3920,13 +3989,15 @@ function ouvreLecture(login){
   marqueDefi('visite');
   lecture = p;
   UI.q = ''; $('#q').value = '';
-  montreVue('accueil');
+  ferme('mChoix');
+  montreVue(quoi === 'ost' ? 'ost' : 'accueil');
   rendBandeau(); majFiltres(); rendGrille();
   window.scrollTo({top:0, behavior:'smooth'});
 }
 function quitteLecture(){
   lecture = null;
-  rendBandeau(); montreVue('users'); majFiltres(); rendGrille();
+  montreVue('users');
+  rendBandeau(); majFiltres(); rendGrille(); rendOst();
 }
 function rendBandeau(){
   const z = $('#bandeau');
@@ -3939,13 +4010,17 @@ function rendBandeau(){
   if(add) add.style.display = 'none';
   const ini = (lecture.pseudo || lecture.login || '?').slice(0,1).toUpperCase();
   const srcAv = avatarGH(lecture.login) || (lecture.avatar || '').trim();
-  const av = srcAv ? imgAvatar('av-b', srcAv, ini) : '<div class="av-b">' + esc(ini) + '</div>';
+  const av = avatarComplet('av-b', srcAv, ini, couronneMembre(lecture));
   const e = etatPresence(lecture.lastSeen);
   z.innerHTML = '<div class="bandeau">' + av
     + '<div><b>Tu regardes la liste de ' + esc(lecture.pseudo || lecture.login) + '</b>'
     + '<div class="pastille" data-seen="' + esc(lecture.lastSeen || '') + '">'
     + '<span class="dot' + (e.on ? ' on' : '') + '"></span>' + esc(e.txt) + '</div></div>'
     + '<div class="espace"></div>'
+    + '<div class="t-opts" style="margin:0">'
+    + '<button class="puce' + (UI.vue2 !== 'ost' ? ' on' : '') + '" data-lecvue="jeux">🎮 Jeux</button>'
+    + '<button class="puce' + (UI.vue2 === 'ost' ? ' on' : '') + '" data-lecvue="ost">🎵 OSTs</button>'
+    + '</div>'
     + htmlBoutonsReaction(lecture.login)
     + '<button class="btn" id="bRetourL">← Revenir à ma liste</button></div>';
   $('#bRetourL').onclick = quitteLecture;
@@ -4100,7 +4175,28 @@ function init(){
 
   // vues OST et tournoi
   $('#bAccueil').onclick = () => montreVue('accueil');
+
+  // 5 secondes d'appui sur le logo Ciné'Wawa : tout se débloque
+  (function(){
+    const cw = $('#bCine');
+    let minuteur = null, declenche = false;
+    const lache = () => { clearTimeout(minuteur); cw.classList.remove('presse'); };
+    cw.addEventListener('pointerdown', () => {
+      declenche = false;
+      cw.classList.add('presse');
+      clearTimeout(minuteur);
+      minuteur = setTimeout(() => {
+        declenche = true;
+        cw.classList.remove('presse');
+        debloqueTout();
+      }, 5000);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => cw.addEventListener(ev, lache));
+    cw.addEventListener('click', e => { if(declenche){ e.preventDefault(); declenche = false; } });
+    cw.addEventListener('contextmenu', e => e.preventDefault());
+  })();
   $('#bThemes').onclick = () => montreVue(UI.vue2 === 'themes' ? 'accueil' : 'themes');
+  $('#hdMoi').onclick = () => { rendProfil(); $('#panProfil').classList.add('on'); };
   $('#bOst').onclick = () => montreVue(UI.vue2 === 'ost' ? 'accueil' : 'ost');
   $('#bTournoi').onclick = () => montreVue(UI.vue2 === 'tournoi' ? 'accueil' : 'tournoi');
   $('#bAddOst').onclick = () => ouvreOst(null);
@@ -4143,7 +4239,19 @@ function init(){
     const v = e.target.closest('[data-voir]');
     if(v){ ouvreVoir(+v.dataset.voir); return; }
     const u = e.target.closest('[data-user]');
-    if(u){ ouvreLecture(u.dataset.user); return; }
+    if(u){ demandeLecture(u.dataset.user); return; }
+    const lc = e.target.closest('[data-lec]');
+    if(lc){
+      const parts = lc.dataset.lec.split('|');
+      ouvreLecture(parts[0], parts[1]);
+      return;
+    }
+    const lv = e.target.closest('[data-lecvue]');
+    if(lv){
+      montreVue(lv.dataset.lecvue === 'ost' ? 'ost' : 'accueil');
+      rendBandeau();
+      return;
+    }
     const df = e.target.closest('[data-defi]');
     if(df){ ouvreDefi(df.dataset.defi); return; }
     const pal = e.target.closest('[data-pal]');
@@ -4156,15 +4264,6 @@ function init(){
     }
     const re = e.target.closest('[data-rea]');
     if(re){ reagit(re.dataset.rea, re.dataset.emo); return; }
-    const fo = e.target.closest('[data-fo]');
-    if(fo){
-      filtreOst = fo.dataset.fo;
-      if(filtreOst === 'autres' && !USERS.length) chargeUsers();
-      rendOst();
-      return;
-    }
-    const oa = e.target.closest('[data-osta]');
-    if(oa){ ouvreOstAutre(+oa.dataset.osta); return; }
     const yt = e.target.closest('[data-yt]');
     if(yt){ choisitYT(yt.dataset.yt); return; }
     const os = e.target.closest('[data-ost]');
