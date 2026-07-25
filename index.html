@@ -81,7 +81,21 @@ body.sansanim #bgTiles{transition:none}
   background:color-mix(in srgb, var(--ink) 72%, transparent);
   border-bottom:1px solid var(--line);
 }
-.hd-in{display:flex;align-items:center;gap:14px;padding:12px 0;flex-wrap:wrap}
+.hd-in{display:flex;align-items:center;gap:12px;padding:11px 0;flex-wrap:wrap}
+.marque-b{display:flex;align-items:center;gap:10px;background:none;border:0;padding:0}
+.nav-h{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.nv{
+  display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 12px;
+  border-radius:11px;border:1px solid var(--line);background:var(--ink2);
+  font-size:13px;font-weight:500;color:var(--paper);transition:.15s;white-space:nowrap;
+}
+.nv:hover{border-color:var(--accent);transform:translateY(-1px)}
+.nv.on{background:var(--accent);border-color:transparent;color:#fff}
+.nv > span{font-size:15px;line-height:1}
+.nv.cw > span{width:19px;height:19px;border-radius:5px;background:var(--cinewawa) center/cover;display:block}
+.nv.lie{border-color:color-mix(in srgb,var(--mint) 45%,transparent)}
+.nv.lie b{color:var(--mint)}
+@media (max-width:1080px){ .nv b{display:none} .nv{padding:0 11px;gap:0} }
 .marque{display:flex;align-items:baseline;gap:9px;font-family:var(--dsp);font-weight:800;
   font-size:26px;letter-spacing:-.03em;line-height:1}
 .marque em{font-style:normal;color:var(--accent)}
@@ -332,7 +346,17 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);
   position:absolute;top:8px;right:8px;z-index:2;
   display:flex;flex-direction:column;align-items:flex-end;gap:5px;
 }
-.note-b{position:static}
+.note-b{
+  position:static;font-size:16px;font-weight:800;letter-spacing:-.03em;
+  padding:5px 11px;border-radius:12px;color:#fff;
+  background:linear-gradient(160deg,rgba(8,6,14,.92),rgba(8,6,14,.76));
+  box-shadow:0 0 0 2px var(--nc,var(--brass)), 0 8px 22px rgba(0,0,0,.5);
+}
+.grid.liste .l-note{
+  font-family:var(--mono);font-weight:800;font-size:17px;color:#fff;
+  padding:4px 11px;border-radius:10px;background:rgba(8,6,14,.72);
+  box-shadow:0 0 0 2px var(--nc,var(--brass));
+}
 .cent-b{
   font-family:var(--mono);font-weight:800;font-size:11px;letter-spacing:-.02em;
   padding:3px 9px;border-radius:99px;background:#fff;color:#b07d10;
@@ -411,6 +435,42 @@ body.sansanim .confetti{display:none}
 .voir-l b{font-family:var(--mono);font-weight:700}
 .voir-avis{margin-top:14px;font-size:13.5px;line-height:1.6;color:var(--paper);
   background:var(--ink2);border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+
+/* ===== THÈMES ===== */
+.th-grille{display:grid;gap:13px;padding-bottom:40px;
+  grid-template-columns:repeat(auto-fill,minmax(168px,1fr))}
+.th{
+  border:1px solid var(--line);border-radius:var(--r);overflow:hidden;
+  text-align:left;transition:.16s;background:var(--ink2);
+}
+.th:hover{transform:translateY(-3px);box-shadow:var(--ombre)}
+.th.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.th-apercu{height:78px;position:relative;display:flex;align-items:flex-end;gap:5px;padding:9px}
+.th-apercu i{display:block;width:20px;height:20px;border-radius:6px}
+.th-nom{padding:10px 12px 12px;font-size:13.5px;font-weight:600;display:flex;
+  align-items:center;justify-content:space-between;gap:8px}
+.th-nom small{font-family:var(--mono);font-size:10.5px;color:var(--muted);font-weight:400}
+
+/* ===== RÉACTIONS ===== */
+.rea{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.rea button{
+  width:36px;height:36px;border-radius:10px;border:1px solid var(--line);
+  background:var(--ink2);font-size:16px;transition:.14s;
+}
+.rea button:hover{transform:translateY(-2px);border-color:var(--accent)}
+.rea button.on{background:var(--accent);border-color:transparent}
+.rea-recu{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+.rea-p{
+  display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;
+  padding:2px 7px;border-radius:99px;background:var(--ink3);color:var(--muted);
+}
+
+/* ===== OSTs DES AUTRES ===== */
+.ost-qui{
+  position:absolute;top:8px;left:8px;z-index:1;display:flex;align-items:center;gap:5px;
+  background:rgba(10,8,16,.8);padding:3px 8px 3px 4px;border-radius:99px;font-size:11px;
+}
+.ost-qui img{width:17px;height:17px;border-radius:99px;object-fit:cover}
 
 /* ===== RÉSULTATS YOUTUBE ===== */
 .yt-res{display:flex;flex-direction:column;gap:7px;margin-top:11px}
@@ -723,17 +783,23 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 <!-- ===== EN-TÊTE ===== -->
 <header class="hd">
   <div class="wrap hd-in">
-    <div class="logo-m" title="FelGamesList"></div>
-    <div class="marque">FG<em>L</em> <small id="vTag"></small></div>
+    <button class="marque-b" id="bAccueil" title="Ma collection">
+      <span class="logo-m"></span>
+      <span class="marque">FG<em>L</em> <small id="vTag"></small></span>
+    </button>
     <div class="rech"><span>🔎</span><input id="q" placeholder="Chercher un jeu…" autocomplete="off"></div>
-    <a class="ico cw" id="bCine" href="https://onikaii-dev.github.io/Cinewawa/"
-       target="_blank" rel="noopener" title="Ciné'Wawa — mes films et séries"></a>
-    <button class="ico" id="bOst" title="Mes OST">🎵</button>
-    <button class="ico" id="bTournoi" title="Tournoi">🏟️</button>
-    <button class="ico" id="bUsers" title="Utilisateurs">👥</button>
-    <button class="ico" id="bCloud" title="Cloud GitHub">☁️</button>
-    <button class="ico" id="bTheme" title="Changer de thème">🌙</button>
-    <button class="ico" id="bRegl" title="Réglages">⚙️</button>
+    <div class="espace"></div>
+    <nav class="nav-h">
+      <button class="nv" id="bUsers"><span>👥</span><b>Membres</b></button>
+      <button class="nv" id="bOst"><span>🎵</span><b>OSTs</b></button>
+      <button class="nv" id="bTournoi"><span>🏟️</span><b>Tournoi</b></button>
+      <button class="nv" id="bThemes"><span>🎨</span><b>Thèmes</b></button>
+      <button class="nv" id="bCloud"><span>☁️</span><b id="cloudEtiq">Hors cloud</b></button>
+      <a class="nv cw" id="bCine" href="https://onikaii-dev.github.io/Cinewawa/"
+         target="_blank" rel="noopener" title="Ciné'Wawa — mes films et séries"><span></span><b>Ciné'Wawa</b></a>
+      <button class="ico" id="bTheme" title="Sombre / clair">🌙</button>
+      <button class="ico" id="bRegl" title="Réglages">⚙️</button>
+    </nav>
     <button class="btn pri" id="bAdd">+ Ajouter</button>
   </div>
 </header>
@@ -785,13 +851,26 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
   <!-- ===== VUE OST ===== -->
   <section id="vueOst" style="display:none">
     <div class="bar">
-      <div class="titre-s" style="margin:0" id="ostTitreV">🎵 Mes OST</div>
+      <div id="ostPuces">
+        <button class="puce on" data-fo="moi">Mes OSTs</button>
+        <button class="puce" data-fo="autres">Celles des membres</button>
+      </div>
       <div class="espace"></div>
       <div class="compte" id="ostCompte"></div>
       <button class="btn pri" id="bAddOst">+ Ajouter une OST</button>
     </div>
     <div class="ost-grille" id="ostGrille"></div>
     <div id="ostVide"></div>
+  </section>
+
+  <!-- ===== VUE THÈMES ===== -->
+  <section id="vueThemes" style="display:none">
+    <div class="bar">
+      <div class="titre-s" style="margin:0">🎨 Thèmes</div>
+      <div class="espace"></div>
+      <div id="thMode"></div>
+    </div>
+    <div class="th-grille" id="thGrille"></div>
   </section>
 
   <!-- ===== VUE TOURNOI ===== -->
@@ -1001,10 +1080,6 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
           <input id="oNote" type="number" min="0" max="10" step="0.1" placeholder="9.5">
         </div>
       </div>
-      <div class="champ">
-        <label for="oAvis">Avis rapide</label>
-        <textarea id="oAvis" placeholder="Ce qu'elle te fait"></textarea>
-      </div>
     </div>
     <div class="boite-ft">
       <button class="btn pri" id="bSauveOst">Enregistrer</button>
@@ -1123,7 +1198,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 /* =========================================================
    FGL — FelGamesList
    ========================================================= */
-const VERSION = '0.9';
+const VERSION = '0.9.1';
 
 /* ---------- Constantes ---------- */
 const PLATEFORMES = ['PC (Steam)','PlayStation','Xbox','Nintendo Switch','Mobile','Rétro','Autre'];
@@ -1201,6 +1276,15 @@ function toast(msg){
    (anciennes sauvegardes et membres encore en v4). */
 const statutDe = id => STATUTS.find(s => s.id === (id === 'cent' ? 'termine' : id)) || STATUTS[0];
 
+/* la couleur de la note : d'un coup d'œil on sait ce qu'on a aimé */
+function couleurNote(n){
+  if(n >= 9)   return '#4fd1a5';
+  if(n >= 7.5) return '#9ed14f';
+  if(n >= 6)   return '#e8b04b';
+  if(n >= 4)   return '#e8874b';
+  return '#e0555f';
+}
+
 /* Petite pluie de confettis pour les 100 % */
 function confettis(){
   if(!DATA || !DATA.reglages.anim) return;
@@ -1251,12 +1335,13 @@ let centTmp = false;     // case « fait à 100 % » en cours de saisie
 function dataVierge(){
   return {
     version: 7,
-    reglages: { cleRawg:'', cleSgdb:'', cleYT:'', theme:'sombre', anim:true },
+    reglages: { cleRawg:'', cleSgdb:'', cleYT:'', theme:'sombre', palette:'auto', anim:true },
     cloud: { login:'', gistData:'', gistProfil:'', auto:true, syncAt:'', majAt:'', connus:[] },
     defis: {},              // id du défi → jour du déblocage
     osts: [],               // bandes originales
     tournoi: { jeux:null, ost:null },
     palmares: [],
+    reactions: {},          // login → emoji envoyé
     profil: {
       pseudo:'Nawfel', githubLogin:'', avatar:'', bio:'',
       visibilite:'public', amis:[], lastSeen: isoLocal()
@@ -1283,6 +1368,9 @@ function migre(){
   for(const k in v.cloud) if(DATA.cloud[k] === undefined) DATA.cloud[k] = v.cloud[k];
   if(DATA.reglages.cleSgdb === undefined) DATA.reglages.cleSgdb = '';
   if(DATA.reglages.cleYT === undefined) DATA.reglages.cleYT = '';
+  if(!DATA.reglages.palette) DATA.reglages.palette = 'auto';
+  if(!DATA.reactions || typeof DATA.reactions !== 'object') DATA.reactions = {};
+  (DATA.osts || []).forEach(o => { delete o.comment; });
   if(!Array.isArray(DATA.cloud.connus)) DATA.cloud.connus = [];
   if(!DATA.defis || typeof DATA.defis !== 'object') DATA.defis = {};
   if(!Array.isArray(DATA.osts)) DATA.osts = [];
@@ -1468,13 +1556,14 @@ function rendGrille(){
       : '<div class="vide">' + esc((j.title || '?').slice(0,1).toUpperCase()) + '</div>';
     const note = j.note != null
       ? '<div class="note-b">' + j.note.toFixed(1) + '</div>' : '';
+    const teinte = j.note != null ? ' style="--nc:' + couleurNote(j.note) + '"' : '';
     // 100 % : coché à la main, ou tous les succès obtenus
     const cent = !!j.cent100 || j.status === 'cent' || (tot > 0 && obt === tot);
     const centB = cent ? '<div class="cent-b">100%</div>' : '';
     const trp = tot ? '<div class="trp-b">🏆 ' + obt + '/' + tot + '</div>' : '';
     const sous = [j.platform, j.lastPlayed ? depuisJour(j.lastPlayed) : ''].filter(Boolean).join(' · ');
     const cible = lecture ? 'data-voir="' + j._i + '"' : 'data-jeu="' + j.id + '"';
-    return '<button class="carte" ' + cible + '>'
+    return '<button class="carte" ' + cible + teinte + '>'
       + '<div class="aff">' + aff + '<div class="coin-hd">' + centB + note + '</div>' + trp
       + '<div class="stat-b" style="background:' + st.c + 'cc">' + st.nom + '</div></div>'
       + '<div class="carte-txt">'
@@ -1666,6 +1755,25 @@ function cleRawg(){
 const AIDE_META = '⤓ récupère la note de la presse via RAWG. La note des joueurs '
   + '(« User Score ») n\'est lisible par aucun site : ↗ ouvre la page, tu la recopies si tu la préfères.';
 
+/* Au démarrage : quelques jaquettes manquantes par session, sans déranger.
+   Toute la collection finit par se corriger d'elle-même au fil des ouvertures. */
+async function rattrapeDoucement(){
+  if(rattrapeEnCours || !cleRawg()) return;
+  const L = DATA.jeux.filter(g => g.title && !estJaquette(g.cover)).slice(0, 6);
+  if(!L.length) return;
+  let ok = 0;
+  for(const g of L){
+    try{
+      const i = await infosRawg(g.title);
+      if(!i) continue;
+      const img = await jaquette(i);
+      if(img && img !== g.cover && estJaquette(img)){ g.cover = img; ok++; }
+      if(!g.rawgId) g.rawgId = i.id;
+    }catch(e){ console.warn('jaquette auto', g.title, e); }
+  }
+  if(ok){ sauve(); rendGrille(); rendFond(); console.log('FGL · ' + ok + ' jaquette(s) récupérée(s) en fond'); }
+}
+
 /* Remplace les captures d'écran par de vraies jaquettes sur toute la collection */
 let rattrapeEnCours = false;
 async function rattrapeJaquettes(){
@@ -1761,7 +1869,7 @@ async function jaquetteWiki(nom){
   const u = 'https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*'
     + '&generator=search&gsrlimit=1'
     + '&gsrsearch=' + encodeURIComponent(nom + ' video game')
-    + '&prop=pageimages&piprop=thumbnail&pithumbsize=600';
+    + '&prop=pageimages&piprop=thumbnail&pithumbsize=800';
   const r = await fetch(u);
   if(!r.ok) throw new Error('HTTP ' + r.status);
   const js = await r.json();
@@ -1786,10 +1894,15 @@ async function jaquette(info){
   try{
     const app = await appIdSteam(info.id);
     if(app){
-      const base = 'https://cdn.cloudflare.steamstatic.com/steam/apps/' + app + '/';
-      const essais = ['library_600x900_2x.jpg', 'library_600x900.jpg'];
-      for(const f of essais){
-        if(await imageOK(base + f)){ trouvee = base + f; break; }
+      // Steam a changé d'adresse au fil des ans : on essaie les trois
+      const essais = [
+        'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/' + app + '/library_600x900_2x.jpg',
+        'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/' + app + '/library_600x900.jpg',
+        'https://cdn.cloudflare.steamstatic.com/steam/apps/' + app + '/library_600x900_2x.jpg',
+        'https://cdn.cloudflare.steamstatic.com/steam/apps/' + app + '/library_600x900.jpg'
+      ];
+      for(const u of essais){
+        if(await imageOK(u)){ trouvee = u; break; }
       }
     }
   }catch(e){
@@ -2324,6 +2437,7 @@ function importe(fichier){
 function appliqueTheme(){
   const t = DATA.reglages.theme;
   document.documentElement.dataset.theme = t;
+  appliquePalette();
   $('#bTheme').textContent = t === 'sombre' ? '🌙' : '☀️';
   document.querySelector('meta[name=theme-color]')
     .setAttribute('content', t === 'sombre' ? '#12101a' : '#f4f1f7');
@@ -2532,7 +2646,7 @@ const lienYT     = id => id ? 'https://www.youtube.com/watch?v=' + id : '';
 
 function ostPublic(o){
   return { titre:o.titre || '', jeu:o.jeu || '', videoId:o.videoId || '',
-           note:(o.note == null ? null : o.note), comment:o.comment || '' };
+           note:(o.note == null ? null : o.note) };
 }
 function sourceOsts(){ return lecture ? (lecture.osts || []) : (DATA.osts || []); }
 
@@ -2722,7 +2836,6 @@ function ouvreOst(id){
   $('#oJeu').value   = o ? o.jeu : '';
   $('#oLien').value  = o ? lienYT(o.videoId) : '';
   $('#oNote').value  = (o && o.note != null) ? o.note : '';
-  $('#oAvis').value  = o ? (o.comment || '') : '';
   $('#bSuppOst').style.display = o ? '' : 'none';
   $('#oLienAide').textContent = '';
   ostPoses = { oTitre:'', oJeu:'' };
@@ -2752,7 +2865,6 @@ function sauveOst(){
     jeu: $('#oJeu').value.trim(),
     videoId: vid,
     note: (note == null || isNaN(note)) ? null : note,
-    comment: $('#oAvis').value.trim(),
     updatedAt: isoLocal()
   };
   if(ostEnCours){
@@ -2775,10 +2887,13 @@ function suppOst(){
 
 function rendOst(){
   const z = $('#ostGrille');
+  document.querySelectorAll('#ostPuces .puce').forEach(b =>
+    b.classList.toggle('on', b.dataset.fo === filtreOst));
+  $('#ostPuces').style.display = lecture ? 'none' : 'flex';
+
+  if(!lecture && filtreOst === 'autres'){ rendOstAutres(); return; }
   const L = sourceOsts();
-  $('#ostTitreV').textContent = lecture
-    ? '🎵 Les OST de ' + (lecture.pseudo || lecture.login)
-    : '🎵 Mes OST';
+
   $('#ostCompte').textContent = L.length + (L.length > 1 ? ' morceaux' : ' morceau');
   $('#bAddOst').style.display = lecture ? 'none' : '';
   if(!L.length){
@@ -2792,6 +2907,7 @@ function rendOst(){
     return;
   }
   $('#ostVide').innerHTML = '';
+  $('#bAddOst').style.display = lecture ? 'none' : '';
   z.innerHTML = L.map((o, i) => {
     const vig = vignetteYT(o.videoId);
     const img = vig
@@ -2820,13 +2936,64 @@ function ouvreOstVoir(ref){
   }
   h += '<div class="voir-l"><span>Jeu</span><b>' + esc(o.jeu || '—') + '</b></div>'
     + (o.note != null ? '<div class="voir-l"><span>Ma note</span><b>' + o.note.toFixed(1) + ' / 10</b></div>' : '')
-    + (o.comment ? '<div class="voir-avis">' + esc(o.comment) + '</div>' : '');
+    ;
   h += '<div class="t-opts" style="justify-content:flex-start;margin-top:16px">';
   if(vid){
     h += '<a class="btn pri" href="' + esc(lienYT(vid)) + '" target="_blank" rel="noopener">▶ Ouvrir sur YouTube</a>';
   }
   if(!lecture) h += '<button class="btn" data-editost="' + esc(o.id) + '">✏️ Modifier</button>';
   h += '</div>';
+  $('#ovCorps').innerHTML = h;
+  ouvre('mOstVoir');
+}
+
+/* Les OSTs de tout le monde, classées par note */
+function rendOstAutres(){
+  const z = $('#ostGrille');
+  const L = construitOstAutres();
+  $('#bAddOst').style.display = 'none';
+  $('#ostCompte').textContent = L.length + (L.length > 1 ? ' morceaux' : ' morceau');
+  if(!L.length){
+    z.innerHTML = '';
+    $('#ostVide').innerHTML = '<div class="vide-etat"><div class="logo-g"></div>'
+      + '<h2>Aucune OST partagée</h2><p>Personne du réseau n\'a encore ajouté de morceau, '
+      + 'ou l\'annuaire n\'est pas chargé. Ouvre 👥 Membres une fois, puis reviens.</p></div>';
+    return;
+  }
+  $('#ostVide').innerHTML = '';
+  z.innerHTML = L.map((o, i) => {
+    const vig = vignetteYT(o.videoId);
+    return '<button class="ost-c" data-osta="' + i + '">'
+      + '<div class="ost-v">'
+      + (vig ? '<img src="' + esc(vig) + '" alt="" loading="lazy">' : '')
+      + '<div class="ost-qui"><img src="' + esc(o.avatar) + '" alt="" loading="lazy">'
+      + esc(o.qui) + '</div>'
+      + '<div class="ost-play">▶</div>'
+      + (o.note != null ? '<div class="ost-n">' + o.note.toFixed(1) + '</div>' : '')
+      + '</div>'
+      + '<div class="ost-t"><b>' + esc(o.titre) + '</b>'
+      + '<span>' + esc(o.jeu || 'Jeu inconnu') + '</span></div></button>';
+  }).join('');
+}
+
+function ouvreOstAutre(i){
+  const o = ostAutres[i];
+  if(!o) return;
+  $('#ovTitre').textContent = o.titre || 'OST';
+  let h = '';
+  if(o.videoId){
+    h += '<div class="ov-lect"><iframe src="https://www.youtube-nocookie.com/embed/' + esc(o.videoId) + '" '
+      + 'title="' + esc(o.titre) + '" loading="lazy" allowfullscreen '
+      + 'allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture"></iframe></div>';
+  }
+  h += '<div class="voir-l"><span>Proposée par</span><b>' + esc(o.qui) + '</b></div>'
+    + '<div class="voir-l"><span>Jeu</span><b>' + esc(o.jeu || '—') + '</b></div>'
+    + (o.note != null ? '<div class="voir-l"><span>Sa note</span><b>' + o.note.toFixed(1) + ' / 10</b></div>' : '');
+  if(o.videoId){
+    h += '<div class="t-opts" style="justify-content:flex-start;margin-top:16px">'
+      + '<a class="btn pri" href="' + esc(lienYT(o.videoId)) + '" target="_blank" rel="noopener">▶ Ouvrir sur YouTube</a>'
+      + '</div>';
+  }
   $('#ovCorps').innerHTML = h;
   ouvre('mOstVoir');
 }
@@ -2976,6 +3143,168 @@ function championsPublics(){
 }
 
 /* =========================================================
+   THÈMES
+   ========================================================= */
+const PALETTES = [
+  {id:'auto',    nom:'Automatique', h:265, auto:true},
+  {id:'violet',  nom:'Violet',      h:265},
+  {id:'bleu',    nom:'Bleu',        h:212},
+  {id:'cyan',    nom:'Cyan',        h:188},
+  {id:'vert',    nom:'Vert',        h:150},
+  {id:'lime',    nom:'Citron',      h:88},
+  {id:'jaune',   nom:'Jaune',       h:45},
+  {id:'orange',  nom:'Orange',      h:24},
+  {id:'rouge',   nom:'Rouge',       h:puceRouge()},
+  {id:'rose',    nom:'Rose',        h:330},
+  {id:'magenta', nom:'Magenta',     h:300},
+  {id:'ardoise', nom:'Ardoise',     h:220, s:9}
+];
+function puceRouge(){ return 356; }
+
+function paletteActive(){
+  return PALETTES.find(x => x.id === DATA.reglages.palette) || PALETTES[0];
+}
+
+/* Toutes les couleurs découlent d'une teinte : un thème = un nombre. */
+function couleursPalette(p, clair){
+  const h = p.h;
+  const s = (p.s == null ? 24 : p.s);
+  if(clair){
+    return {
+      '--ink':   'hsl(' + h + ' ' + Math.round(s * 1.5) + '% 96.5%)',
+      '--ink2':  'hsl(' + h + ' ' + Math.round(s * 1.1) + '% 99.5%)',
+      '--ink3':  'hsl(' + h + ' ' + Math.round(s * 1.2) + '% 92%)',
+      '--line':  'hsl(' + h + ' ' + Math.round(s * 1.1) + '% 85%)',
+      '--paper': 'hsl(' + h + ' 32% 13%)',
+      '--muted': 'hsl(' + h + ' 13% 43%)',
+      '--accent':'hsl(' + h + ' 60% 44%)',
+      '--veil':  'hsla(' + h + ', ' + s + '%, 96%, .84)',
+      '--ombre': '0 18px 50px hsla(' + h + ', 30%, 30%, .17)'
+    };
+  }
+  return {
+    '--ink':   'hsl(' + h + ' ' + s + '% 6.5%)',
+    '--ink2':  'hsl(' + h + ' ' + s + '% 10%)',
+    '--ink3':  'hsl(' + h + ' ' + s + '% 14.5%)',
+    '--line':  'hsl(' + h + ' ' + s + '% 21%)',
+    '--paper': 'hsl(' + h + ' 22% 94%)',
+    '--muted': 'hsl(' + h + ' 12% 63%)',
+    '--accent':'hsl(' + h + ' 62% 60%)',
+    '--veil':  'hsla(' + h + ', ' + s + '%, 7%, .84)',
+    '--ombre': '0 18px 50px rgba(0,0,0,.5)'
+  };
+}
+
+function appliquePalette(){
+  const st = document.documentElement.style;
+  const p = paletteActive();
+  const clair = DATA.reglages.theme === 'clair';
+  if(p.auto){
+    // on rend la main au CSS : la couleur vient de l'affiche n°1
+    ['--ink','--ink2','--ink3','--line','--paper','--muted','--accent','--veil','--ombre']
+      .forEach(k => st.removeProperty(k));
+    return;
+  }
+  const c = couleursPalette(p, clair);
+  for(const k in c) st.setProperty(k, c[k]);
+}
+
+function choisitPalette(id){
+  DATA.reglages.palette = id;
+  sauve();
+  appliqueTheme();
+  rendThemes();
+  rendFond();
+  toast('Thème : ' + (PALETTES.find(x => x.id === id) || {}).nom);
+}
+
+function rendThemes(){
+  const clair = DATA.reglages.theme === 'clair';
+  $('#thMode').innerHTML = '<button class="puce' + (!clair ? ' on' : '') + '" data-mode="sombre">🌙 Sombre</button>'
+    + '<button class="puce' + (clair ? ' on' : '') + '" data-mode="clair">☀️ Clair</button>';
+  $('#thMode').style.display = 'flex';
+  $('#thMode').style.gap = '7px';
+
+  $('#thGrille').innerHTML = PALETTES.map(p => {
+    const c = p.auto ? couleursPalette(PALETTES[1], clair) : couleursPalette(p, clair);
+    const actif = DATA.reglages.palette === p.id;
+    return '<button class="th' + (actif ? ' on' : '') + '" data-pal="' + p.id + '">'
+      + '<div class="th-apercu" style="background:' + c['--ink'] + '">'
+      + '<i style="background:' + c['--accent'] + '"></i>'
+      + '<i style="background:' + c['--ink3'] + '"></i>'
+      + '<i style="background:' + c['--paper'] + '"></i>'
+      + '</div>'
+      + '<div class="th-nom">' + esc(p.nom)
+      + (p.auto ? '<small>affiche n°1</small>' : (actif ? '<small>actif</small>' : ''))
+      + '</div></button>';
+  }).join('');
+}
+
+/* =========================================================
+   RÉACTIONS ENTRE MEMBRES
+   ========================================================= */
+const REACTIONS = ['❤️', '🔥', '👏', '🎮', '🤝'];
+
+function reagit(login, emo){
+  if(!login) return;
+  DATA.reactions = DATA.reactions || {};
+  const l = String(login).toLowerCase();
+  if(DATA.reactions[l] === emo) delete DATA.reactions[l];
+  else DATA.reactions[l] = emo;
+  sauve();
+  if(connecte()) cloudPushProfil().catch(e => console.warn(e));
+  rendBandeau(); rendUsers();
+}
+
+/* ce que les autres membres ont envoyé à quelqu'un */
+function reactionsRecues(login){
+  const l = String(login || '').toLowerCase();
+  const out = {};
+  USERS.forEach(u => {
+    const r = u.reactions && (u.reactions[l] || u.reactions[login]);
+    if(r) out[r] = (out[r] || 0) + 1;
+  });
+  return out;
+}
+function htmlRecues(login){
+  const r = reactionsRecues(login);
+  const ks = Object.keys(r);
+  if(!ks.length) return '';
+  return '<div class="rea-recu">'
+    + ks.map(k => '<span class="rea-p">' + k + ' ' + r[k] + '</span>').join('')
+    + '</div>';
+}
+function htmlBoutonsReaction(login){
+  const mien = (DATA.reactions || {})[String(login).toLowerCase()];
+  return '<div class="rea">' + REACTIONS.map(e =>
+    '<button class="' + (mien === e ? 'on' : '') + '" data-rea="' + esc(login) + '" '
+    + 'data-emo="' + e + '" title="Réagir">' + e + '</button>').join('') + '</div>';
+}
+
+/* =========================================================
+   OSTs DES MEMBRES
+   ========================================================= */
+let filtreOst = 'moi';
+let ostAutres = [];
+
+function construitOstAutres(){
+  ostAutres = [];
+  USERS.forEach(u => {
+    (u.osts || []).forEach(o => {
+      if(!o || !o.titre) return;
+      ostAutres.push({
+        titre:o.titre, jeu:o.jeu || '', videoId:o.videoId || '',
+        note:(o.note == null ? null : o.note),
+        qui:(u.pseudo || u.login), login:u.login,
+        avatar:avatarGH(u.login)
+      });
+    });
+  });
+  ostAutres.sort((a, b) => (b.note == null ? -1 : b.note) - (a.note == null ? -1 : a.note));
+  return ostAutres;
+}
+
+/* =========================================================
    CLOUD GITHUB — gists, synchro, présence
    ========================================================= */
 const CLE_TOKEN = 'fgl_gh_token';
@@ -3022,7 +3351,8 @@ function payloadData(){
   return {
     app:'FGL', version:7, syncAt: isoLocal(),
     profil: DATA.profil, jeux: DATA.jeux,
-    defis: DATA.defis, osts: DATA.osts, palmares: DATA.palmares
+    defis: DATA.defis, osts: DATA.osts, palmares: DATA.palmares,
+    reactions: DATA.reactions
   };
 }
 /* version allégée d'un jeu, pour le profil public */
@@ -3081,6 +3411,7 @@ function payloadProfil(){
     lastSeen: isoLocal(),
     connus: (DATA.cloud.connus || []).slice(0, 80),   // fait circuler l'annuaire
     defis: Object.keys(DATA.defis || {}),
+    reactions: DATA.reactions || {},
     osts: partage ? (DATA.osts || []).map(ostPublic) : [],
     champions: championsPublics(),
     nbJeux: partage ? DATA.jeux.length : 0,
@@ -3180,6 +3511,7 @@ function appliqueDistant(d){
   if(d.defis && typeof d.defis === 'object') DATA.defis = d.defis;
   if(Array.isArray(d.osts)) DATA.osts = d.osts;
   if(Array.isArray(d.palmares)) DATA.palmares = d.palmares;
+  if(d.reactions && typeof d.reactions === 'object') DATA.reactions = d.reactions;
   migre();
   DATA.cloud.syncAt = d.syncAt || isoLocal();
   DATA.cloud.majAt  = DATA.cloud.syncAt;   // rien de neuf en local depuis
@@ -3320,7 +3652,9 @@ function majEtatCloud(erreur){
       : 'Jamais envoyé pour l\'instant.';
   }
   const b = $('#bCloud');
-  if(b) b.classList.toggle('on', connecte());
+  if(b) b.classList.toggle('lie', connecte());
+  const et = $('#cloudEtiq');
+  if(et) et.textContent = connecte() ? (DATA.cloud.login || 'Connecté') : 'Hors cloud';
 }
 
 /* =========================================================
@@ -3567,8 +3901,11 @@ function rendUsers(){
       + (p.bio ? '<div class="u-bio">' + esc(p.bio) + '</div>' : '')
       + (top ? '<div class="u-top">' + top + '</div>' : '')
       + '<div class="u-bas"><span>' + (p.nbJeux || 0) + ' jeux</span>'
-      + '<span>' + (ferme ? 'liste privée' : 'liste ouverte') + '</span>'
-      + '</div></button>';
+      + '<span>' + ((p.osts || []).length) + ' OSTs</span>'
+      + '<span>' + ((p.defis || []).length) + ' défis</span>'
+      + '</div>'
+      + htmlRecues(p.login)
+      + '</button>';
   }).join('');
 }
 
@@ -3609,6 +3946,7 @@ function rendBandeau(){
     + '<div class="pastille" data-seen="' + esc(lecture.lastSeen || '') + '">'
     + '<span class="dot' + (e.on ? ' on' : '') + '"></span>' + esc(e.txt) + '</div></div>'
     + '<div class="espace"></div>'
+    + htmlBoutonsReaction(lecture.login)
     + '<button class="btn" id="bRetourL">← Revenir à ma liste</button></div>';
   $('#bRetourL').onclick = quitteLecture;
 }
@@ -3683,11 +4021,14 @@ function montreVue(v){
   $('#vueUsers').style.display   = v === 'users'   ? '' : 'none';
   $('#vueOst').style.display     = v === 'ost'     ? '' : 'none';
   $('#vueTournoi').style.display = v === 'tournoi' ? '' : 'none';
+  $('#vueThemes').style.display  = v === 'themes'  ? '' : 'none';
   $('#bUsers').classList.toggle('on', v === 'users');
   $('#bOst').classList.toggle('on', v === 'ost');
   $('#bTournoi').classList.toggle('on', v === 'tournoi');
+  $('#bThemes').classList.toggle('on', v === 'themes');
   if(v === 'ost') rendOst();
   if(v === 'tournoi') rendTournoi();
+  if(v === 'themes') rendThemes();
 }
 
 /* =========================================================
@@ -3758,6 +4099,8 @@ function init(){
   });
 
   // vues OST et tournoi
+  $('#bAccueil').onclick = () => montreVue('accueil');
+  $('#bThemes').onclick = () => montreVue(UI.vue2 === 'themes' ? 'accueil' : 'themes');
   $('#bOst').onclick = () => montreVue(UI.vue2 === 'ost' ? 'accueil' : 'ost');
   $('#bTournoi').onclick = () => montreVue(UI.vue2 === 'tournoi' ? 'accueil' : 'tournoi');
   $('#bAddOst').onclick = () => ouvreOst(null);
@@ -3803,6 +4146,25 @@ function init(){
     if(u){ ouvreLecture(u.dataset.user); return; }
     const df = e.target.closest('[data-defi]');
     if(df){ ouvreDefi(df.dataset.defi); return; }
+    const pal = e.target.closest('[data-pal]');
+    if(pal){ choisitPalette(pal.dataset.pal); return; }
+    const mo = e.target.closest('[data-mode]');
+    if(mo){
+      DATA.reglages.theme = mo.dataset.mode;
+      sauve(); appliqueTheme(); rendThemes();
+      return;
+    }
+    const re = e.target.closest('[data-rea]');
+    if(re){ reagit(re.dataset.rea, re.dataset.emo); return; }
+    const fo = e.target.closest('[data-fo]');
+    if(fo){
+      filtreOst = fo.dataset.fo;
+      if(filtreOst === 'autres' && !USERS.length) chargeUsers();
+      rendOst();
+      return;
+    }
+    const oa = e.target.closest('[data-osta]');
+    if(oa){ ouvreOstAutre(+oa.dataset.osta); return; }
     const yt = e.target.closest('[data-yt]');
     if(yt){ choisitYT(yt.dataset.yt); return; }
     const os = e.target.closest('[data-ost]');
@@ -3958,6 +4320,7 @@ function init(){
 
   toutRendre();
   cloudDemarre();
+  setTimeout(rattrapeDoucement, 4000);   // jaquettes manquantes, sans rien demander
 
   // appli installable : sans sw.js dans le dépôt, le site marche pareil
   if('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){
