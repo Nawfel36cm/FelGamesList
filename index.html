@@ -1374,7 +1374,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 /* =========================================================
    FGL — FelGamesList
    ========================================================= */
-const VERSION = '0.9.17';
+const VERSION = '0.9.18';
 
 /* ---------- Constantes ---------- */
 const PLATEFORMES = ['PC (Steam)','PlayStation','Xbox','Nintendo Switch','Mobile','Rétro','Autre'];
@@ -1995,7 +1995,7 @@ async function rattrapeDoucement(){
   for(const g of L){
     try{
       const i = await infosRawg(g.title);
-      const img = await jaquette(g.title, i && i.id, i && i.cover);
+      const img = await jaquette(g.title, i && i.id, i && i.cover, g.platform);
       if(img && img !== g.cover){ g.cover = img; ok++; }
       if(i && !g.rawgId) g.rawgId = i.id;
     }catch(e){ console.warn('jaquette auto', g.title, e); }
@@ -2008,7 +2008,11 @@ async function rattrapeDoucement(){
    coup d'œil laquelle a lâché, et pourquoi — un script bloqué au chargement
    (bloqueur de publicité), une clé refusée, un service qui ne répond plus,
    ou simplement aucune image pour ce jeu. */
-const JEU_TEST = { nom: 'Celeste', steam: '504230' };
+const JEU_TEST = {
+  nom: 'Celeste', steam: '504230',
+  // un titre dont on sait qu'il existe côté rétro, pour éprouver libretro
+  retro: { nom: 'Chrono Trigger (USA)', pl: 'Nintendo - Super Nintendo Entertainment System' }
+};
 
 function ligneDiag(etat, source, texte){
   return '<div class="diagL"><b>' + etat + ' ' + esc(source) + '</b> — ' + texte + '</div>';
@@ -2082,22 +2086,40 @@ async function testeSgdb(){
   }
   pousse();
 
-  /* 4. Wikipédia — sans clé, c'est elle qui sauve les consoles */
+  /* 4. libretro — serveur d'images, pas une API : testé par chargement direct */
   try{
-    const u = await jaquetteWiki(JEU_TEST.nom);
-    if(u && await imageOK(u)){
-      L.push(ligneDiag('✅', 'Wikipédia', 'répond et fournit une image. C\'est le filet de sécurité '
-        + 'des jeux console — elle donne parfois un logo plutôt qu\'une jaquette.'));
-    }else{
-      L.push(ligneDiag('⚠️', 'Wikipédia', 'répond, mais aucune image pour le jeu test.'));
-    }
+    const u = LIBRETRO + encodeURIComponent(JEU_TEST.retro.pl) + '/Named_Boxarts/'
+      + encodeURIComponent(JEU_TEST.retro.nom) + '.png';
+    const ok = await imageOK(u, 8000);
+    L.push(ligneDiag(ok ? '✅' : '❌', 'libretro',
+      ok ? 'les vignettes RetroArch répondent. Vraies jaquettes pour le rétro et les consoles, '
+           + 'sans clé ni quota — rien en revanche pour un jeu PC récent.'
+         : 'aucune réponse. Soit le serveur est indisponible, soit un bloqueur filtre le domaine. '
+           + 'Sans lui, les autres sources prennent le relais normalement.'));
   }catch(e){
-    console.error('Diagnostic Wikipédia', e);
-    L.push(ligneDiag('❌', 'Wikipédia', 'ne répond pas. Réseau, ou requête bloquée par une extension.'));
+    console.error('Diagnostic libretro', e);
+    L.push(ligneDiag('❌', 'libretro', 'test impossible. Détail dans la console (F12).'));
   }
   pousse();
 
-  /* 5. RAWG — indispensable : sans elle, ni identifiant Steam ni capture de secours */
+  /* 5. Wikipédia — sans clé, c'est elle qui sauve les consoles. Une ligne par langue. */
+  for(const lg of LANGUES_WIKI){
+    try{
+      const u = await jaquetteWiki(JEU_TEST.nom, lg.code);
+      if(u && await imageOK(u)){
+        L.push(ligneDiag('✅', 'Wikipédia (' + lg.code + ')', 'répond et fournit une image.'));
+      }else{
+        L.push(ligneDiag('⚠️', 'Wikipédia (' + lg.code + ')', 'répond, mais aucune image pour le jeu test.'));
+      }
+    }catch(e){
+      console.error('Diagnostic Wikipédia ' + lg.code, e);
+      L.push(ligneDiag('❌', 'Wikipédia (' + lg.code + ')',
+        'ne répond pas. Réseau, ou requête bloquée par une extension.'));
+    }
+    pousse();
+  }
+
+  /* 6. RAWG — indispensable : sans elle, ni identifiant Steam ni capture de secours */
   try{
     if(!cleRawg()){
       L.push(ligneDiag('❌', 'RAWG', 'aucune clé. C\'est la source des identifiants Steam, des genres '
@@ -2174,20 +2196,93 @@ async function candidatsSteam(jeux, pousse){
   }
 }
 
-/* Wikipédia : plusieurs articles, donc plusieurs images d'en-tête.
+/* Wikipédia : plusieurs articles, donc plusieurs images d'en-tête, et
+   plusieurs langues, parce qu'elles n'illustrent pas le même visuel.
    C'est ce qui couvre les consoles quand il n'y a pas de relais. */
 async function candidatsWiki(titre, pousse){
-  const u = 'https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*'
-    + '&generator=search&gsrlimit=8'
-    + '&gsrsearch=' + encodeURIComponent(titre + ' video game')
-    + '&prop=pageimages&piprop=thumbnail&pithumbsize=800';
-  const r = await fetch(u);
-  if(!r.ok) throw new Error('HTTP ' + r.status);
-  const js = await r.json();
-  const pages = (js && js.query && js.query.pages) || {};
-  Object.keys(pages).forEach(k => {
-    const pg = pages[k];
-    if(pg.thumbnail && pg.thumbnail.source) pousse(pg.thumbnail.source, pg.title, 'Wikipédia');
+  await Promise.all(LANGUES_WIKI.map(async L => {
+    const u = 'https://' + L.code + '.wikipedia.org/w/api.php?action=query&format=json&origin=*'
+      + '&generator=search&gsrlimit=6'
+      + '&gsrsearch=' + encodeURIComponent(titre + L.suffixe)
+      + '&prop=pageimages&piprop=thumbnail&pithumbsize=800';
+    const r = await fetch(u);
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const js = await r.json();
+    const pages = (js && js.query && js.query.pages) || {};
+    Object.keys(pages).forEach(k => {
+      const pg = pages[k];
+      if(pg.thumbnail && pg.thumbnail.source)
+        pousse(pg.thumbnail.source, pg.title, 'Wikipédia (' + L.code + ')');
+    });
+  }));
+}
+
+/* ---------- Vignettes libretro ----------
+   Le serveur de vignettes de RetroArch. Ce n'est PAS une API : c'est un
+   serveur d'images, comme le CDN de Steam — donc le CORS ne s'y applique pas
+   et `new Image()` suffit. Aucune clé, aucun quota.
+
+   La contrepartie : il faut deviner le nom du fichier, qui suit les
+   conventions No-Intro (« Chrono Trigger (USA).png »). On essaie donc
+   quelques variantes et on ne garde que celles qui chargent vraiment —
+   c'est la seule source qu'on vérifie AVANT de la proposer, sinon la grille
+   se remplirait de cases mortes.
+
+   Ne couvre que le rétro et les consoles : rien pour un jeu PC récent. */
+const LIBRETRO = 'https://thumbnails.libretro.com/';
+
+const PLAYLISTS_LIBRETRO = {
+  'PlayStation': ['Sony - PlayStation', 'Sony - PlayStation 2', 'Sony - PlayStation Portable'],
+  'Nintendo Switch': ['Nintendo - Nintendo 64', 'Nintendo - GameCube'],
+  'Xbox': [],
+  'Rétro': ['Nintendo - Super Nintendo Entertainment System',
+            'Nintendo - Nintendo Entertainment System',
+            'Sony - PlayStation',
+            'Sega - Mega Drive - Genesis',
+            'Nintendo - Game Boy Advance'],
+  'Mobile': [],
+  'PC (Steam)': [],
+  'Autre': ['Nintendo - Super Nintendo Entertainment System', 'Sony - PlayStation']
+};
+
+/* Le nom du fichier ne tolère pas ces caractères : la convention les remplace par _ */
+function nomLibretro(t){
+  return String(t || '').replace(/[&*\/:`<>?\\|"]/g, '_').trim();
+}
+
+/* « The Legend of Zelda » est rangé « Legend of Zelda, The » dans les DAT */
+function variantesTitre(titre){
+  const t = nomLibretro(titre);
+  const out = [t];
+  const m = t.match(/^(The|A|An)\s+(.+)$/i);
+  if(m) out.push(m[2] + ', ' + m[1]);
+  return out;
+}
+
+const REGIONS_LIBRETRO = ['(USA)', '(USA, Europe)', '(Europe)', '(Japan)'];
+
+async function candidatsLibretro(titre, plateforme, pousse, budget){
+  const listes = PLAYLISTS_LIBRETRO[plateforme] || PLAYLISTS_LIBRETRO['Autre'];
+  if(!listes || !listes.length) return;
+  const noms = variantesTitre(titre);
+  const essais = [];
+  listes.slice(0, 3).forEach(pl => {
+    noms.forEach(n => {
+      REGIONS_LIBRETRO.forEach(reg => {
+        essais.push({
+          url: LIBRETRO + encodeURIComponent(pl) + '/Named_Boxarts/'
+             + encodeURIComponent(n + ' ' + reg) + '.png',
+          nom: n + ' ' + reg,
+          pl: pl
+        });
+      });
+    });
+  });
+  // plafond dur : jamais de boucle sans limite sur une source externe
+  const lot = essais.slice(0, budget || 24);
+  const res = await Promise.all(lot.map(e => imageOK(e.url, 6000)));
+  lot.forEach((e, i) => {
+    if(res[i]) pousse(e.url, e.nom, 'libretro · ' + e.pl.replace(/^[^-]+ - /, ''));
   });
 }
 
@@ -2210,7 +2305,7 @@ async function listeRawg(titre){
 
 /* Toutes les sources, en parallèle. Une source qui tombe n'empêche pas les
    autres de remplir la grille : chacune rapporte son échec dans son coin. */
-async function candidatsAffiche(titre){
+async function candidatsAffiche(titre, plateforme){
   const out = [];
   const vus = {};
   const soucis = [];
@@ -2227,7 +2322,8 @@ async function candidatsAffiche(titre){
   await Promise.all([
     candidatsSgdb(titre, pousse).catch(e => { console.warn('candidats SteamGridDB', e); soucis.push('SteamGridDB'); }),
     candidatsSteam(jeux, pousse).catch(e => { console.warn('candidats Steam', e); soucis.push('Steam'); }),
-    candidatsWiki(titre, pousse).catch(e => { console.warn('candidats Wikipédia', e); soucis.push('Wikipédia'); })
+    candidatsWiki(titre, pousse).catch(e => { console.warn('candidats Wikipédia', e); soucis.push('Wikipédia'); }),
+    candidatsLibretro(titre, plateforme, pousse).catch(e => { console.warn('candidats libretro', e); soucis.push('libretro'); })
   ]);
 
   // les captures RAWG en dernier : ce sont des captures d'écran, pas des jaquettes
@@ -2346,8 +2442,10 @@ async function chercheAffiches(){
   if(!titre){ toast('Écris un titre à chercher.'); return; }
   z.innerHTML = '<div class="aide">Recherche des jaquettes sur toutes les sources…</div>';
   $('#afSrc').innerHTML = '';
+  // la plateforme du formulaire oriente libretro vers les bonnes consoles
+  const plat = ($('#jPlat') && $('#jPlat').value) || '';
   let r;
-  try{ r = await candidatsAffiche(titre); }
+  try{ r = await candidatsAffiche(titre, plat); }
   catch(e){
     console.error('candidats', e);
     z.innerHTML = '<div class="aide">La recherche a échoué. Détail dans la console (F12).</div>';
@@ -2413,7 +2511,7 @@ async function rattrapeJaquettes(){
       toast('Jaquettes : ' + (k + 1) + ' / ' + L.length + '…');
       try{
         const i = await infosRawg(g.title);
-        const img = await jaquette(g.title, i && i.id, i && i.cover);
+        const img = await jaquette(g.title, i && i.id, i && i.cover, g.platform);
         if(img && img !== g.cover){
           g.cover = img; ok++;
           const src = sourceJaquette(img);
@@ -2445,11 +2543,14 @@ const cacheJaquette = new Map();
 /* diagnostic du rattrapage : combien SteamGridDB en a trouvé, raté, ou refusé */
 let sgdbOK = 0, sgdbVide = 0, sgdbErreurs = 0;
 
-function imageOK(url){
+function imageOK(url, delai){
   return new Promise(res => {
+    let fini = false;
+    const stop = v => { if(!fini){ fini = true; clearTimeout(t); res(v); } };
+    const t = delai ? setTimeout(() => stop(false), delai) : 0;
     const im = new Image();
-    im.onload  = () => res(im.naturalWidth > 10);
-    im.onerror = () => res(false);
+    im.onload  = () => stop(im.naturalWidth > 10);
+    im.onerror = () => stop(false);
     im.src = url;
   });
 }
@@ -2577,12 +2678,24 @@ async function appIdSteam(rawgId){
 }
 
 /* Wikipédia : l'image d'en-tête d'un article de jeu vidéo est presque
-   toujours la jaquette. Aucune clé, CORS autorisé via origin=*. */
-async function jaquetteWiki(nom){
+   toujours la jaquette. Aucune clé, CORS autorisé via origin=*.
+
+   Plusieurs langues, parce qu'elles ne montrent pas la même image : l'article
+   anglais d'un jeu japonais met souvent le logo occidental, quand l'article
+   japonais met la jaquette d'origine. Même mécanisme, même garantie CORS —
+   c'est la même infrastructure MediaWiki. */
+const LANGUES_WIKI = [
+  { code:'en', suffixe:' video game' },
+  { code:'ja', suffixe:'' },
+  { code:'fr', suffixe:' jeu vidéo' }
+];
+
+async function jaquetteWiki(nom, lang){
   if(!nom) return '';
-  const u = 'https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*'
+  const L = LANGUES_WIKI.find(x => x.code === (lang || 'en')) || LANGUES_WIKI[0];
+  const u = 'https://' + L.code + '.wikipedia.org/w/api.php?action=query&format=json&origin=*'
     + '&generator=search&gsrlimit=1'
-    + '&gsrsearch=' + encodeURIComponent(nom + ' video game')
+    + '&gsrsearch=' + encodeURIComponent(nom + L.suffixe)
     + '&prop=pageimages&piprop=thumbnail&pithumbsize=800';
   const r = await fetch(u);
   if(!r.ok) throw new Error('HTTP ' + r.status);
@@ -2604,7 +2717,7 @@ async function jaquetteWiki(nom){
    3. jaquette officielle Steam, pour les jeux PC
    4. Wikipédia, qui couvre bien les consoles
    5. capture RAWG en tout dernier recours */
-async function jaquette(nom, rawgId, secours){
+async function jaquette(nom, rawgId, secours, plateforme){
   const titre = String(nom || '').trim();
   if(!titre) return '';
   const cle = titre.toLowerCase();
@@ -2644,11 +2757,24 @@ async function jaquette(nom, rawgId, secours){
     }catch(e){ console.warn('jaquette Steam', e); }
   }
 
-  if(!trouvee){
+  // libretro avant Wikipédia : c'est une vraie jaquette, pas une image d'article.
+  // Budget très serré (8 essais) car cette chaîne tourne sur toute la collection,
+  // et sautée d'office pour les plateformes que libretro ne couvre pas.
+  if(!trouvee && plateforme && (PLAYLISTS_LIBRETRO[plateforme] || []).length){
     try{
-      const u = await jaquetteWiki(titre);
-      if(u && await imageOK(u)) trouvee = u;
-    }catch(e){ console.warn('jaquette Wikipédia', e); }
+      await candidatsLibretro(titre, plateforme, u => { if(!trouvee) trouvee = u; }, 8);
+    }catch(e){ console.warn('jaquette libretro', e); }
+  }
+
+  if(!trouvee){
+    // anglais d'abord, puis japonais : deuxième appel seulement si le premier
+    // n'a rien donné, donc aucun coût ajouté sur les jeux déjà couverts
+    for(const L of ['en', 'ja']){
+      try{
+        const u = await jaquetteWiki(titre, L);
+        if(u && await imageOK(u)){ trouvee = u; break; }
+      }catch(e){ console.warn('jaquette Wikipédia ' + L, e); }
+    }
   }
 
   cacheJaquette.set(cle, trouvee);
@@ -2790,7 +2916,7 @@ async function chercheRawg(){
     const proche = memeJeu(titre, i.nom);
     if(proche) $('#jTitre').value = i.nom;
     aide.textContent = 'Jeu trouvé, recherche de la jaquette…';
-    const img = await jaquette(i.nom, i.id, i.cover);
+    const img = await jaquette(i.nom, i.id, i.cover, ($('#jPlat') && $('#jPlat').value) || '');
     if(img) $('#jAff').value = img;
     poseGenres(i.genres, true);          // clic sur 🔍 : les genres sont refaits
     dernierAuto = i.nom.trim().toLowerCase();
@@ -2833,7 +2959,7 @@ async function autoInfos(){
       return;                       // on ne pose ni genres ni affiche au hasard
     }
     if(!$('#jAff').value.trim()){
-      const img = await jaquette(i.nom, i.id, i.cover);
+      const img = await jaquette(i.nom, i.id, i.cover, ($('#jPlat') && $('#jPlat').value) || '');
       if(img) $('#jAff').value = img;
     }
     poseGenres(i.genres, false);         // genres posés dès que le jeu est reconnu
@@ -2857,7 +2983,7 @@ async function completeAuto(id){
     let bouge = false;
     if(!j.rawgId && i.id){ j.rawgId = i.id; bouge = true; }
     if(!j.cover){
-      const img = await jaquette(j.title, i.id, i.cover);
+      const img = await jaquette(j.title, i.id, i.cover, j.platform);
       if(img){ j.cover = img; bouge = true; }
     }
     if((!j.genres || !j.genres.length) && i.genres.length){ j.genres = i.genres; bouge = true; }
