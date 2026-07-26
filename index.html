@@ -494,6 +494,27 @@ body.sansanim .confetti{display:none}
 .voir-avis{margin-top:14px;font-size:13.5px;line-height:1.6;color:var(--paper);
   background:var(--ink2);border:1px solid var(--line);border-radius:11px;padding:13px 15px}
 
+/* ===== CHOIX DE L'AFFICHE ===== */
+.af-grille{display:grid;gap:11px;grid-template-columns:repeat(auto-fill,minmax(112px,1fr))}
+.af{border:2px solid transparent;border-radius:12px;overflow:hidden;background:var(--ink3);
+  transition:.15s;padding:0;text-align:left}
+.af:hover{border-color:var(--accent);transform:translateY(-3px)}
+.af.on{border-color:var(--or)}
+.af .cadre{aspect-ratio:2/3;position:relative;overflow:hidden;background:var(--ink3)}
+.af .cadre img{width:100%;height:100%;object-fit:cover;display:block}
+.af b{display:block;padding:7px 8px;font-size:11px;font-weight:500;line-height:1.25;
+  color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.af small{display:block;padding:0 8px 8px;font-family:var(--mono);font-size:9.5px;color:var(--accent)}
+.af-cour{display:flex;gap:14px;align-items:center;background:var(--ink2);border:1px solid var(--line);
+  border-radius:12px;padding:12px;margin-bottom:16px}
+.af-cour .cadre{width:78px;flex:0 0 78px;aspect-ratio:2/3;border-radius:8px;overflow:hidden;
+  background:var(--ink3);position:relative}
+.af-cour .cadre img{width:100%;height:100%;display:block}
+.af-cour .cadre .flou{position:absolute;inset:0;background-size:cover;background-position:center;
+  filter:blur(14px) brightness(.5);transform:scale(1.2)}
+.af-cour .cadre img{position:relative;object-fit:cover}
+.af-cour.entiere .cadre img{object-fit:contain}
+
 /* ===== CHOIX JEUX / OSTs ===== */
 .choix-g{display:grid;gap:11px;grid-template-columns:1fr 1fr}
 .choix{
@@ -714,14 +735,19 @@ body.sansanim .confetti{display:none}
 /* l'image couvre tout le cadre : le flou ne se voit que si elle ne charge pas */
 .aff img{
   position:relative;width:100%;height:100%;
-  object-fit:cover;object-position:center;transition:transform .35s ease;
+  object-fit:cover;transition:transform .35s ease;
+  /* cadrage réglable par jeu : --z zoom, --px/--py point gardé au centre */
+  object-position:var(--px,50%) var(--py,50%);
+  transform:scale(var(--z,1));
 }
+/* affiche montrée en entier : les bords sont comblés par sa version floutée */
+.aff.entiere img{object-fit:contain}
 .aff::after{
   content:'';position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(180deg,rgba(0,0,0,.34) 0%,transparent 26%,
                                      transparent 58%,rgba(0,0,0,.5) 100%);
 }
-.carte:hover .aff img{transform:scale(1.035)}
+.carte:hover .aff img{transform:scale(calc(var(--z,1) * 1.035))}
 
 /* vue liste : l'affiche se fond en noir vers le texte */
 .grid.liste .aff{width:132px;flex:0 0 132px;aspect-ratio:auto}
@@ -799,7 +825,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 @media (hover:none){
   .carte:hover{transform:none}
   .u-carte:hover{transform:none}
-  .carte:hover .aff img{transform:none}
+  .carte:hover .aff img{transform:scale(var(--z,1))}
 }
 
 /* ===== TÉLÉPHONE ===== */
@@ -847,6 +873,24 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
   .grid{gap:9px}
   .u-intro{font-size:12px}
 }
+.af-src{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.af-src .puce{font-size:11px;padding:4px 10px}
+.af-vide{opacity:.55}
+.ap{display:flex;gap:16px;align-items:flex-start;background:var(--ink2);
+  border:1px solid var(--line);border-radius:14px;padding:14px;margin:0 0 14px}
+.ap-cadre{width:132px;flex:0 0 132px;aspect-ratio:2/3;border-radius:10px;
+  overflow:hidden;position:relative;background:var(--ink3)}
+.ap-cadre .flou{position:absolute;inset:0;background-size:cover;background-position:center;
+  filter:blur(14px) brightness(.5);transform:scale(1.2)}
+.ap-cadre img{position:relative;width:100%;height:100%;display:block;object-fit:cover;
+  object-position:var(--px,50%) var(--py,50%);transform:scale(var(--z,1))}
+.ap.entiere .ap-cadre img{object-fit:contain}
+.ap-reg{flex:1;min-width:0;display:flex;flex-direction:column;gap:9px}
+.ap-l{display:grid;grid-template-columns:64px 1fr 46px;align-items:center;gap:9px;font-size:12px}
+.ap-l input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+.ap-l .v{font-family:var(--mono);font-size:11px;color:var(--accent);text-align:right}
+.diagL{margin:5px 0;line-height:1.45}
+.diagL b{font-weight:700}
 </style>
 </head>
 <body>
@@ -1022,6 +1066,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
         <label for="jAff">Affiche (lien de l'image)</label>
         <div class="ligne">
           <input id="jAff" placeholder="https://…" autocomplete="off">
+          <button class="btn" id="bAffiche" title="Choisir parmi plusieurs jaquettes">🖼️</button>
           <button class="btn" id="bCherche" title="Chercher l'affiche et les genres">🔍</button>
         </div>
         <div class="aide" id="jCherchAide"></div>
@@ -1076,16 +1121,9 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
       </div>
       <div class="champ">
         <label>Diagnostic</label>
-        <button class="btn" id="bTestSgdb">🩺 Tester la connexion SteamGridDB</button>
-        <div class="aide" id="sgdbTest">Dit en une phrase si les jaquettes peuvent arriver, et sinon pourquoi.</div>
-      </div>
-      <div class="champ">
-        <label for="rGB">Clé Giant Bomb — recommandée</label>
-        <input id="rGB" placeholder="Colle ta clé ici" autocomplete="off">
-        <div class="aide">La meilleure source de jaquettes utilisable directement, sans relais,
-          sur toutes les plateformes. Gratuite : crée un compte sur
-          <a href="https://www.giantbomb.com/api/" target="_blank" rel="noopener">giantbomb.com/api</a>
-          et la clé s'affiche en haut de la page.</div>
+        <button class="btn" id="bTestSgdb">🩺 Tester les sources de jaquettes</button>
+        <div class="aide" id="sgdbTest">Appelle chaque source pour de vrai et dit laquelle marche,
+          laquelle a lâché, et pourquoi.</div>
       </div>
       <div class="champ">
         <label for="rProxy">Relais SteamGridDB — facultatif</label>
@@ -1209,6 +1247,39 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
   </div>
 </div>
 
+<!-- ===== MODALE CHOIX DE L'AFFICHE ===== -->
+<div class="modale" id="mAffiche">
+  <div class="boite large">
+    <div class="boite-hd">
+      <h2>🖼️ Choisir l'affiche</h2>
+      <button class="ico" data-ferme="mAffiche">✕</button>
+    </div>
+    <div class="boite-bd">
+      <div class="champ">
+        <label for="afRech">Chercher une autre jaquette</label>
+        <div class="ligne">
+          <input id="afRech" placeholder="titre du jeu" autocomplete="off">
+          <button class="btn" id="bAfRech">🔎</button>
+        </div>
+      </div>
+      <div class="champ">
+        <label>Cadrage</label>
+        <div class="t-opts" style="justify-content:flex-start;margin:0">
+          <button class="puce" data-fit="remplir">Remplir le cadre</button>
+          <button class="puce" data-fit="entiere">Affiche entière</button>
+        </div>
+        <div class="aide">« Remplir » recadre l'image sur le cadre. « Entière » la montre
+          en totalité, les bords étant comblés par sa version floutée.
+          Les trois curseurs de l'aperçu règlent ensuite le zoom et le centrage,
+          jeu par jeu.</div>
+      </div>
+      <div id="afApercu"></div>
+      <div class="af-src" id="afSrc"></div>
+      <div class="af-grille" id="afCorps"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODALE CHOIX JEUX / OSTs ===== -->
 <div class="modale" id="mChoix">
   <div class="boite petite">
@@ -1303,7 +1374,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 /* =========================================================
    FGL — FelGamesList
    ========================================================= */
-const VERSION = '0.9.13';
+const VERSION = '0.9.17';
 
 /* ---------- Constantes ---------- */
 const PLATEFORMES = ['PC (Steam)','PlayStation','Xbox','Nintendo Switch','Mobile','Rétro','Autre'];
@@ -1448,7 +1519,7 @@ let centTmp = false;     // case « fait à 100 % » en cours de saisie
 
 function dataVierge(){
   return {
-    version: 7,
+    version: 8,
     reglages: { cleRawg:'', cleSgdb:'', cleYT:'', cleGB:'', proxySgdb:'', theme:'sombre', palette:'auto', anim:true },
     cloud: { login:'', gistData:'', gistProfil:'', auto:true, syncAt:'', majAt:'', connus:[] },
     defis: {},              // id du défi → jour du déblocage
@@ -1502,12 +1573,18 @@ function migre(){
     if(g.achievementsTotal == null) g.achievementsTotal = g.achievements.length;
     if(!g.addedAt) g.addedAt = isoLocal();
     if(g.cent100 === undefined) g.cent100 = false;
+    if(!g.fit) g.fit = 'remplir';   // remplir | entiere
+    // cadrage réglable : zoom en %, et point de l'image gardé au centre du cadre
+    if(!g.cadre || typeof g.cadre !== 'object') g.cadre = { z:100, x:50, y:50 };
+    if(typeof g.cadre.z !== 'number') g.cadre.z = 100;
+    if(typeof g.cadre.x !== 'number') g.cadre.x = 50;
+    if(typeof g.cadre.y !== 'number') g.cadre.y = 50;
     // l'ancien statut « 100 % » devient « Terminé » + pastille dorée
     if(g.status === 'cent'){ g.status = 'termine'; g.cent100 = true; }
   });
   if(!Array.isArray(DATA.profil.amis)) DATA.profil.amis = [];
   if(!DATA.profil.visibilite) DATA.profil.visibilite = 'public';
-  DATA.version = 7;
+  DATA.version = 8;
 }
 /* écriture brute, sans toucher aux repères de synchro */
 function ecrit(){
@@ -1670,6 +1747,8 @@ function rendGrille(){
       ? '<div class="flou" style="background-image:url(' + esc(j.cover) + ')"></div>'
         + '<img src="' + esc(j.cover) + '" alt="" loading="lazy">'
       : '<div class="vide">' + esc((j.title || '?').slice(0,1).toUpperCase()) + '</div>';
+    const cadre = j.fit === 'entiere' ? ' entiere' : '';
+    const cad = ' style="' + styleCadre(j) + '"';
     const note = j.note != null
       ? '<div class="note-b">' + j.note.toFixed(1) + '</div>' : '';
     const teinte = j.note != null ? ' style="--nc:' + couleurNote(j.note) + '"' : '';
@@ -1680,7 +1759,7 @@ function rendGrille(){
     const sous = [j.platform, j.lastPlayed ? depuisJour(j.lastPlayed) : ''].filter(Boolean).join(' · ');
     const cible = lecture ? 'data-voir="' + j._i + '"' : 'data-jeu="' + j.id + '"';
     return '<button class="carte" ' + cible + teinte + '>'
-      + '<div class="aff">' + aff + '<div class="coin-hd">' + centB + note + '</div>' + trp
+      + '<div class="aff' + cadre + '"' + cad + '>' + aff + '<div class="coin-hd">' + centB + note + '</div>' + trp
       + '<div class="stat-b" style="background:' + st.c + 'cc">' + st.nom + '</div></div>'
       + '<div class="carte-txt">'
       + '<div class="carte-t">' + esc(j.title) + '</div>'
@@ -1785,6 +1864,7 @@ function ouvreJeu(id){
   noteTmp = j ? (j.note != null ? j.note : null) : null;
   rendEtoiles(noteTmp);
   centTmp = j ? !!j.cent100 : false;
+  fitTmp = (j && j.fit === 'entiere') ? 'entiere' : 'remplir';
   majCent();
   $('#bSuppr').style.display = j ? '' : 'none';
   $('#bTrophees').style.display = j ? '' : 'none';
@@ -1807,6 +1887,7 @@ function sauveJeu(){
     playtime: parseInt($('#jHeures').value, 10) || 0,
     metaUser: (meta == null || isNaN(meta)) ? null : meta,
     cent100: centTmp,
+    fit: jeuEnCours ? ((DATA.jeux.find(x => x.id === jeuEnCours) || {}).fit || 'remplir') : fitTmp,
     cover: $('#jAff').value.trim(),
     genres: $('#jGenres').value.split(',').map(s => s.trim()).filter(Boolean),
     comment: $('#jAvis').value.trim(),
@@ -1874,8 +1955,18 @@ const CLE_YT_SITE = 'AIzaSyC624b2jo7raGqp2I1MF4fH8EnmERY4Yfg';
    directement depuis un site, toutes plateformes confondues.
    Gratuite : compte sur giantbomb.com puis giantbomb.com/api
    ----------------------------------------------------------------- */
+/* DÉSACTIVÉ. Giant Bomb a changé de propriétaire et relancé sa plateforme le
+   6 décembre 2025 : l'ancienne adresse /api/search/ répond « 404 Resource not
+   found ». Chaque appel partait donc dans le vide et retardait la suite de la
+   chaîne. Une nouvelle « Public API » existe, mais sa documentation est une
+   application JavaScript illisible de l'extérieur : ne rien rebâtir dessus
+   sans un test réel depuis un navigateur.
+   Le code reste en place, inerte : remettre GB_ACTIF à true et une clé dans
+   CLE_GB_SITE suffirait à tout réanimer le jour où l'API revient. */
+const GB_ACTIF = false;
 const CLE_GB_SITE = '';
 function cleGB(){
+  if(!GB_ACTIF) return '';
   return (DATA.reglages.cleGB || '').trim() || CLE_GB_SITE.trim();
 }
 function cleYT(){
@@ -1912,66 +2003,394 @@ async function rattrapeDoucement(){
   if(ok){ sauve(); rendGrille(); rendFond(); console.log('FGL · ' + ok + ' jaquette(s) récupérée(s) en fond'); }
 }
 
-/* Un appel de bout en bout, pour distinguer une clé refusée d'un blocage
-   du navigateur ou d'un simple manque de jaquette. */
+/* Diagnostic : chaque source de jaquettes est appelée pour de vrai, dans
+   l'ordre de la chaîne, et rend compte séparément. Objectif : savoir en un
+   coup d'œil laquelle a lâché, et pourquoi — un script bloqué au chargement
+   (bloqueur de publicité), une clé refusée, un service qui ne répond plus,
+   ou simplement aucune image pour ce jeu. */
+const JEU_TEST = { nom: 'Celeste', steam: '504230' };
+
+function ligneDiag(etat, source, texte){
+  return '<div class="diagL"><b>' + etat + ' ' + esc(source) + '</b> — ' + texte + '</div>';
+}
+
 async function testeSgdb(){
   const z = $('#sgdbTest');
-  // Giant Bomb d'abord : c'est la source qui marche sans rien installer
-  if(cleGB()){
-    z.textContent = 'Test de Giant Bomb…';
+  const b = $('#bTestSgdb');
+  b.disabled = true;
+  z.innerHTML = 'Test des sources en cours…';
+  const L = [];
+  const pousse = () => { z.innerHTML = L.join(''); };
+
+  /* 1. SteamGridDB — n'est appelée que derrière un relais */
+  if(!relaisSgdb()){
+    L.push(ligneDiag('⚪', 'SteamGridDB', 'aucun relais configuré, donc pas appelée. '
+      + 'Son serveur refuse les appels d\'un site (pas d\'en-tête CORS) : le fichier '
+      + '<b>relais-steamgriddb.js</b> se déploie en 5 minutes sur Cloudflare, gratuitement, '
+      + 'et son adresse se colle ci-dessous.'));
+    pousse();
+  }else{
     try{
-      const u = await jaquetteGB('Celeste');
-      if(u){
-        z.innerHTML = '✅ Giant Bomb répond et fournit des jaquettes. Lance le rattrapage.';
+      const tete = cleSgdb() ? { 'Authorization': 'Bearer ' + cleSgdb() } : {};
+      const r1 = await fetch(urlSgdb('/api/v2/search/autocomplete/' + encodeURIComponent(JEU_TEST.nom)), { headers: tete });
+      if(r1.status === 401 || r1.status === 403){
+        L.push(ligneDiag('❌', 'SteamGridDB', 'clé refusée (erreur ' + r1.status + '). À régénérer.'));
+      }else if(!r1.ok){
+        L.push(ligneDiag('❌', 'SteamGridDB', 'le relais ou le service répond ' + r1.status + '.'));
       }else{
-        z.innerHTML = '⚠️ Giant Bomb répond mais n\'a pas trouvé de jaquette pour le test.';
+        const j1 = await r1.json();
+        const res = (j1 && j1.data) || [];
+        if(!res.length){
+          L.push(ligneDiag('⚠️', 'SteamGridDB', 'connexion établie, mais la recherche ne renvoie rien.'));
+        }else{
+          const jeu = res[0];
+          const r2 = await fetch(urlSgdb('/api/v2/grids/game/' + jeu.id
+            + '?dimensions=600x900&types=static&nsfw=false'), { headers: tete });
+          const j2 = r2.ok ? await r2.json() : {};
+          const n600 = ((j2 && j2.data) || []).length;
+          L.push(ligneDiag(n600 ? '✅' : '⚠️', 'SteamGridDB',
+            'connexion établie. Test sur « ' + esc(jeu.name) + ' » : ' + n600 + ' jaquette(s) en 600×900. '
+            + (n600 ? 'C\'est la meilleure source, elle passera en premier.'
+                    : 'Aucune à ce format : FGL passera à la source suivante.')));
+        }
       }
     }catch(e){
-      console.error('Test Giant Bomb', e);
-      z.innerHTML = '❌ Giant Bomb ne répond pas : clé invalide, ou quota atteint.';
+      console.error('Diagnostic SteamGridDB', e);
+      L.push(ligneDiag('❌', 'SteamGridDB', 'le relais ne répond pas. Vérifie son adresse, '
+        + 'et qu\'il est bien déployé. Détail exact dans la console (F12).'));
     }
-    return;
+    pousse();
   }
-  if(!relaisSgdb()){
-    z.innerHTML = 'ℹ️ Ni clé Giant Bomb, ni relais : les jaquettes viennent de Steam puis de '
-      + 'Wikipédia. Le plus simple est d\'ajouter une clé Giant Bomb ci-dessus — c\'est gratuit '
-      + 'et ça marche sans rien installer.';
-    return;
-  }
-  z.textContent = 'Test en cours…';
-  const tete = cleSgdb() ? { 'Authorization': 'Bearer ' + cleSgdb() } : {};
-  let r1;
+
+  /* 2. Giant Bomb — hors service depuis décembre 2025 */
+  L.push(ligneDiag('⛔', 'Giant Bomb', 'désactivée volontairement : le site a été racheté et relancé '
+    + 'le 6 décembre 2025, son ancienne API renvoie une erreur 404. Ce n\'est pas une panne de ton côté.'));
+  pousse();
+
+  /* 3. Steam — pas une API, juste un CDN d'images : testable directement */
   try{
-    r1 = await fetch(urlSgdb('/api/v2/search/autocomplete/celeste'), { headers: tete });
+    const u = 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/'
+      + JEU_TEST.steam + '/library_600x900_2x.jpg';
+    const ok = await imageOK(u);
+    L.push(ligneDiag(ok ? '✅' : '❌', 'Steam',
+      ok ? 'le CDN d\'images répond. Couvre les jeux PC dont RAWG connaît la fiche Steam.'
+         : 'image inaccessible. Souvent un bloqueur de publicité ou de contenu tiers : '
+           + 'essaie de le désactiver sur cette page.'));
   }catch(e){
-    console.error('Test SteamGridDB', e);
-    z.innerHTML = '❌ Le relais ne répond pas. Vérifie son adresse, ou qu\'il est bien déployé.';
-    return;
+    console.error('Diagnostic Steam', e);
+    L.push(ligneDiag('❌', 'Steam', 'test impossible. Détail dans la console (F12).'));
   }
-  if(r1.status === 401 || r1.status === 403){
-    z.textContent = '❌ Clé refusée par SteamGridDB (erreur ' + r1.status + '). À régénérer.';
-    return;
+  pousse();
+
+  /* 4. Wikipédia — sans clé, c'est elle qui sauve les consoles */
+  try{
+    const u = await jaquetteWiki(JEU_TEST.nom);
+    if(u && await imageOK(u)){
+      L.push(ligneDiag('✅', 'Wikipédia', 'répond et fournit une image. C\'est le filet de sécurité '
+        + 'des jeux console — elle donne parfois un logo plutôt qu\'une jaquette.'));
+    }else{
+      L.push(ligneDiag('⚠️', 'Wikipédia', 'répond, mais aucune image pour le jeu test.'));
+    }
+  }catch(e){
+    console.error('Diagnostic Wikipédia', e);
+    L.push(ligneDiag('❌', 'Wikipédia', 'ne répond pas. Réseau, ou requête bloquée par une extension.'));
   }
-  if(!r1.ok){ z.textContent = '❌ SteamGridDB répond ' + r1.status + '.'; return; }
-  const j1 = await r1.json();
-  const L = (j1 && j1.data) || [];
-  if(!L.length){ z.textContent = '⚠️ Connexion établie, mais la recherche ne renvoie rien.'; return; }
+  pousse();
 
-  const jeu = L[0];
-  const r2 = await fetch('https://www.steamgriddb.com/api/v2/grids/game/' + jeu.id
-    + '?dimensions=600x900&types=static&nsfw=false', { headers: tete });
-  const j2 = r2.ok ? await r2.json() : {};
-  const n600 = ((j2 && j2.data) || []).length;
-  const r3 = await fetch('https://www.steamgriddb.com/api/v2/grids/game/' + jeu.id
-    + '?types=static&nsfw=false', { headers: tete });
-  const j3 = r3.ok ? await r3.json() : {};
-  const nTout = ((j3 && j3.data) || []).length;
+  /* 5. RAWG — indispensable : sans elle, ni identifiant Steam ni capture de secours */
+  try{
+    if(!cleRawg()){
+      L.push(ligneDiag('❌', 'RAWG', 'aucune clé. C\'est la source des identifiants Steam, des genres '
+        + 'et de la capture de secours : sans elle la chaîne ne démarre pas.'));
+    }else{
+      const r = await fetch('https://api.rawg.io/api/games?key=' + encodeURIComponent(cleRawg())
+        + '&page_size=1&search=' + encodeURIComponent(JEU_TEST.nom));
+      if(r.status === 401 || r.status === 403){
+        L.push(ligneDiag('❌', 'RAWG', 'clé refusée (erreur ' + r.status + ').'));
+      }else if(!r.ok){
+        L.push(ligneDiag('❌', 'RAWG', 'répond ' + r.status + '. Quota du jour peut-être atteint.'));
+      }else{
+        L.push(ligneDiag('✅', 'RAWG', 'répond. Identifiants Steam, genres et capture de secours assurés.'));
+      }
+    }
+  }catch(e){
+    console.error('Diagnostic RAWG', e);
+    L.push(ligneDiag('❌', 'RAWG', 'ne répond pas. Détail dans la console (F12).'));
+  }
 
-  z.innerHTML = '✅ Connexion établie. Test sur « ' + esc(jeu.name) + ' » : '
-    + n600 + ' jaquette(s) en 600×900, ' + nTout + ' au total. '
-    + (n600 ? 'Tout est en ordre, lance le rattrapage.'
-            : 'Aucune en 600×900 : c\'est pour ça que les affiches manquaient.');
+  L.push('<div class="diagL" style="opacity:.75;margin-top:8px">Les sources sont essayées dans cet ordre, '
+    + 'et la première qui donne une vraie image gagne. Il suffit donc qu\'une seule soit au vert.</div>');
+  pousse();
+  b.disabled = false;
 }
+
+/* =========================================================
+   CHOISIR SON AFFICHE
+   ========================================================= */
+let afFit = 'remplir';     // cadrage en cours d'édition
+let afUrl = '';            // affiche retenue
+let afCadre = { z:100, x:50, y:50 };   // zoom et centrage en cours de réglage
+
+/* ---------- Candidats d'affiche ----------
+   Chaque source rend PLUSIEURS images, pas une seule : c'est tout l'intérêt
+   d'un sélecteur. Aucune n'est vérifiée à l'avance (ce serait très lent sur
+   40 vignettes) — les vignettes mortes se retirent d'elles-mêmes à l'erreur
+   de chargement, comme le veut la règle « une adresse morte ne remplace
+   jamais une image qui marche ». */
+
+/* SteamGridDB : la mine, quand un relais est configuré. Une même fiche a
+   souvent 10 à 30 jaquettes proposées par la communauté. */
+async function candidatsSgdb(titre, pousse){
+  if(!relaisSgdb()) return;
+  const tete = cleSgdb() ? { 'Authorization': 'Bearer ' + cleSgdb() } : {};
+  const r1 = await fetch(urlSgdb('/api/v2/search/autocomplete/' + encodeURIComponent(titre)), { headers: tete });
+  if(!r1.ok) throw new Error('HTTP ' + r1.status);
+  const j1 = await r1.json();
+  const jeux = ((j1 && j1.data) || []).slice(0, 2);   // le jeu visé + un voisin
+  for(const jeu of jeux){
+    const r2 = await fetch(urlSgdb('/api/v2/grids/game/' + jeu.id + '?types=static&nsfw=false'), { headers: tete });
+    if(!r2.ok) continue;
+    const j2 = await r2.json();
+    ((j2 && j2.data) || []).slice(0, 18).forEach(g => {
+      // jamais de bannière horizontale dans une grille de jaquettes
+      if(g.width && g.height && g.width >= g.height) return;
+      pousse(g.url || g.thumb, jeu.name, 'SteamGridDB');
+    });
+  }
+}
+
+/* Steam : quatre adresses connues par jeu, sur les trois premiers résultats
+   RAWG — un même titre peut exister en édition standard et en remaster. */
+async function candidatsSteam(jeux, pousse){
+  for(const r of jeux.slice(0, 3)){
+    let app = null;
+    try{ app = await appIdSteam(r.id); }catch(e){ continue; }
+    if(!app) continue;
+    ['https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/',
+     'https://cdn.cloudflare.steamstatic.com/steam/apps/'].forEach(base => {
+      pousse(base + app + '/library_600x900_2x.jpg', r.name, 'Steam');
+      pousse(base + app + '/library_600x900.jpg', r.name, 'Steam');
+    });
+  }
+}
+
+/* Wikipédia : plusieurs articles, donc plusieurs images d'en-tête.
+   C'est ce qui couvre les consoles quand il n'y a pas de relais. */
+async function candidatsWiki(titre, pousse){
+  const u = 'https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*'
+    + '&generator=search&gsrlimit=8'
+    + '&gsrsearch=' + encodeURIComponent(titre + ' video game')
+    + '&prop=pageimages&piprop=thumbnail&pithumbsize=800';
+  const r = await fetch(u);
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  const js = await r.json();
+  const pages = (js && js.query && js.query.pages) || {};
+  Object.keys(pages).forEach(k => {
+    const pg = pages[k];
+    if(pg.thumbnail && pg.thumbnail.source) pousse(pg.thumbnail.source, pg.title, 'Wikipédia');
+  });
+}
+
+/* Liste brute RAWG (5 résultats), à ne pas confondre avec infosRawg()
+   qui n'en retient qu'un. Cache séparé, même plafond. */
+const cacheListeRawg = new Map();
+async function listeRawg(titre){
+  const cle = titre.trim().toLowerCase();
+  if(!cle || !cleRawg()) return [];
+  if(cacheListeRawg.has(cle)) return cacheListeRawg.get(cle);
+  const url = 'https://api.rawg.io/api/games?key=' + encodeURIComponent(cleRawg())
+    + '&search=' + encodeURIComponent(titre) + '&page_size=5';
+  const rep = await fetch(url);
+  if(!rep.ok) throw new Error('HTTP ' + rep.status);
+  const js = await rep.json();
+  const L = (js && js.results) || [];
+  cacheListeRawg.set(cle, L);
+  return L;
+}
+
+/* Toutes les sources, en parallèle. Une source qui tombe n'empêche pas les
+   autres de remplir la grille : chacune rapporte son échec dans son coin. */
+async function candidatsAffiche(titre){
+  const out = [];
+  const vus = {};
+  const soucis = [];
+  const pousse = (url, nom, src) => {
+    if(!url || vus[url]) return;
+    vus[url] = 1;
+    out.push({ url: url, nom: nom || '', src: src });
+  };
+
+  let jeux = [];
+  try{ jeux = await listeRawg(titre); }
+  catch(e){ console.warn('candidats RAWG', e); soucis.push('RAWG'); }
+
+  await Promise.all([
+    candidatsSgdb(titre, pousse).catch(e => { console.warn('candidats SteamGridDB', e); soucis.push('SteamGridDB'); }),
+    candidatsSteam(jeux, pousse).catch(e => { console.warn('candidats Steam', e); soucis.push('Steam'); }),
+    candidatsWiki(titre, pousse).catch(e => { console.warn('candidats Wikipédia', e); soucis.push('Wikipédia'); })
+  ]);
+
+  // les captures RAWG en dernier : ce sont des captures d'écran, pas des jaquettes
+  jeux.forEach(r => { if(r.background_image) pousse(r.background_image, r.name, 'capture RAWG'); });
+
+  return { liste: out, soucis: soucis };
+}
+
+/* Style de cadrage, partagé par la carte de la grille et par l'aperçu :
+   une seule source de vérité, donc l'aperçu ne peut pas mentir. */
+function styleCadre(j){
+  const c = (j && j.cadre) || {};
+  const z = Math.max(100, Math.min(300, typeof c.z === 'number' ? c.z : 100)) / 100;
+  const x = Math.max(0, Math.min(100, typeof c.x === 'number' ? c.x : 50));
+  const y = Math.max(0, Math.min(100, typeof c.y === 'number' ? c.y : 50));
+  return '--z:' + z + ';--px:' + x + '%;--py:' + y + '%';
+}
+
+function ouvreAffiche(){
+  const j = jeuEnCours ? DATA.jeux.find(x => x.id === jeuEnCours) : null;
+  afUrl = $('#jAff').value.trim();
+  afFit = (j && j.fit === 'entiere') ? 'entiere' : 'remplir';
+  const c = (j && j.cadre) || cadreTmp;
+  afCadre = { z: c.z || 100, x: c.x == null ? 50 : c.x, y: c.y == null ? 50 : c.y };
+  afListe = []; afSrc = 'tout'; afSoucis = [];
+  $('#afRech').value = $('#jTitre').value.trim();
+  $('#afCorps').innerHTML = '<div class="aide">Lance une recherche pour voir les jaquettes disponibles.</div>';
+  $('#afSrc').innerHTML = '';
+  majApercuAffiche();
+  ouvre('mAffiche');
+  if($('#afRech').value) chercheAffiches();
+}
+
+function majApercuAffiche(){
+  document.querySelectorAll('[data-fit]').forEach(b =>
+    b.classList.toggle('on', b.dataset.fit === afFit));
+  const z = $('#afApercu');
+  if(!afUrl){
+    z.innerHTML = '<div class="aide" style="margin-bottom:16px">Aucune affiche pour le moment. '
+      + 'Choisis-en une ci-dessous, ou colle une adresse dans le champ Affiche.</div>';
+    return;
+  }
+  const st = styleCadre({ cadre: afCadre });
+  z.innerHTML = '<div class="ap' + (afFit === 'entiere' ? ' entiere' : '') + '">'
+    + '<div class="ap-cadre" style="' + st + '">'
+    + '<div class="flou" style="background-image:url(' + esc(afUrl) + ')"></div>'
+    + '<img src="' + esc(afUrl) + '" alt=""></div>'
+    + '<div class="ap-reg">'
+    + '<div><b>Aperçu</b><div class="aide" style="margin:3px 0 0">Voilà exactement ce que donnera la carte.</div></div>'
+    + '<div class="ap-l"><span>Zoom</span>'
+    + '<input type="range" id="afZ" min="100" max="300" step="1" value="' + afCadre.z + '">'
+    + '<span class="v" id="afZv">' + afCadre.z + '%</span></div>'
+    + '<div class="ap-l"><span>Horizontal</span>'
+    + '<input type="range" id="afX" min="0" max="100" step="1" value="' + afCadre.x + '">'
+    + '<span class="v" id="afXv">' + afCadre.x + '%</span></div>'
+    + '<div class="ap-l"><span>Vertical</span>'
+    + '<input type="range" id="afY" min="0" max="100" step="1" value="' + afCadre.y + '">'
+    + '<span class="v" id="afYv">' + afCadre.y + '%</span></div>'
+    + '<div class="ligne" style="margin-top:2px">'
+    + '<button class="btn" id="bAfRaz">↺ Recadrer au centre</button>'
+    + '<button class="btn pri" id="bAfOK">Utiliser</button></div>'
+    + '</div></div>';
+
+  // les curseurs agissent en direct, sans reconstruire l'aperçu à chaque pixel
+  const cadre = z.querySelector('.ap-cadre');
+  const glisse = (id, champ, suffixe) => {
+    const el = $('#' + id);
+    if(!el) return;
+    el.oninput = () => {
+      afCadre[champ] = +el.value;
+      $('#' + id + 'v').textContent = el.value + (suffixe || '%');
+      cadre.setAttribute('style', styleCadre({ cadre: afCadre }));
+    };
+  };
+  glisse('afZ', 'z'); glisse('afX', 'x'); glisse('afY', 'y');
+  $('#bAfRaz').onclick = () => { afCadre = { z:100, x:50, y:50 }; majApercuAffiche(); };
+  $('#bAfOK').onclick = valideAffiche;
+}
+
+/* Filtres par source : utile quand SteamGridDB en remonte trente d'un coup. */
+function rendSourcesAffiche(){
+  const L = afListe;
+  const cpt = {};
+  L.forEach(c => { cpt[c.src] = (cpt[c.src] || 0) + 1; });
+  const noms = Object.keys(cpt);
+  if(noms.length < 2){ $('#afSrc').innerHTML = ''; return; }
+  $('#afSrc').innerHTML = ['tout'].concat(noms).map(n =>
+    '<button class="puce' + (afSrc === n ? ' on' : '') + '" data-afsrc="' + esc(n) + '">'
+    + (n === 'tout' ? 'Tout (' + L.length + ')' : esc(n) + ' (' + cpt[n] + ')')
+    + '</button>').join('');
+}
+
+function rendCandidats(){
+  const z = $('#afCorps');
+  const L = afSrc === 'tout' ? afListe : afListe.filter(c => c.src === afSrc);
+  if(!L.length){ z.innerHTML = '<div class="aide">Rien à afficher pour ce filtre.</div>'; return; }
+  z.innerHTML = L.map(c => {
+    const i = afListe.indexOf(c);
+    return '<button class="af' + (c.url === afUrl ? ' on' : '') + '" data-af="' + i + '">'
+      + '<div class="cadre"><img src="' + esc(c.url) + '" alt="" loading="lazy" data-mort="' + i + '"></div>'
+      + '<b>' + esc(c.nom) + '</b><small>' + esc(c.src) + '</small></button>';
+  }).join('');
+  // une vignette qui ne charge pas disparaît : on ne propose jamais une image morte
+  z.querySelectorAll('img[data-mort]').forEach(im => {
+    im.onerror = () => {
+      const b = im.closest('.af');
+      if(b) b.classList.add('af-vide'), b.remove();
+    };
+  });
+  rendSourcesAffiche();
+}
+
+async function chercheAffiches(){
+  const titre = $('#afRech').value.trim();
+  const z = $('#afCorps');
+  if(!titre){ toast('Écris un titre à chercher.'); return; }
+  z.innerHTML = '<div class="aide">Recherche des jaquettes sur toutes les sources…</div>';
+  $('#afSrc').innerHTML = '';
+  let r;
+  try{ r = await candidatsAffiche(titre); }
+  catch(e){
+    console.error('candidats', e);
+    z.innerHTML = '<div class="aide">La recherche a échoué. Détail dans la console (F12).</div>';
+    return;
+  }
+  afListe = r.liste; afSoucis = r.soucis; afSrc = 'tout';
+  if(!afListe.length){
+    z.innerHTML = '<div class="aide">Aucune jaquette trouvée pour « ' + esc(titre) + ' ».'
+      + (afSoucis.length ? ' Sources en échec : ' + esc(afSoucis.join(', ')) + '.' : '')
+      + ' Le 🩺 des Réglages dit laquelle a lâché.</div>';
+    return;
+  }
+  rendCandidats();
+  if(afSoucis.length) toast(afSoucis.join(', ') + ' n\'a rien pu donner.');
+}
+let afListe = [];
+let afSrc = 'tout';
+let afSoucis = [];
+
+function choisitAffiche(i){
+  const c = afListe[i];
+  if(!c) return;
+  afUrl = c.url;
+  majApercuAffiche();
+  document.querySelectorAll('[data-af]').forEach(b =>
+    b.classList.toggle('on', +b.dataset.af === i));
+}
+
+function valideAffiche(){
+  $('#jAff').value = afUrl;
+  const c = { z: afCadre.z, x: afCadre.x, y: afCadre.y };
+  if(jeuEnCours){
+    const j = DATA.jeux.find(x => x.id === jeuEnCours);
+    if(j){ j.fit = afFit; j.cadre = c; }
+  }else{
+    fitTmp = afFit;
+    cadreTmp = c;
+  }
+  ferme('mAffiche');
+  toast('Affiche mise à jour.');
+}
+let fitTmp = 'remplir';
+let cadreTmp = { z:100, x:50, y:50 };
 
 /* Remplace les captures d'écran par de vraies jaquettes sur toute la collection */
 let rattrapeEnCours = false;
@@ -2040,7 +2459,13 @@ function imageOK(url){
    La seule façon de l'utiliser depuis un site statique est un petit relais
    (voir le fichier relais-steamgriddb.js livré à côté). Sans relais configuré,
    on n'essaie même pas : ça échouerait à tous les coups. */
-function relaisSgdb(){ return (DATA.reglages.proxySgdb || '').trim(); }
+/* Adresse du relais valable pour TOUT LE SITE. Renseignée ici, elle profite
+   à chaque visiteur sans réglage. Le champ des Réglages, lui, ne vaut que
+   pour l'appareil où il a été saisi. */
+const RELAIS_SGDB_SITE = '';
+function relaisSgdb(){
+  return (DATA.reglages.proxySgdb || '').trim() || RELAIS_SGDB_SITE.trim();
+}
 function urlSgdb(chemin){
   const r = relaisSgdb();
   return r ? r + (r.indexOf('?') >= 0 ? '&' : '?') + 'p=' + encodeURIComponent(chemin)
@@ -2174,8 +2599,8 @@ async function jaquetteWiki(nom){
 /* Meilleure jaquette disponible.
    1. SteamGridDB si un relais est configuré (la plus belle, mais son
       serveur refuse les navigateurs : elle exige un relais)
-   2. Giant Bomb, si une clé est fournie — vraies jaquettes, toutes
-      plateformes, et pas de relais nécessaire grâce au JSONP
+   2. Giant Bomb — désactivée (API supprimée en décembre 2025), le bloc
+      reste en place mais cleGB() renvoie toujours '' : il est sauté
    3. jaquette officielle Steam, pour les jeux PC
    4. Wikipédia, qui couvre bien les consoles
    5. capture RAWG en tout dernier recours */
@@ -2290,6 +2715,39 @@ function poseGenres(liste, force){
   genresPoses = champ.value;
 }
 
+/* ---------- Comparaison de titres ----------
+   RAWG renvoie parfois un jeu qui n'a rien à voir, ou une suite à la place
+   de l'original. On ne renomme donc jamais un jeu sans vérifier que le
+   résultat correspond vraiment à ce qui a été tapé. */
+function normaliseTitre(t){
+  return String(t || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')   // accents
+    .replace(/&/g, ' and ')
+    .replace(/['\u2019]/g, '')          // Luigi's → luigis, pas « luigi s »
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+function memeJeu(saisi, trouve){
+  const a = normaliseTitre(saisi), b = normaliseTitre(trouve);
+  if(!a || !b) return false;
+  if(a === b) return true;
+  // l'un est le début de l'autre : « Zelda Tears » vs « Zelda Tears of the Kingdom »
+  if(a.indexOf(b) === 0 || b.indexOf(a) === 0) return true;
+  // sinon : proportion de mots communs
+  const ma = a.split(' '), mb = b.split(' ');
+  const communs = ma.filter(m => mb.indexOf(m) >= 0).length;
+  return communs / Math.max(ma.length, mb.length) >= 0.6;
+}
+/* parmi plusieurs résultats, celui qui colle le mieux au titre tapé */
+function meilleurResultat(L, titre){
+  if(!L || !L.length) return null;
+  const cible = normaliseTitre(titre);
+  return L.find(r => normaliseTitre(r.name) === cible)
+      || L.find(r => memeJeu(titre, r.name))
+      || L[0];
+}
+
 /* Une seule recherche par titre et par session */
 const cacheRawg = new Map();
 async function infosRawg(titre){
@@ -2297,11 +2755,11 @@ async function infosRawg(titre){
   if(!cle || !cleRawg()) return null;
   if(cacheRawg.has(cle)) return cacheRawg.get(cle);
   const url = 'https://api.rawg.io/api/games?key=' + encodeURIComponent(cleRawg())
-    + '&search=' + encodeURIComponent(titre) + '&page_size=1';
+    + '&search=' + encodeURIComponent(titre) + '&page_size=5';
   const rep = await fetch(url);
   if(!rep.ok) throw new Error('HTTP ' + rep.status);
   const js = await rep.json();
-  const r = js.results && js.results[0];
+  const r = meilleurResultat(js.results, titre);
   const info = r ? {
     id: r.id,
     nom: r.name || titre,
@@ -2328,14 +2786,18 @@ async function chercheRawg(){
   try{
     const i = await infosRawg(titre);
     if(!i){ aide.textContent = 'Aucun jeu trouvé sous ce nom.'; return; }
-    $('#jTitre').value = i.nom;
+    // on ne corrige le titre que si c'est bien le même jeu
+    const proche = memeJeu(titre, i.nom);
+    if(proche) $('#jTitre').value = i.nom;
     aide.textContent = 'Jeu trouvé, recherche de la jaquette…';
     const img = await jaquette(i.nom, i.id, i.cover);
     if(img) $('#jAff').value = img;
     poseGenres(i.genres, true);          // clic sur 🔍 : les genres sont refaits
     dernierAuto = i.nom.trim().toLowerCase();
     retientRawgId(i.id);
-    aide.textContent = 'Trouvé : ' + i.nom + (i.annee ? ' (' + i.annee + ')' : '');
+    aide.textContent = proche
+      ? 'Trouvé : ' + i.nom + (i.annee ? ' (' + i.annee + ')' : '')
+      : 'RAWG propose « ' + i.nom + ' », trop différent : ton titre est conservé.';
   }catch(e){
     console.error(e);
     aide.textContent = 'La recherche a échoué. Vérifie ta connexion.';
@@ -2366,6 +2828,10 @@ async function autoInfos(){
   try{
     const i = await infosRawg(titre);
     if(!i){ aide.textContent = 'Aucun jeu trouvé sous ce nom.'; return; }
+    if(!memeJeu(titre, i.nom)){
+      aide.textContent = 'Aucune correspondance sûre pour « ' + titre + ' ».';
+      return;                       // on ne pose ni genres ni affiche au hasard
+    }
     if(!$('#jAff').value.trim()){
       const img = await jaquette(i.nom, i.id, i.cover);
       if(img) $('#jAff').value = img;
@@ -3611,7 +4077,7 @@ async function contenuFichier(f){
 function payloadData(){
   // le token n'est JAMAIS envoyé, et la clé RAWG reste sur l'appareil
   return {
-    app:'FGL', version:7, syncAt: isoLocal(),
+    app:'FGL', version:8, syncAt: isoLocal(),
     profil: DATA.profil, jeux: DATA.jeux,
     defis: DATA.defis, osts: DATA.osts, palmares: DATA.palmares,
     reactions: DATA.reactions
@@ -3665,7 +4131,7 @@ function payloadProfil(){
   const p = DATA.profil;
   const partage = p.visibilite !== 'prive';
   return {
-    app:'FGL', version:7,
+    app:'FGL', version:8,
     login: DATA.cloud.login || '', pseudo: p.pseudo || 'Sans pseudo',
     avatar: monAvatar(), bio: p.bio || '',
     visibilite: p.visibilite || 'public',
@@ -4367,7 +4833,6 @@ function init(){
     $('#rCle').value = DATA.reglages.cleRawg || '';
     $('#rSgdb').value = DATA.reglages.cleSgdb || '';
     $('#rProxy').value = DATA.reglages.proxySgdb || '';
-    $('#rGB').value = DATA.reglages.cleGB || '';
     $('#rYT').value = DATA.reglages.cleYT || '';
     $('#rAnim').textContent = DATA.reglages.anim ? 'Animé ✓' : 'Coupé';
     $('#rAnim').classList.toggle('on', DATA.reglages.anim);
@@ -4469,6 +4934,12 @@ function init(){
       rendBandeau();
       return;
     }
+    const asrc = e.target.closest('[data-afsrc]');
+    if(asrc){ afSrc = asrc.dataset.afsrc; rendCandidats(); return; }
+    const af = e.target.closest('[data-af]');
+    if(af){ choisitAffiche(+af.dataset.af); return; }
+    const ft = e.target.closest('[data-fit]');
+    if(ft){ afFit = ft.dataset.fit; majApercuAffiche(); return; }
     const df = e.target.closest('[data-defi]');
     if(df){ ouvreDefi(df.dataset.defi); return; }
     const pal = e.target.closest('[data-pal]');
@@ -4546,6 +5017,9 @@ function init(){
   // genres + affiche remplis tout seuls dès qu'on quitte le champ titre
   $('#jTitre').addEventListener('change', autoInfos);
   $('#bMetaAuto').onclick = chercheMeta;
+  $('#bAffiche').onclick = ouvreAffiche;
+  $('#bAfRech').onclick = chercheAffiches;
+  $('#afRech').addEventListener('keydown', e => { if(e.key === 'Enter') chercheAffiches(); });
   $('#bJaquettes').onclick = rattrapeJaquettes;
   $('#bTestSgdb').onclick = testeSgdb;
 
@@ -4578,7 +5052,6 @@ function init(){
     DATA.reglages.cleRawg = $('#rCle').value.trim();
     DATA.reglages.cleSgdb = $('#rSgdb').value.trim();
     DATA.reglages.proxySgdb = $('#rProxy').value.trim().replace(/\/+$/, '');
-    DATA.reglages.cleGB = $('#rGB').value.trim();
     DATA.reglages.cleYT = $('#rYT').value.trim();
     sauve(); ferme('mRegl');
     toast('Réglages enregistrés.');
