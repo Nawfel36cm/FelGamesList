@@ -875,6 +875,8 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 }
 .af-src{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
 .af-src .puce{font-size:11px;padding:4px 10px}
+.af-src .puce.muette{opacity:.45;cursor:default;font-style:italic}
+.af.af-large small::after{content:' · large';opacity:.7}
 .af-vide{opacity:.55}
 .ap{display:flex;gap:16px;align-items:flex-start;background:var(--ink2);
   border:1px solid var(--line);border-radius:14px;padding:14px;margin:0 0 14px}
@@ -1113,12 +1115,6 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
       <button class="ico" data-ferme="mRegl">✕</button>
     </div>
     <div class="boite-bd">
-      <div class="champ">
-        <label>Jaquettes</label>
-        <button class="btn" id="bJaquettes">🖼️ Récupérer les vraies jaquettes</button>
-        <div class="aide">Remplace les captures d'écran par la vraie jaquette verticale,
-          sur toute ta collection d'un coup.</div>
-      </div>
       <div class="champ">
         <label>Diagnostic</label>
         <button class="btn" id="bTestSgdb">🩺 Tester les sources de jaquettes</button>
@@ -1374,7 +1370,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 /* =========================================================
    FGL — FelGamesList
    ========================================================= */
-const VERSION = '0.9.18';
+const VERSION = '0.9.21';
 
 /* ---------- Constantes ---------- */
 const PLATEFORMES = ['PC (Steam)','PlayStation','Xbox','Nintendo Switch','Mobile','Rétro','Autre'];
@@ -1985,24 +1981,6 @@ function cleRawg(){
 const AIDE_META = '⤓ récupère la note de la presse via RAWG. La note des joueurs '
   + '(« User Score ») n\'est lisible par aucun site : ↗ ouvre la page, tu la recopies si tu la préfères.';
 
-/* Au démarrage : quelques jaquettes manquantes par session, sans déranger.
-   Toute la collection finit par se corriger d'elle-même au fil des ouvertures. */
-async function rattrapeDoucement(){
-  if(rattrapeEnCours || !cleRawg()) return;
-  const L = DATA.jeux.filter(g => g.title && !estJaquette(g.cover)).slice(0, 12);
-  if(!L.length) return;
-  let ok = 0;
-  for(const g of L){
-    try{
-      const i = await infosRawg(g.title);
-      const img = await jaquette(g.title, i && i.id, i && i.cover, g.platform);
-      if(img && img !== g.cover){ g.cover = img; ok++; }
-      if(i && !g.rawgId) g.rawgId = i.id;
-    }catch(e){ console.warn('jaquette auto', g.title, e); }
-  }
-  if(ok){ sauve(); rendGrille(); rendFond(); console.log('FGL · ' + ok + ' jaquette(s) récupérée(s) en fond'); }
-}
-
 /* Diagnostic : chaque source de jaquettes est appelée pour de vrai, dans
    l'ordre de la chaîne, et rend compte séparément. Objectif : savoir en un
    coup d'œil laquelle a lâché, et pourquoi — un script bloqué au chargement
@@ -2119,7 +2097,27 @@ async function testeSgdb(){
     pousse();
   }
 
-  /* 6. RAWG — indispensable : sans elle, ni identifiant Steam ni capture de secours */
+  /* 6. Commons — la médiathèque de Wikipédia, même garantie CORS */
+  try{
+    const u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*'
+      + '&generator=search&gsrnamespace=6&gsrlimit=3'
+      + '&gsrsearch=' + encodeURIComponent(JEU_TEST.nom + ' video game cover')
+      + '&prop=imageinfo&iiprop=url&iiurlwidth=600';
+    const r = await fetch(u);
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const js = await r.json();
+    const n = Object.keys((js && js.query && js.query.pages) || {}).length;
+    L.push(ligneDiag(n ? '✅' : '⚠️', 'Commons',
+      n ? 'répond, ' + n + ' fichier(s) sur le test. Beaucoup de visuels, mais un tri '
+          + 'moins fiable qu\'un article : à réserver au choix manuel.'
+        : 'répond, mais rien pour le jeu test.'));
+  }catch(e){
+    console.error('Diagnostic Commons', e);
+    L.push(ligneDiag('❌', 'Commons', 'ne répond pas. Réseau, ou requête bloquée par une extension.'));
+  }
+  pousse();
+
+  /* 7. RAWG — indispensable : sans elle, ni identifiant Steam ni capture de secours */
   try{
     if(!cleRawg()){
       L.push(ligneDiag('❌', 'RAWG', 'aucune clé. C\'est la source des identifiants Steam, des genres '
@@ -2183,16 +2181,31 @@ async function candidatsSgdb(titre, pousse){
 
 /* Steam : quatre adresses connues par jeu, sur les trois premiers résultats
    RAWG — un même titre peut exister en édition standard et en remaster. */
+/* Steam publie plusieurs visuels par jeu, pas seulement la jaquette
+   verticale : autant tout proposer et laisser choisir. */
+const ART_STEAM = [
+  'library_600x900_2x.jpg',   // jaquette verticale, la meilleure
+  'library_600x900.jpg',
+  'hero_capsule.jpg',         // vertical lui aussi, autre illustration
+  'header.jpg',               // 460×215, large
+  'capsule_616x353.jpg',
+  'library_hero.jpg',         // bannière large
+  'logo.png'
+];
 async function candidatsSteam(jeux, pousse){
-  for(const r of jeux.slice(0, 3)){
+  // 5 jeux au lieu de 3 : un titre existe souvent en standard, remaster,
+  // édition definitive… et chacun a ses propres visuels
+  for(const r of jeux.slice(0, 5)){
     let app = null;
     try{ app = await appIdSteam(r.id); }catch(e){ continue; }
     if(!app) continue;
-    ['https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/',
-     'https://cdn.cloudflare.steamstatic.com/steam/apps/'].forEach(base => {
-      pousse(base + app + '/library_600x900_2x.jpg', r.name, 'Steam');
-      pousse(base + app + '/library_600x900.jpg', r.name, 'Steam');
-    });
+    const neuf = 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/';
+    const ancien = 'https://cdn.cloudflare.steamstatic.com/steam/apps/';
+    ART_STEAM.forEach(f => pousse(neuf + app + '/' + f, r.name, 'Steam'));
+    // l'ancien CDN seulement pour la jaquette verticale : les deux hôtes
+    // servent la même image, inutile de doubler toute la liste
+    pousse(ancien + app + '/library_600x900_2x.jpg', r.name, 'Steam');
+    pousse(ancien + app + '/library_600x900.jpg', r.name, 'Steam');
   }
 }
 
@@ -2212,7 +2225,34 @@ async function candidatsWiki(titre, pousse){
     Object.keys(pages).forEach(k => {
       const pg = pages[k];
       if(pg.thumbnail && pg.thumbnail.source)
-        pousse(pg.thumbnail.source, pg.title, 'Wikipédia (' + L.code + ')');
+        pousse(pg.thumbnail.source, L.code + ' — ' + pg.title, 'Wikipédia');
+    });
+  }));
+}
+
+/* Wikimedia Commons : la médiathèque de Wikipédia, interrogeable directement.
+   On y cherche des fichiers (espace de noms 6), ce qui remonte des couvertures,
+   logos et visuels que les articles n'affichent pas. Même mécanisme `origin=*`
+   que Wikipédia, donc même garantie côté navigateur : aucune clé.
+   Le tri y est moins fiable qu'un article — d'où sa place après les autres. */
+async function candidatsCommons(titre, pousse){
+  const requetes = [titre + ' video game cover', titre + ' box art'];
+  await Promise.all(requetes.map(async q => {
+    const u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*'
+      + '&generator=search&gsrnamespace=6&gsrlimit=12'
+      + '&gsrsearch=' + encodeURIComponent(q)
+      + '&prop=imageinfo&iiprop=url&iiurlwidth=600';
+    const r = await fetch(u);
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const js = await r.json();
+    const pages = (js && js.query && js.query.pages) || {};
+    Object.keys(pages).forEach(k => {
+      const info = (pages[k].imageinfo || [])[0];
+      if(!info) return;
+      const url = info.thumburl || info.url;
+      // les fichiers son/vidéo remontent aussi dans l'espace 6 : on les écarte
+      if(!/\.(jpe?g|png|webp)$/i.test(String(info.url || ''))) return;
+      pousse(url, String(pages[k].title || '').replace(/^File:/, ''), 'Commons');
     });
   }));
 }
@@ -2232,17 +2272,25 @@ async function candidatsWiki(titre, pousse){
 const LIBRETRO = 'https://thumbnails.libretro.com/';
 
 const PLAYLISTS_LIBRETRO = {
-  'PlayStation': ['Sony - PlayStation', 'Sony - PlayStation 2', 'Sony - PlayStation Portable'],
-  'Nintendo Switch': ['Nintendo - Nintendo 64', 'Nintendo - GameCube'],
-  'Xbox': [],
+  'PlayStation': ['Sony - PlayStation', 'Sony - PlayStation 2',
+                  'Sony - PlayStation Portable', 'Sony - PlayStation Vita'],
+  'Nintendo Switch': ['Nintendo - Nintendo 64', 'Nintendo - GameCube',
+                      'Nintendo - Wii', 'Nintendo - Nintendo 3DS', 'Nintendo - Nintendo DS'],
+  'Xbox': ['Microsoft - Xbox'],
   'Rétro': ['Nintendo - Super Nintendo Entertainment System',
             'Nintendo - Nintendo Entertainment System',
             'Sony - PlayStation',
             'Sega - Mega Drive - Genesis',
-            'Nintendo - Game Boy Advance'],
+            'Nintendo - Game Boy Advance',
+            'Nintendo - Nintendo 64',
+            'Sega - Dreamcast'],
   'Mobile': [],
-  'PC (Steam)': [],
-  'Autre': ['Nintendo - Super Nintendo Entertainment System', 'Sony - PlayStation']
+  'PC (Steam)': ['DOS'],
+  'Autre': ['Nintendo - Super Nintendo Entertainment System',
+            'Sony - PlayStation',
+            'Nintendo - Nintendo 64',
+            'Nintendo - Game Boy Advance',
+            'Sega - Mega Drive - Genesis']
 };
 
 /* Le nom du fichier ne tolère pas ces caractères : la convention les remplace par _ */
@@ -2259,14 +2307,15 @@ function variantesTitre(titre){
   return out;
 }
 
-const REGIONS_LIBRETRO = ['(USA)', '(USA, Europe)', '(Europe)', '(Japan)'];
+const REGIONS_LIBRETRO = ['(USA)', '(USA, Europe)', '(Europe)', '(Japan)',
+                          '(World)', '(Japan, USA)'];
 
 async function candidatsLibretro(titre, plateforme, pousse, budget){
   const listes = PLAYLISTS_LIBRETRO[plateforme] || PLAYLISTS_LIBRETRO['Autre'];
   if(!listes || !listes.length) return;
   const noms = variantesTitre(titre);
   const essais = [];
-  listes.slice(0, 3).forEach(pl => {
+  listes.slice(0, 5).forEach(pl => {
     noms.forEach(n => {
       REGIONS_LIBRETRO.forEach(reg => {
         essais.push({
@@ -2278,11 +2327,13 @@ async function candidatsLibretro(titre, plateforme, pousse, budget){
       });
     });
   });
-  // plafond dur : jamais de boucle sans limite sur une source externe
-  const lot = essais.slice(0, budget || 24);
+  // plafond dur : jamais de boucle sans limite sur une source externe.
+  // 60 essais dans le sélecteur (on cherche à ratisser), 8 seulement dans la
+  // chaîne automatique, qui tourne sur toute la collection.
+  const lot = essais.slice(0, budget || 60);
   const res = await Promise.all(lot.map(e => imageOK(e.url, 6000)));
   lot.forEach((e, i) => {
-    if(res[i]) pousse(e.url, e.nom, 'libretro · ' + e.pl.replace(/^[^-]+ - /, ''));
+    if(res[i]) pousse(e.url, e.pl.replace(/^[^-]+ - /, '') + ' — ' + e.nom, 'libretro');
   });
 }
 
@@ -2293,8 +2344,11 @@ async function listeRawg(titre){
   const cle = titre.trim().toLowerCase();
   if(!cle || !cleRawg()) return [];
   if(cacheListeRawg.has(cle)) return cacheListeRawg.get(cle);
+  // page_size=20 : bien plus de jeux, et chaque résultat porte déjà ses
+  // short_screenshots — donc beaucoup plus d'images pour UNE seule requête.
+  // infosRawg() garde 5 : elle sert à identifier un jeu, pas à ratisser.
   const url = 'https://api.rawg.io/api/games?key=' + encodeURIComponent(cleRawg())
-    + '&search=' + encodeURIComponent(titre) + '&page_size=5';
+    + '&search=' + encodeURIComponent(titre) + '&page_size=20';
   const rep = await fetch(url);
   if(!rep.ok) throw new Error('HTTP ' + rep.status);
   const js = await rep.json();
@@ -2303,33 +2357,110 @@ async function listeRawg(titre){
   return L;
 }
 
+/* ---------- Tri des candidats ----------
+   Trois critères, du plus au moins déterminant :
+
+   1. la SOURCE — une jaquette SteamGridDB vaut mieux qu'une capture d'écran ;
+   2. le TITRE — un candidat dont le nom correspond vraiment au jeu cherché
+      passe devant, via memeJeu(), le même comparateur que celui qui empêche
+      de renommer un jeu à l'aveugle ;
+   3. la FORME — un visuel manifestement horizontal (header Steam, bannière)
+      recule, puisque les cartes sont en 2/3.
+
+   Le format réel n'est connu qu'une fois l'image chargée : ce qu'on devine ici
+   depuis l'adresse est complété à l'affichage (voir rendCandidats). */
+const POIDS_SOURCE = {
+  'SteamGridDB': 100,
+  'libretro': 90,
+  'Steam': 80,
+  'Wikipédia': 60,
+  'Commons': 40,
+  'capture RAWG': 10
+};
+
+/* Certains fichiers Steam sont larges par nature : ils reculent d'office. */
+const LARGE = /header\.jpg|capsule_|library_hero|logo\.png/i;
+
+function scoreCandidat(c, titre){
+  let n = POIDS_SOURCE[c.src] || 30;
+  // la vraie jaquette verticale de Steam mérite mieux que ses autres visuels
+  if(c.src === 'Steam' && /library_600x900/.test(c.url)) n += 15;
+  if(LARGE.test(c.url)) n -= 45;
+  // le nom affiché peut être préfixé (« ja — », « SNES — ») et suffixé d'une
+  // région (« (USA) ») : on les retire avant de comparer
+  const brut = String(c.nom || '').replace(/^[^—]{1,12} — /, '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+  try{ if(brut && memeJeu(titre, brut)) n += 25; }
+  catch(e){ /* on ne fait jamais tomber le tri pour une comparaison de titre */ }
+  return n;
+}
+
 /* Toutes les sources, en parallèle. Une source qui tombe n'empêche pas les
    autres de remplir la grille : chacune rapporte son échec dans son coin. */
 async function candidatsAffiche(titre, plateforme){
   const out = [];
   const vus = {};
   const soucis = [];
+  /* Plafonds : sans eux, les captures RAWG à elles seules noieraient les
+     vraies jaquettes sous 140 vignettes. 40 par source, 220 en tout. */
+  const MAX_SOURCE = 40, MAX_TOTAL = 220;
   const pousse = (url, nom, src) => {
     if(!url || vus[url]) return;
+    if(out.length >= MAX_TOTAL) return;
+    if((parSource[src] || 0) >= MAX_SOURCE) return;
     vus[url] = 1;
+    parSource[src] = (parSource[src] || 0) + 1;
     out.push({ url: url, nom: nom || '', src: src });
+  };
+
+  /* Chaque source déclare son sort, qu'elle ait donné quelque chose ou non.
+     Une source muette doit rester VISIBLE : ne pas la montrer, c'est laisser
+     croire qu'elle n'a pas été essayée. */
+  const etats = [];
+  const parSource = {};
+  const suit = (nom, motif) => etats.push({ nom: nom, motif: motif || '' });
+  const essaie = async (nom, inactive, fn) => {
+    if(inactive){ suit(nom, inactive); return; }
+    try{ await fn(); suit(nom); }
+    catch(e){
+      console.warn('candidats ' + nom, e);
+      soucis.push(nom);
+      suit(nom, 'a échoué — voir la console (F12)');
+    }
   };
 
   let jeux = [];
   try{ jeux = await listeRawg(titre); }
   catch(e){ console.warn('candidats RAWG', e); soucis.push('RAWG'); }
 
+  const sansRelais = relaisSgdb() ? '' : 'aucun relais configuré';
+  const horsLibretro = (PLAYLISTS_LIBRETRO[plateforme] || PLAYLISTS_LIBRETRO['Autre'] || []).length
+    ? '' : 'ne couvre pas cette plateforme';
+
   await Promise.all([
-    candidatsSgdb(titre, pousse).catch(e => { console.warn('candidats SteamGridDB', e); soucis.push('SteamGridDB'); }),
-    candidatsSteam(jeux, pousse).catch(e => { console.warn('candidats Steam', e); soucis.push('Steam'); }),
-    candidatsWiki(titre, pousse).catch(e => { console.warn('candidats Wikipédia', e); soucis.push('Wikipédia'); }),
-    candidatsLibretro(titre, plateforme, pousse).catch(e => { console.warn('candidats libretro', e); soucis.push('libretro'); })
+    essaie('SteamGridDB', sansRelais, () => candidatsSgdb(titre, pousse)),
+    essaie('Steam', jeux.length ? '' : 'aucun résultat RAWG', () => candidatsSteam(jeux, pousse)),
+    essaie('libretro', horsLibretro, () => candidatsLibretro(titre, plateforme, pousse)),
+    essaie('Wikipédia', '', () => candidatsWiki(titre, pousse)),
+    essaie('Commons', '', () => candidatsCommons(titre, pousse))
   ]);
 
-  // les captures RAWG en dernier : ce sont des captures d'écran, pas des jaquettes
+  // les captures RAWG en dernier : ce sont des captures d'écran, pas des
+  // jaquettes. short_screenshots voyage DÉJÀ dans la réponse de recherche :
+  // une dizaine d'images de plus par jeu, sans une seule requête supplémentaire.
   jeux.forEach(r => { if(r.background_image) pousse(r.background_image, r.name, 'capture RAWG'); });
+  // les captures d'écran ensuite, 3 par jeu : elles complètent sans envahir
+  jeux.forEach(r => {
+    (r.short_screenshots || []).slice(0, 3).forEach(sc => {
+      if(sc && sc.image) pousse(sc.image, r.name, 'capture RAWG');
+    });
+  });
+  suit('capture RAWG', jeux.length ? '' : 'aucun résultat RAWG');
 
-  return { liste: out, soucis: soucis };
+  // tri stable : à score égal, l'ordre d'arrivée est conservé
+  out.forEach((c, i) => { c._s = scoreCandidat(c, titre); c._i = i; });
+  out.sort((a, b) => (b._s - a._s) || (a._i - b._i));
+
+  return { liste: out, soucis: soucis, etats: etats };
 }
 
 /* Style de cadrage, partagé par la carte de la grille et par l'aperçu :
@@ -2348,7 +2479,7 @@ function ouvreAffiche(){
   afFit = (j && j.fit === 'entiere') ? 'entiere' : 'remplir';
   const c = (j && j.cadre) || cadreTmp;
   afCadre = { z: c.z || 100, x: c.x == null ? 50 : c.x, y: c.y == null ? 50 : c.y };
-  afListe = []; afSrc = 'tout'; afSoucis = [];
+  afListe = []; afSrc = 'tout'; afSoucis = []; afEtats = [];
   $('#afRech').value = $('#jTitre').value.trim();
   $('#afCorps').innerHTML = '<div class="aide">Lance une recherche pour voir les jaquettes disponibles.</div>';
   $('#afSrc').innerHTML = '';
@@ -2403,17 +2534,30 @@ function majApercuAffiche(){
   $('#bAfOK').onclick = valideAffiche;
 }
 
-/* Filtres par source : utile quand SteamGridDB en remonte trente d'un coup. */
+/* Filtres par source. Les sources qui n'ont rien donné restent AFFICHÉES,
+   grisées et avec leur motif au survol : ne pas les montrer laisserait croire
+   qu'elles n'ont pas été essayées. */
 function rendSourcesAffiche(){
   const L = afListe;
   const cpt = {};
   L.forEach(c => { cpt[c.src] = (cpt[c.src] || 0) + 1; });
-  const noms = Object.keys(cpt);
-  if(noms.length < 2){ $('#afSrc').innerHTML = ''; return; }
-  $('#afSrc').innerHTML = ['tout'].concat(noms).map(n =>
-    '<button class="puce' + (afSrc === n ? ' on' : '') + '" data-afsrc="' + esc(n) + '">'
-    + (n === 'tout' ? 'Tout (' + L.length + ')' : esc(n) + ' (' + cpt[n] + ')')
-    + '</button>').join('');
+  if(!afEtats.length && Object.keys(cpt).length < 2){ $('#afSrc').innerHTML = ''; return; }
+
+  let h = '<button class="puce' + (afSrc === 'tout' ? ' on' : '')
+    + '" data-afsrc="tout">Tout (' + L.length + ')</button>';
+
+  afEtats.forEach(e => {
+    const n = cpt[e.nom] || 0;
+    if(n){
+      h += '<button class="puce' + (afSrc === e.nom ? ' on' : '') + '" data-afsrc="' + esc(e.nom) + '">'
+        + esc(e.nom) + ' (' + n + ')</button>';
+    }else{
+      const motif = e.motif || 'rien trouvé pour ce titre';
+      h += '<span class="puce muette" title="' + esc(motif) + '">'
+        + esc(e.nom) + ' (0) · ' + esc(motif) + '</span>';
+    }
+  });
+  $('#afSrc').innerHTML = h;
 }
 
 function rendCandidats(){
@@ -2426,11 +2570,20 @@ function rendCandidats(){
       + '<div class="cadre"><img src="' + esc(c.url) + '" alt="" loading="lazy" data-mort="' + i + '"></div>'
       + '<b>' + esc(c.nom) + '</b><small>' + esc(c.src) + '</small></button>';
   }).join('');
-  // une vignette qui ne charge pas disparaît : on ne propose jamais une image morte
   z.querySelectorAll('img[data-mort]').forEach(im => {
+    // une vignette qui ne charge pas disparaît : jamais d'image morte proposée
     im.onerror = () => {
       const b = im.closest('.af');
-      if(b) b.classList.add('af-vide'), b.remove();
+      if(b) b.remove();
+    };
+    // le format n'est connu qu'ici : les visuels horizontaux reculent en fin de
+    // grille (les cartes sont en 2/3), sans reconstruire l'affichage
+    im.onload = () => {
+      const b = im.closest('.af');
+      if(!b || !im.naturalWidth) return;
+      const r = im.naturalHeight / im.naturalWidth;
+      b.style.order = r >= 1.15 ? 0 : (r >= 0.95 ? 1 : 2);   // haute · carrée · large
+      if(r < 0.95) b.classList.add('af-large');
     };
   });
   rendSourcesAffiche();
@@ -2451,11 +2604,11 @@ async function chercheAffiches(){
     z.innerHTML = '<div class="aide">La recherche a échoué. Détail dans la console (F12).</div>';
     return;
   }
-  afListe = r.liste; afSoucis = r.soucis; afSrc = 'tout';
+  afListe = r.liste; afSoucis = r.soucis; afEtats = r.etats || []; afSrc = 'tout';
   if(!afListe.length){
     z.innerHTML = '<div class="aide">Aucune jaquette trouvée pour « ' + esc(titre) + ' ».'
-      + (afSoucis.length ? ' Sources en échec : ' + esc(afSoucis.join(', ')) + '.' : '')
       + ' Le 🩺 des Réglages dit laquelle a lâché.</div>';
+    rendSourcesAffiche();
     return;
   }
   rendCandidats();
@@ -2464,6 +2617,7 @@ async function chercheAffiches(){
 let afListe = [];
 let afSrc = 'tout';
 let afSoucis = [];
+let afEtats = [];
 
 function choisitAffiche(i){
   const c = afListe[i];
@@ -2489,51 +2643,6 @@ function valideAffiche(){
 }
 let fitTmp = 'remplir';
 let cadreTmp = { z:100, x:50, y:50 };
-
-/* Remplace les captures d'écran par de vraies jaquettes sur toute la collection */
-let rattrapeEnCours = false;
-async function rattrapeJaquettes(){
-  if(rattrapeEnCours) return;
-  if(!cleRawg()){ toast('Clé RAWG manquante.'); return; }
-  // on repasse sur tout : SteamGridDB est prioritaire, il peut faire mieux
-  // que ce qui avait été trouvé auparavant sur Steam ou Wikipédia
-  const L = DATA.jeux.filter(g => g.title);
-  if(!L.length){ toast('Aucun jeu dans ta liste.'); return; }
-  if(!confirm(L.length + ' jeu(x) à repasser.\n\nFGL va chercher la meilleure jaquette de chacun '
-    + 'en commençant par SteamGridDB. Compte quelques secondes par jeu et laisse l\'onglet ouvert.')) return;
-  rattrapeEnCours = true;
-  const bilan = {};
-  sgdbOK = 0; sgdbVide = 0; sgdbErreurs = 0;
-  let ok = 0;
-  try{
-    for(let k = 0; k < L.length; k++){
-      const g = L[k];
-      toast('Jaquettes : ' + (k + 1) + ' / ' + L.length + '…');
-      try{
-        const i = await infosRawg(g.title);
-        const img = await jaquette(g.title, i && i.id, i && i.cover, g.platform);
-        if(img && img !== g.cover){
-          g.cover = img; ok++;
-          const src = sourceJaquette(img);
-          bilan[src] = (bilan[src] || 0) + 1;
-        }
-        if(i && !g.rawgId) g.rawgId = i.id;
-      }catch(e){ console.warn('jaquette', g.title, e); }
-    }
-    sauve(); toutRendre();
-    const detail = Object.keys(bilan).map(k => bilan[k] + ' via ' + k).join(', ');
-    toast(ok + ' jaquette(s) sur ' + L.length + (detail ? ' — ' + detail : ''));
-    console.log('FGL · bilan des jaquettes', bilan,
-      '| sans jaquette :', L.length - ok,
-      '| SteamGridDB — trouvées :', sgdbOK, ', rien pour ce jeu :', sgdbVide,
-      ', appels refusés :', sgdbErreurs);
-    if(sgdbErreurs > 0 && sgdbOK === 0){
-      toast('SteamGridDB n\'a répondu à aucun appel — voir la console.');
-    }
-  }finally{
-    rattrapeEnCours = false;
-  }
-}
 
 /* ---------- Jaquettes ----------
    RAWG ne renvoie qu'une capture d'écran 16/9. La vraie jaquette verticale
@@ -2687,7 +2796,10 @@ async function appIdSteam(rawgId){
 const LANGUES_WIKI = [
   { code:'en', suffixe:' video game' },
   { code:'ja', suffixe:'' },
-  { code:'fr', suffixe:' jeu vidéo' }
+  { code:'fr', suffixe:' jeu vidéo' },
+  { code:'de', suffixe:' Computerspiel' },
+  { code:'es', suffixe:' videojuego' },
+  { code:'it', suffixe:' videogioco' }
 ];
 
 async function jaquetteWiki(nom, lang){
@@ -5146,7 +5258,6 @@ function init(){
   $('#bAffiche').onclick = ouvreAffiche;
   $('#bAfRech').onclick = chercheAffiches;
   $('#afRech').addEventListener('keydown', e => { if(e.key === 'Enter') chercheAffiches(); });
-  $('#bJaquettes').onclick = rattrapeJaquettes;
   $('#bTestSgdb').onclick = testeSgdb;
 
   // bouton « fait à 100 % »
@@ -5240,7 +5351,6 @@ function init(){
 
   toutRendre();
   cloudDemarre();
-  setTimeout(rattrapeDoucement, 4000);   // jaquettes manquantes, sans rien demander
 
   // appli installable : sans sw.js dans le dépôt, le site marche pareil
   if('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){
