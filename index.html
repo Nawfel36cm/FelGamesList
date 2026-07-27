@@ -1173,7 +1173,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
       <button class="btn" id="bTradTrp">🇫🇷 Traduire</button>
       <button class="btn" id="bAjoutTrp">+ À la main</button>
       <div class="espace"></div>
-      <button class="btn" id="bAutreJeu" title="Si la liste est incomplète, RAWG a peut-être pointé la mauvaise fiche">🎯 Pas le bon jeu ?</button>
+      <button class="btn" id="bFicheSteam" title="Coller le numéro de la fiche Steam quand le titre local ne ressemble pas au titre Steam">🎮 Fiche Steam</button>
     </div>
   </div>
 </div>
@@ -1453,7 +1453,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 /* =========================================================
    FGL — FelGamesList
    ========================================================= */
-const VERSION = '0.9.28';
+const VERSION = '0.9.32';
 
 /* ---------- Constantes ---------- */
 const PLATEFORMES = ['PC','PlayStation','Xbox','Nintendo','Mobile','Rétro'];
@@ -1602,7 +1602,7 @@ let centTmp = false;     // case « fait à 100 % » en cours de saisie
 
 function dataVierge(){
   return {
-    version: 12,
+    version: 13,
     reglages: { cleRawg:'', cleSgdb:'', cleYT:'', cleGB:'', proxySgdb:'', mailTrad:'',
                 langueSucces:'french',
                 theme:'sombre', palette:'auto', anim:true },
@@ -1671,6 +1671,14 @@ function migre(){
     // Le retrouver coûte une requête RAWG : on ne la refait pas à chaque ouverture.
     // '' = pas encore cherché, 0 = cherché et absent (jeu hors Steam).
     if(g.steamAppId === undefined) g.steamAppId = '';
+    // v12 → v13 : le 0 signifiait « cherché, absent de Steam », et il était
+    // définitif. Mauvaise idée : un simple souci de réseau condamnait le jeu
+    // à RAWG pour toujours. On repart de '' et on retente à chaque chargement.
+    if(g.steamAppId === 0 || g.steamAppId === '0') g.steamAppId = '';
+    // v12 → v13 : d'où viennent les succès affichés, et pourquoi. Sans ça,
+    // un repli sur RAWG était invisible — on croyait avoir la liste complète.
+    if(g.trpSource === undefined) g.trpSource = '';
+    if(g.trpRaison === undefined) g.trpRaison = '';
     // v11 → v12 : une traduction n'est plus « le français », c'est UNE langue parmi
     // d'autres. `nameFr` / `descFr` deviennent `tr.french`, et disparaissent : garder
     // les deux formes en parallèle finirait par les faire diverger.
@@ -1701,7 +1709,7 @@ function migre(){
   });
   if(!Array.isArray(DATA.profil.amis)) DATA.profil.amis = [];
   if(!DATA.profil.visibilite) DATA.profil.visibilite = 'public';
-  DATA.version = 12;
+  DATA.version = 13;
 }
 /* écriture brute, sans toucher aux repères de synchro */
 function ecrit(){
@@ -3218,8 +3226,13 @@ async function infosRawg(titre){
   return info;
 }
 
-/* Bouton 🔍 : recherche explicite, corrige aussi le titre */
-async function chercheRawg(){
+/* Bouton 🔍 de la fiche jeu : recherche explicite, corrige aussi le titre.
+   ⚠️ Renommée en 0.9.30 : elle s'appelait `chercheRawg`, exactement comme la
+   fonction de recherche RAWG définie plus bas. Deux `function` du même nom au
+   même niveau, c'est la seconde qui gagne — le bouton 🔍 appelait donc depuis
+   un moment la mauvaise fonction, avec un titre `undefined`, et ne faisait
+   plus rien. Le contrôle des doublons ajouté à la livraison l'a mis au jour. */
+async function chercheJeuRawg(){
   const titre = $('#jTitre').value.trim();
   const aide = $('#jCherchAide');
   if(!titre){ toast('Écris d\'abord le titre.'); return; }
@@ -3447,10 +3460,17 @@ function rendTrophees(){
   if(q || UI.trpF !== 'tous'){
     h += '<div class="trp-cpt">' + vus.length + ' succès sur ' + L.length + '</div>';
   }
-  // Dire quand la liste a l'air tronquée, plutôt que de laisser croire qu'elle est entière
-  if(j.trpAnnonces && L.length < j.trpAnnonces){
-    h += '<div class="trp-cpt">RAWG annonçait ' + j.trpAnnonces + ' succès et n\'en a donné que '
-      + L.length + '. « 🎯 Pas le bon jeu ? » permet de viser une autre fiche.</div>';
+  // D'où vient cette liste. C'est la première chose à savoir : une liste RAWG
+  // est très souvent partielle, et rien ne le disait à l'écran.
+  if(j.trpSource === 'steam'){
+    h += '<div class="trp-cpt">✅ Source : <b>Steam</b> — liste officielle complète, en '
+      + esc(infoLangue().nom) + '.</div>';
+  }else if(j.trpSource === 'rawg'){
+    // liste héritée d'une version antérieure : elle vient de RAWG, donc
+    // probablement incomplète. On le dit, et on invite à la refaire.
+    h += '<div class="trp-cpt">⚠️ Liste chargée par une ancienne version, depuis '
+      + '<b>RAWG</b> : elle est souvent partielle. Clique <b>🏆 Charger les succès</b> '
+      + 'pour la remplacer par la liste Steam complète.</div>';
   }
   h += vus.length
     ? htmlTrophees(vus, tot, true)
@@ -3531,47 +3551,6 @@ async function meilleurRawg(titre){
 
 /* Quand la liste reste incomplète, c'est presque toujours la fiche qui est mauvaise.
    On montre les candidats plutôt que de laisser l'utilisateur deviner. */
-async function autreJeuRawg(){
-  const j = DATA.jeux.find(x => x.id === jeuEnCours);
-  if(!j) return;
-  if(!cleRawg()){ toast('Clé RAWG manquante → ⚙️ Réglages.'); return; }
-  const z = $('#trpCorps');
-  z.innerHTML = '<div class="trp-vide">Recherche des fiches RAWG…</div>';
-  try{
-    const L = await chercheRawg(j.title, 10);
-    if(!L.length){
-      z.innerHTML = '<div class="trp-vide">Aucune fiche RAWG pour ce titre.</div>';
-      return;
-    }
-    const tri = L.slice().sort((a, b) => scoreRawg(b, j.title) - scoreRawg(a, j.title));
-    z.innerHTML = '<div class="trp-vide" style="text-align:left;padding:6px 0 0">'
-      + 'Une liste incomplète vient presque toujours d\'une fiche mal choisie : RAWG cherche '
-      + 'de façon floue et peut avoir pointé une extension ou une édition. Choisis la bonne, '
-      + 'les succès seront rechargés.</div>'
-      + '<div class="rawg-liste">' + tri.map(r =>
-          '<button class="rawg-l' + (r.id === j.rawgId ? ' on' : '') + '" data-rawgid="' + r.id + '">'
-          + (r.background_image
-              ? '<img src="' + esc(r.background_image) + '" alt="" loading="lazy">'
-              : '<span class="rawg-v">🎮</span>')
-          + '<div><b>' + esc(r.name || '?') + '</b><span>'
-          + esc(String(r.released || '').slice(0, 4) || 'année inconnue')
-          + (r.achievements_count ? ' · ' + r.achievements_count + ' succès' : '')
-          + (r.id === j.rawgId ? ' · fiche actuelle' : '') + '</span></div></button>').join('')
-      + '</div>';
-  }catch(e){
-    console.error(e);
-    z.innerHTML = '<div class="trp-vide">La recherche a échoué.<br>Vérifie ta clé RAWG et ta connexion.</div>';
-  }
-}
-
-function choisitRawg(id){
-  const j = DATA.jeux.find(x => x.id === jeuEnCours);
-  if(!j) return;
-  j.rawgId = +id;
-  j.trpAnnonces = 0;
-  sauve();
-  chargeTrophees();
-}
 
 /* =========================================================
    SUCCÈS VIA STEAM  —  la source complète
@@ -3629,150 +3608,277 @@ async function raretesSteam(appid){
   }
 }
 
-/* L'identifiant Steam se paie une requête RAWG. On le retient donc sur le jeu :
-   '' = jamais cherché, 0 = cherché et absent (jeu qui n'est pas sur Steam),
-   sinon l'appid. Sans ce cache, chaque ouverture de fiche relancerait la
-   recherche — et la deuxième donnerait le même résultat que la première. */
-async function steamAppIdDuJeu(j){
-  if(j.steamAppId === 0) return 0;
-  if(j.steamAppId) return j.steamAppId;
-  try{
-    const id = await appIdSteam(j.rawgId);
-    j.steamAppId = id ? String(id) : 0;
-  }catch(e){
-    console.warn('Identifiant Steam introuvable :', e);
-    return 0;                       // on ne fige pas : ça peut être un souci réseau
-  }
-  return j.steamAppId;
+/* Recherche dans le magasin Steam. Aucune clé n'est nécessaire, mais pas de
+   CORS non plus : ça passe par le relais. */
+async function chercheSteam(titre){
+  const u = urlSteamRelais('steam=search&term=' + encodeURIComponent(titre));
+  if(!u) return [];
+  const r = await fetch(u);
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  const js = await r.json();
+  return (js && js.items) || [];
 }
 
+/* Trouver le numéro de fiche Steam d'un jeu — DEUX chemins, pas un seul.
+
+   Le premier jet ne s'appuyait que sur le champ `stores` de RAWG, et c'est
+   ce qui faisait retomber presque tout le monde sur RAWG : ce champ est
+   fréquemment vide pour un jeu pourtant bien présent sur Steam. Le silence
+   de RAWG ne prouve rien, il ne doit donc pas conclure.
+
+   On interroge donc le magasin Steam lui-même en second recours. Le titre
+   trouvé est vérifié par `memeJeu()` — le même comparateur qui empêche de
+   renommer un jeu à l'aveugle : mieux vaut aucune fiche qu'une fiche fausse,
+   qui donnerait les succès d'un autre jeu.
+
+   Le résultat est retenu dans `j.steamAppId`, mais un échec ne l'est jamais :
+   il peut venir d'une coupure réseau, et le figer condamnerait le jeu à RAWG
+   pour de bon. */
+/* Note un candidat du magasin Steam. Même esprit que `scoreRawg` : on ne se
+   contente pas du premier résultat, parce que la recherche Steam remonte
+   volontiers une bande-son ou un pack de skins avant le jeu lui-même. */
+function scoreSteam(it, titre){
+  const cible = normaliseTitre(titre), nom = normaliseTitre(it && it.name || '');
+  if(!nom) return -9999;
+  let sc = 0;
+  if(nom === cible) sc += 1000;
+  else if(nom.indexOf(cible) === 0 || cible.indexOf(nom) === 0) sc += 400;
+  else if(nom.indexOf(cible) >= 0 || cible.indexOf(nom) >= 0) sc += 200;
+  // mots en commun : c'est ce qui rattrape « HD » ou « Edition » en plus
+  const A = cible.split(' ').filter(Boolean), B = nom.split(' ').filter(Boolean);
+  const communs = A.filter(w => B.indexOf(w) >= 0).length;
+  if(A.length) sc += Math.round(communs / A.length * 300);
+  // ce qui n'est pas le jeu de base n'a jamais la liste complète des succès
+  if(/\b(soundtrack|ost|dlc|pack|bundle|demo|beta|artbook|upgrade|expansion)\b/.test(nom)) sc -= 600;
+  if(it && it.type && it.type !== 'app') sc -= 300;
+  return sc;
+}
+
+/* Plusieurs façons d'écrire un même titre : Steam met « HD », coupe au
+   deux-points, garde des chiffres romains… Une seule requête ne suffit pas,
+   d'où ces variantes, essayées jusqu'à ce qu'une réponde correctement.
+   C'est ce qui évite d'avoir à saisir un numéro à la main. */
+function variantesTitreSteam(t){
+  const base = String(t || '').trim();
+  const v = [base];
+  const sansParen = base.replace(/\s*[\(\[][^\)\]]*[\)\]]/g, '').trim();
+  const avantSep  = base.split(/\s*[:\-–—]\s*/)[0].trim();
+  const sansEdi   = base.replace(/\b(hd|remaster(ed)?|definitive|goty|game of the year|deluxe|complete|ultimate|final cut)\b/gi, '')
+                        .replace(/\s{2,}/g, ' ').trim();
+  const sansPonct = base.replace(/[+&]/g, ' ').replace(/\s{2,}/g, ' ').trim();
+  [sansParen, sansEdi, sansPonct, avantSep].forEach(x => {
+    if(x && x.length > 2 && v.indexOf(x) < 0) v.push(x);
+  });
+  return v.slice(0, 4);
+}
+
+/* Trouver le numéro de fiche Steam — automatiquement, dans l'immense majorité
+   des cas. Trois recours, du plus sûr au plus large :
+     1. RAWG, quand il a renseigné la boutique (instantané, exact) ;
+     2. la recherche du magasin Steam, sur plusieurs écritures du titre ;
+     3. à défaut, le meilleur candidat s'il est nettement au-dessus des autres.
+   Le seuil du point 3 est volontairement haut : donner les succès d'un autre
+   jeu serait pire que de n'en donner aucun. */
+async function steamAppIdDuJeu(j){
+  if(j.steamAppId) return j.steamAppId;
+
+  try{
+    const id = await appIdSteam(j.rawgId);
+    if(id){ j.steamAppId = String(id); return j.steamAppId; }
+  }catch(e){ console.warn('Appid via RAWG :', e); }
+
+  let meilleur = null, meilleurSc = -9999;
+  for(const q of variantesTitreSteam(j.title)){
+    let L = [];
+    try{ L = await chercheSteam(q); }
+    catch(e){ console.warn('Recherche Steam (' + q + ') :', e); break; }
+    for(const it of L){
+      const sc = scoreSteam(it, j.title);
+      if(sc > meilleurSc){ meilleurSc = sc; meilleur = it; }
+    }
+    // un titre exact trouvé, inutile d'essayer les écritures suivantes
+    if(meilleurSc >= 1000) break;
+  }
+  if(meilleur && meilleur.id && meilleurSc >= 250){
+    j.steamAppId = String(meilleur.id);
+    console.info('Fiche Steam retenue : « ' + meilleur.name + ' » (score ' + meilleurSc + ')');
+    return j.steamAppId;
+  }
+  if(meilleur) console.info('Meilleur candidat Steam écarté : « ' + meilleur.name
+    + ' » (score ' + meilleurSc + ', seuil 250).');
+  return 0;
+}
+
+/* Quand l'automatique ne suffit pas, on ne demande pas un numéro : on montre
+   les jeux et on en clique un. Chercher soi-même un appid dans une adresse
+   Steam n'est pas un travail d'utilisateur. Le champ « numéro » reste tout
+   en bas pour le cas vraiment tordu. */
+async function choisitFicheSteam(){
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!j) return;
+  const z = $('#trpCorps');
+  if(!relaisSgdb()){
+    z.innerHTML = panneauSansRelais();
+    $('#bVersRegl').onclick = () => { ferme('mTrp'); $('#bRegl').click(); };
+    $('#bTestRelais').onclick = testeRelaisSteam;
+    return;
+  }
+  z.innerHTML = '<div class="trp-vide">Recherche dans le magasin Steam…</div>';
+  try{
+    const vus = {}, tout = [];
+    for(const q of variantesTitreSteam(j.title)){
+      let L = [];
+      try{ L = await chercheSteam(q); }catch(e){ console.warn(e); }
+      L.forEach(it => { if(it && it.id && !vus[it.id]){ vus[it.id] = 1; tout.push(it); } });
+      if(tout.length >= 12) break;
+    }
+    const tri = tout.sort((a, b) => scoreSteam(b, j.title) - scoreSteam(a, j.title)).slice(0, 12);
+    z.innerHTML = '<div class="trp-vide" style="text-align:left;padding:6px 0 0">'
+      + 'Choisis la fiche Steam de <b>' + esc(j.title) + '</b> : ses succès seront '
+      + 'chargés dans la foulée, complets et traduits.</div>'
+      + (tri.length
+          ? '<div class="rawg-liste">' + tri.map(it =>
+              '<button class="rawg-l' + (String(it.id) === String(j.steamAppId) ? ' on' : '')
+              + '" data-steamid="' + esc(String(it.id)) + '">'
+              + (it.tiny_image
+                  ? '<img src="' + esc(it.tiny_image) + '" alt="" loading="lazy">'
+                  : '<span class="rawg-v">🎮</span>')
+              + '<div><b>' + esc(it.name || '?') + '</b><span>fiche n° ' + esc(String(it.id))
+              + (String(it.id) === String(j.steamAppId) ? ' · fiche actuelle' : '')
+              + '</span></div></button>').join('') + '</div>'
+          : '<div class="trp-vide">Le magasin Steam ne remonte rien pour ce titre.</div>')
+      + '<div class="trp-vide" style="text-align:left">'
+      + '<button class="btn" id="bSteamNum">⌨️ Saisir le numéro à la main</button></div>';
+    $('#bSteamNum').onclick = () => {
+      const r = prompt('Numéro de la fiche Steam (dans l\'adresse de la page du jeu) :\n'
+        + 'store.steampowered.com/app/1245620/…  →  1245620', j.steamAppId || '');
+      if(r === null) return;
+      choisitSteamId(String(r).replace(/\D/g, ''));
+    };
+  }catch(e){
+    console.error(e);
+    z.innerHTML = '<div class="trp-vide">La recherche Steam a échoué.<br>'
+      + 'Vérifie l\'adresse du relais dans ⚙️ Réglages.</div>';
+  }
+}
+
+function choisitSteamId(id){
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!j) return;
+  j.steamAppId = String(id || '').replace(/\D/g, '');
+  sauve();
+  chargeTrophees();
+}
+
+/* Panneau affiché quand le relais manque. Ce n'est pas un message d'erreur
+   décoratif : depuis la 0.9.31, les succès viennent UNIQUEMENT de Steam, donc
+   sans relais il n'y a rien à afficher du tout. Autant dire précisément quoi
+   faire, et donner de quoi vérifier sur place. */
+function panneauSansRelais(){
+  return '<div class="trp-vide" style="text-align:left">'
+    + '<b>Les succès viennent de Steam, et Steam a besoin du relais.</b><br><br>'
+    + 'L\'adresse du relais n\'est pas enregistrée dans FGL. C\'est le champ '
+    + '<b>Relais FGL</b> de ⚙️ Réglages — avoir déployé le Worker ne suffit pas, '
+    + 'il faut aussi coller son adresse ici (elle ressemble à '
+    + '<code>https://relais-fgl.xxxx.workers.dev</code>).<br><br>'
+    + '<button class="btn pri" id="bVersRegl">⚙️ Ouvrir les Réglages</button> '
+    + '<button class="btn" id="bTestRelais">🩺 Tester le relais</button>'
+    + '<div id="trpDiag" style="margin-top:8px;opacity:.85"></div></div>';
+}
+
+/* Vérifie que le relais répond et qu'il porte bien la clé Steam. Sert de
+   diagnostic sur place : trois causes possibles, trois messages distincts. */
+async function testeRelaisSteam(){
+  const d = $('#trpDiag');
+  const r = relaisSgdb();
+  if(!r){ d.innerHTML = 'Aucune adresse enregistrée dans ⚙️ Réglages.'; return; }
+  d.innerHTML = 'Appel du relais…';
+  try{
+    const rep = await fetch(r);
+    if(!rep.ok){ d.innerHTML = '❌ Le relais répond ' + rep.status + '.'; return; }
+    const js = await rep.json();
+    d.innerHTML = (js && js.steam === 'prêt')
+      ? '✅ Le relais répond et la clé Steam est en place. Réessaie le chargement.'
+      : '⚠️ Le relais répond, mais la clé Steam manque : Cloudflare → Settings → '
+        + 'Variables and Secrets → <b>CLE_STEAM</b>, puis Deploy.';
+  }catch(e){
+    // « NetworkError » / « Failed to fetch » ne veut jamais dire que Steam est
+    // en panne : le navigateur n'a même pas pu lire la réponse. Dans ce projet
+    // la cause est presque toujours la même — un worker resté en version
+    // ancienne, qui refuse encore l'origine de la page.
+    d.innerHTML = '❌ Le navigateur n\'a pas pu lire la réponse du relais.<br>'
+      + 'Dans neuf cas sur dix, le Worker est resté sur une version antérieure : '
+      + '<b>recolle le fichier relais-fgl.js dans Cloudflare et refais Deploy</b>. '
+      + 'La version actuelle accepte toutes les origines, y compris les pages '
+      + 'ouvertes en <code>file://</code>.<br>'
+      + 'Adresse testée : <code>' + esc(r) + '</code>';
+  }
+}
+
+/* =========================================================
+   CHARGEMENT DES SUCCÈS — STEAM, ET RIEN D'AUTRE
+   =========================================================
+   RAWG a été retiré de cette chaîne en 0.9.31. Sa base de succès est une
+   copie partielle de celle de Steam : elle donnait des listes incomplètes
+   sans le dire, ce qui est pire que pas de liste du tout — on croit avoir
+   fini un jeu à 100 % alors qu'il manque la moitié des succès.
+   RAWG reste utilisé ailleurs (genres, Metacritic, identification d'un jeu),
+   simplement plus pour les succès. */
 async function chargeTrophees(){
   const j = DATA.jeux.find(x => x.id === jeuEnCours);
   if(!j) return;
-  if(!cleRawg()){ toast('Clé RAWG manquante → ⚙️ Réglages.'); return; }
 
   const z = $('#trpCorps');
   const dis = m => { z.innerHTML = '<div class="trp-vide">' + m + '</div>'; };
-  dis('Chargement des succès…');
+
+  if(!relaisSgdb()){
+    z.innerHTML = panneauSansRelais();
+    $('#bVersRegl').onclick = () => { ferme('mTrp'); $('#bRegl').click(); };
+    $('#bTestRelais').onclick = testeRelaisSteam;
+    return;
+  }
+
+  dis('Recherche de la fiche Steam…');
   try{
-    // 1. retrouver l'id RAWG si on ne l'a pas : il sert à identifier le jeu,
-    //    y compris pour remonter jusqu'à sa fiche Steam.
-    if(!j.rawgId){
-      const m = await meilleurRawg(j.title);
-      if(!m) throw new Error('introuvable');
-      j.rawgId = m.id;
-    }
-
-    const lg = langueSucces();
-    let liste = null, viaSteam = false, annonces = 0, soucisSteam = '';
-
-    // ---------------------------------------------------------------
-    // 2a. STEAM — la liste complète, quand un relais est configuré
-    // ---------------------------------------------------------------
-    if(relaisSgdb()){
-      dis('Recherche de la fiche Steam…');
-      const app = await steamAppIdDuJeu(j);
-      if(app){
-        dis('Chargement des succès depuis Steam…');
-        try{
-          const brut = await schemaSteam(app, lg);
-          if(brut){
-            // La VO n'est pas dans la même réponse : on redemande en anglais
-            // pour garder l'intitulé d'origine à côté de la traduction. C'est
-            // une requête de plus, mais le relais la met en cache une semaine.
-            const vo = {};
-            if(lg !== 'english'){
-              try{
-                (await schemaSteam(app, 'english') || []).forEach(a => { vo[a.name] = a; });
-              }catch(e){ console.warn('VO anglaise indisponible :', e); }
-            }
-            const rar = await raretesSteam(app);
-            liste = brut.map(a => {
-              const en = vo[a.name] || (lg === 'english' ? a : null);
-              const o = {
-                cle: 'sa_' + a.name,
-                name: (en && en.displayName) || a.displayName || a.name,
-                desc: (en && en.description) || '',
-                icon: a.icon || '',
-                iconGray: a.icongray || '',
-                hidden: a.hidden ? 1 : 0,
-                rarity: (rar[a.name] != null) ? rar[a.name] : null,
-                tr: {}
-              };
-              // l'éditeur n'a pas forcément traduit : on ne pose la clé que si
-              // le texte est réellement différent de la VO, sinon on croirait
-              // à une traduction là où Steam a simplement rendu l'anglais.
-              if(lg !== 'english' && a.displayName
-                 && (!en || a.displayName !== en.displayName)){
-                o.tr[lg] = { n: a.displayName, d: a.description || '' };
-              }
-              return o;
-            });
-            viaSteam = true;
-            annonces = liste.length;
-          }
-        }catch(e){
-          soucisSteam = e.message || 'erreur';
-          console.warn('Steam a refusé, repli sur RAWG :', e);
-        }
-      }
-    }
-
-    // ---------------------------------------------------------------
-    // 2b. RAWG — le repli. Sa base est recopiée de Steam, souvent
-    //     partiellement : c'est elle qui donnait des listes tronquées.
-    //     On la garde parce qu'elle marche sans rien configurer.
-    // ---------------------------------------------------------------
-    if(!liste){
-      dis('Chargement des succès (RAWG)…');
-      let url = 'https://api.rawg.io/api/games/' + j.rawgId + '/achievements?page_size=40&key='
-        + encodeURIComponent(cleRawg());
-      const trouves = [];
-      let pages = 0, cnt = null;
-      while(url && pages < 40 && trouves.length < 1500){
-        const rp = await fetch(url);
-        if(!rp.ok) throw new Error('HTTP ' + rp.status);
-        const js = await rp.json();
-        if(cnt == null && typeof js.count === 'number') cnt = js.count;
-        (js.results || []).forEach(a => trouves.push(a));
-        url = js.next || null;
-        pages++;
-        if(url) dis('Chargement des succès… ' + trouves.length + (cnt ? ' sur ' + cnt : ''));
-      }
-      if(trouves.length){
-        annonces = cnt || trouves.length;
-        liste = trouves.map(a => ({
-          cle: 'a_' + a.id,
-          name: a.name || 'Succès',
-          desc: a.description || '',
-          icon: a.image || '',
-          iconGray: '',
-          hidden: 0,
-          rarity: a.percent != null ? parseFloat(a.percent) : null,
-          tr: {}
-        }));
-      }
-    }
-
-    if(!liste || !liste.length){
-      dis('Aucune source n\'a de succès pour ce jeu.<br>'
-        + (relaisSgdb()
-            ? 'Ni Steam ni RAWG ne le référencent — c\'est le cas des exclusivités '
-              + 'PlayStation et Xbox, et des jeux qui n\'ont tout simplement pas de succès.'
-            : 'RAWG n\'en a aucun, et le relais n\'est pas configuré : <b>Steam n\'a pas été '
-              + 'interrogé</b>. C\'est lui qui a les listes complètes → ⚙️ Réglages.')
-        + '<br>Tu peux les ajouter à la main en collant l\'adresse de l\'icône '
-        + 'depuis PSNProfiles ou TrueAchievements.');
+    const app = await steamAppIdDuJeu(j);
+    if(!app){
+      z.innerHTML = '<div class="trp-vide" style="text-align:left">'
+        + '<b>Aucune fiche Steam trouvée pour « ' + esc(j.title) + ' ».</b><br><br>'
+        + 'Deux cas : soit le titre local ne ressemble pas assez au titre Steam '
+        + '(édition, sous-titre, nom japonais) — utilise alors <b>🎮 Fiche Steam</b>, '
+        + 'qui montre les jeux du magasin et te laisse cliquer le bon ;<br>'
+        + 'soit le jeu n\'est pas sur Steam du tout (exclusivité PlayStation ou '
+        + 'Xbox) — dans ce cas ses succès n\'existent nulle part d\'accessible, '
+        + 'et <b>+ À la main</b> reste la seule voie.</div>';
+      j.trpSource = ''; j.trpRaison = 'fiche Steam introuvable'; sauve();
       return;
     }
 
-    // ---------------------------------------------------------------
-    // 3. fusionner sans rien perdre : ni ce qui est coché, ni les
-    //    traductions déjà payées, ni les succès ajoutés à la main.
-    //    Les ajouts manuels étaient jusqu'ici effacés à chaque
-    //    rechargement — sur une exclusivité console, c'était tout le
-    //    travail de saisie qui partait.
-    // ---------------------------------------------------------------
+    const lg = langueSucces();
+    dis('Chargement des succès depuis Steam…');
+    const brut = await schemaSteam(app, lg);
+    if(!brut){
+      z.innerHTML = '<div class="trp-vide" style="text-align:left">'
+        + 'La fiche Steam n° ' + esc(String(app)) + ' existe, mais <b>ce jeu n\'a '
+        + 'aucun succès</b> sur Steam.<br><br>Si tu penses que ce n\'est pas la '
+        + 'bonne fiche, <b>🎮 Fiche Steam</b> permet d\'en choisir une autre.</div>';
+      j.trpSource = ''; j.trpRaison = 'ce jeu n\'a pas de succès sur Steam'; sauve();
+      return;
+    }
+
+    // La VO n'est pas dans la même réponse : on redemande en anglais pour garder
+    // l'intitulé d'origine à côté de la traduction. Le relais la met en cache
+    // une semaine, donc c'est gratuit dès le deuxième jeu.
+    const vo = {};
+    if(lg !== 'english'){
+      try{
+        (await schemaSteam(app, 'english') || []).forEach(a => { vo[a.name] = a; });
+      }catch(e){ console.warn('VO anglaise indisponible :', e); }
+    }
+    const rar = await raretesSteam(app);
+
+    // fusion : on ne perd ni ce qui est coché, ni les traductions déjà payées,
+    // ni les succès ajoutés à la main.
     const avant = {};
     j.achievements.forEach(a => {
       if(a.id)   avant[a.id] = a;
@@ -3780,68 +3886,68 @@ async function chargeTrophees(){
     });
     const manuels = j.achievements.filter(a => a.source === 'manuel');
 
-    j.achievements = liste.map(o => {
-      const v = avant[o.cle] || avant['n:' + normaliseTitre(o.name)] || null;
+    j.achievements = brut.map(a => {
+      const en = vo[a.name] || (lg === 'english' ? a : null);
+      const nomVO = (en && en.displayName) || a.displayName || a.name;
+      const cle = 'sa_' + a.name;
+      const v = avant[cle] || avant['n:' + normaliseTitre(nomVO)] || null;
+      const tr = Object.assign({}, (v && v.tr) || {});
+      // l'éditeur n'a pas forcément traduit : on ne pose la clé que si le texte
+      // diffère vraiment de la VO, sinon on croirait à une traduction là où
+      // Steam a simplement rendu l'anglais.
+      if(lg !== 'english' && a.displayName && (!en || a.displayName !== en.displayName)){
+        tr[lg] = { n: a.displayName, d: a.description || '' };
+      }
       return {
-        id: o.cle,
-        name: o.name,
-        desc: o.desc || (v && v.desc) || '',
-        // les traductions déjà obtenues restent, l'officielle du jour prime
-        tr: Object.assign({}, (v && v.tr) || {}, o.tr),
-        icon: o.icon || (v && v.icon) || '',
-        iconGray: o.iconGray || '',
-        hidden: o.hidden || 0,
-        rarity: (o.rarity != null) ? o.rarity : (v ? v.rarity : null),
-        source: viaSteam ? 'steam-api' : 'rawg',
+        id: cle,
+        name: nomVO,
+        desc: (en && en.description) || (lg === 'english' ? (a.description || '') : (v && v.desc) || ''),
+        tr: tr,
+        icon: a.icon || '',
+        iconGray: a.icongray || '',
+        hidden: a.hidden ? 1 : 0,
+        rarity: (rar[a.name] != null) ? rar[a.name] : null,
+        source: 'steam',
         unlocked: !!(v && v.unlocked),
         date: (v && v.date) || ''
       };
     });
-    // on remet les manuels que la nouvelle liste ne couvre pas
     const vus = {};
     j.achievements.forEach(a => { vus[normaliseTitre(a.name)] = 1; });
     manuels.forEach(a => { if(!vus[normaliseTitre(a.name)]) j.achievements.push(a); });
 
     j.achievementsTotal = j.achievements.length;
-    // l'avertissement « liste tronquée » ne concerne que RAWG : ce que Steam
-    // renvoie EST la liste complète, il n'y a rien à comparer.
-    j.trpAnnonces = viaSteam ? 0 : (annonces || 0);
+    j.trpAnnonces = 0;              // plus de liste tronquée : Steam donne tout
+    j.trpSource = 'steam';
+    j.trpRaison = '';
     sauve(); rendTrophees(); rendGrille();
 
-    // ---------------------------------------------------------------
-    // 4. dire franchement d'où ça vient et ce qui manque
-    // ---------------------------------------------------------------
     const n = j.achievements.length;
-    if(viaSteam){
-      const traduits = j.achievements.filter(estTraduit).length;
-      if(lg === 'english'){
-        toast(n + ' succès chargés depuis Steam — la liste complète.');
-      }else if(traduits === n){
-        toast(n + ' succès chargés depuis Steam, tous en ' + infoLangue().nom + '.');
-      }else{
-        toast(n + ' succès depuis Steam · ' + traduits + ' traduits par l\'éditeur, '
-          + 'le reste passe par la traduction automatique.');
-        traduitSucces(true);
-      }
+    const traduits = j.achievements.filter(estTraduit).length;
+    if(lg === 'english'){
+      toast(n + ' succès chargés depuis Steam — la liste complète.');
+    }else if(traduits === n){
+      toast(n + ' succès chargés depuis Steam, tous en ' + infoLangue().nom + '.');
     }else{
-      if(annonces && n < annonces){
-        toast(n + ' succès chargés sur les ' + annonces + ' annoncés par RAWG.');
-      }else if(!relaisSgdb()){
-        toast(n + ' succès chargés depuis RAWG. Un relais donnerait la liste '
-          + 'complète et traduite → ⚙️ Réglages.');
-      }else if(soucisSteam){
-        toast(n + ' succès depuis RAWG : Steam a lâché (' + soucisSteam + ').');
-      }else{
-        toast(n + ' succès chargés. Coche ceux que t\'as eus.');
-      }
+      toast(n + ' succès depuis Steam · ' + traduits + ' traduits par l\'éditeur, '
+        + 'le reste passe par la traduction automatique.');
       traduitSucces(true);
     }
   }catch(e){
     console.error(e);
-    dis('Le chargement a échoué.<br>'
-      + 'Vérifie ta clé RAWG, le relais et ta connexion, puis réessaie.');
+    const m = String(e.message || '');
+    z.innerHTML = '<div class="trp-vide" style="text-align:left">'
+      + '<b>Steam n\'a pas répondu.</b><br><br>'
+      + (/403/.test(m) ? 'Valve a refusé la clé : vérifie <b>CLE_STEAM</b> dans le Worker.'
+       : /50[0-9]/.test(m) ? 'Le relais répond ' + esc(m) + ' — souvent parce que '
+           + '<b>CLE_STEAM</b> n\'est pas enregistrée dans le Worker.'
+       : 'Détail : ' + esc(m) + '.')
+      + '<br><br><button class="btn" id="bTestRelais">🩺 Tester le relais</button>'
+      + '<div id="trpDiag" style="margin-top:8px;opacity:.85"></div></div>';
+    $('#bTestRelais').onclick = testeRelaisSteam;
   }
 }
+
 
 /* =========================================================
    TRADUCTION DES SUCCÈS
@@ -6060,8 +6166,8 @@ function init(){
     }
     const re = e.target.closest('[data-rea]');
     if(re){ reagitCourant(re.dataset.emo); return; }
-    const rg = e.target.closest('[data-rawgid]');
-    if(rg){ choisitRawg(rg.dataset.rawgid); return; }
+    const st = e.target.closest('[data-steamid]');
+    if(st){ choisitSteamId(st.dataset.steamid); return; }
     const yt = e.target.closest('[data-yt]');
     if(yt){ choisitYT(yt.dataset.yt); return; }
     const os = e.target.closest('[data-ost]');
@@ -6116,7 +6222,7 @@ function init(){
   // modale jeu
   $('#bSauve').onclick    = sauveJeu;
   $('#bSuppr').onclick    = supprimeJeu;
-  $('#bCherche').onclick  = chercheRawg;
+  $('#bCherche').onclick  = chercheJeuRawg;
   $('#bTrophees').onclick = ouvreTrophees;
   $('#bMeta').onclick = () => {
     const t = $('#jTitre').value.trim();
@@ -6159,7 +6265,7 @@ function init(){
 
   // succès
   $('#bChargeTrp').onclick = chargeTrophees;
-  $('#bAutreJeu').onclick = autreJeuRawg;
+  $('#bFicheSteam').onclick = choisitFicheSteam;
   $('#bTrpRaz').onclick = () => {
     UI.trpQ = ''; $('#trpQ').value = ''; $('#trpQ').focus(); rendTrophees();
   };
@@ -6183,7 +6289,11 @@ function init(){
     DATA.reglages.cleRawg = $('#rCle').value.trim();
     DATA.reglages.mailTrad = $('#rMailTrad').value.trim();
     DATA.reglages.cleSgdb = $('#rSgdb').value.trim();
-    DATA.reglages.proxySgdb = $('#rRelais').value.trim().replace(/\/+$/, '');
+    // on répare les saisies approximatives plutôt que d'échouer plus tard sans
+    // raison visible : schéma oublié, barre finale, espaces collés au copier
+    let adr = $('#rRelais').value.trim().replace(/\s+/g, '').replace(/\/+$/, '');
+    if(adr && !/^https?:\/\//i.test(adr)) adr = 'https://' + adr;
+    DATA.reglages.proxySgdb = adr;
     // Changer de langue ne retraduit rien tout de suite : ce serait des dizaines
     // de requêtes d'un coup. Ce qu'on a déjà s'affiche, le reste vient au
     // prochain « Charger les succès » sur chaque jeu — et on le dit.
