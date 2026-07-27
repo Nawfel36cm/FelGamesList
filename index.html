@@ -355,6 +355,31 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);
   box-shadow:0 0 0 1px color-mix(in srgb,var(--or) 25%,transparent),0 6px 22px rgba(232,176,75,.16)}
 .rar.or{color:var(--or)} .rar.ar{color:var(--argent)} .rar.br{color:var(--bronze)}
 .trp-vide{text-align:center;color:var(--muted);padding:36px 16px;font-size:14px;line-height:1.6}
+.trp-barre{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  padding:13px 22px;border-bottom:1px solid var(--line);background:var(--ink)}
+/* En-tête + barre de recherche collés en haut : sur un jeu à 100 succès, la barre
+   partait au défilement et il fallait remonter tout en haut pour s'en servir.
+   On colle le bloc entier plutôt qu'un `top` en dur, qui casserait au moindre
+   changement de hauteur d'en-tête. */
+.colle{position:sticky;top:0;z-index:3;background:var(--ink)}
+.colle .boite-hd{position:static}
+#bTrpRaz{display:none}
+/* liste des fiches RAWG candidates */
+.rawg-liste{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.rawg-l{
+  display:flex;gap:12px;align-items:center;text-align:left;width:100%;
+  background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:9px 11px;
+  transition:.14s;
+}
+.rawg-l:hover{border-color:var(--accent);transform:translateY(-2px)}
+.rawg-l.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--ink2))}
+.rawg-l img,.rawg-l .rawg-v{width:62px;height:36px;border-radius:8px;object-fit:cover;flex:0 0 62px;
+  display:grid;place-items:center;background:var(--ink3);font-size:15px}
+.rawg-l b{display:block;font-size:13.5px;font-weight:600;line-height:1.3}
+.rawg-l span{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+.trp-barre input{flex:1;min-width:170px}
+.trp-cpt{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin:-6px 0 13px}
+.trp .vo{display:block;font-size:10px;color:var(--muted);font-weight:400;margin-top:2px}
 
 /* ===== PANNEAU PROFIL ===== */
 .profil-btn{
@@ -1127,14 +1152,28 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 <!-- ===== MODALE SUCCÈS ===== -->
 <div class="modale" id="mTrp">
   <div class="boite large">
-    <div class="boite-hd">
-      <h2 id="trpTitre">Succès</h2>
-      <button class="ico" data-ferme="mTrp">✕</button>
+    <div class="colle">
+      <div class="boite-hd">
+        <h2 id="trpTitre">Succès</h2>
+        <button class="ico" data-ferme="mTrp">✕</button>
+      </div>
+      <div class="trp-barre" id="trpBarre">
+        <input id="trpQ" placeholder="🔍 Chercher un succès…" autocomplete="off">
+        <button class="ico" id="bTrpRaz" title="Effacer la recherche">✕</button>
+        <div class="t-opts" style="margin:0">
+          <button class="puce on" data-trpf="tous">Tous</button>
+          <button class="puce" data-trpf="obtenus">Obtenus</button>
+          <button class="puce" data-trpf="manquants">Manquants</button>
+        </div>
+      </div>
     </div>
     <div class="boite-bd" id="trpCorps"></div>
     <div class="boite-ft" id="trpFt">
       <button class="btn pri" id="bChargeTrp">🏆 Charger les succès</button>
+      <button class="btn" id="bTradTrp">🇫🇷 Traduire</button>
       <button class="btn" id="bAjoutTrp">+ À la main</button>
+      <div class="espace"></div>
+      <button class="btn" id="bAutreJeu" title="Si la liste est incomplète, RAWG a peut-être pointé la mauvaise fiche">🎯 Pas le bon jeu ?</button>
     </div>
   </div>
 </div>
@@ -1149,17 +1188,27 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
     <div class="boite-bd">
       <div class="champ">
         <label>Diagnostic</label>
-        <button class="btn" id="bTestSgdb">🩺 Tester les sources de jaquettes</button>
+        <button class="btn" id="bTestSgdb">🩺 Tester les sources (jaquettes + succès)</button>
         <div class="aide" id="sgdbTest">Appelle chaque source pour de vrai et dit laquelle marche,
           laquelle a lâché, et pourquoi.</div>
       </div>
       <div class="champ">
-        <label for="rProxy">Relais SteamGridDB — facultatif</label>
-        <input id="rProxy" placeholder="https://…workers.dev" autocomplete="off">
-        <div class="aide">SteamGridDB refuse les appels venant d'un site : il faut un petit relais.
-          Le fichier <b>relais-steamgriddb.js</b> livré avec FGL s'installe en 5 minutes sur
-          Cloudflare (gratuit) ; colle ensuite son adresse ici et SteamGridDB devient la source
-          n°1 des jaquettes. Sans relais, FGL utilise Steam et Wikipédia.</div>
+        <label for="rLangSucces">Langue des succès</label>
+        <select id="rLangSucces"></select>
+        <div class="aide">Avec un relais, les intitulés viennent <b>traduits par l'éditeur</b>
+          directement de Steam : c'est du vrai texte officiel, gratuit et instantané.
+          Ce que l'éditeur n'a pas traduit est complété par la traduction automatique.
+          L'intitulé d'origine reste affiché sous le titre traduit, et n'est jamais perdu.</div>
+      </div>
+      <div class="champ">
+        <label for="rRelais">Relais FGL — recommandé</label>
+        <input id="rRelais" placeholder="https://…workers.dev" autocomplete="off">
+        <div class="aide">Un petit programme gratuit posé sur Cloudflare, qui débloque
+          deux choses qu'un site sans serveur ne peut pas atteindre :
+          la <b>liste complète des succès</b> de chaque jeu, traduite (RAWG n'en a
+          souvent qu'une partie), et <b>SteamGridDB</b> comme source n°1 de jaquettes.
+          Le fichier <b>relais-fgl.js</b> s'installe en 5 minutes ; colle ensuite son
+          adresse ici. Sans lui, FGL se rabat sur RAWG, Steam et Wikipédia.</div>
       </div>
       <div class="champ">
         <label for="rSgdb">Clé SteamGridDB — pour les jeux hors Steam</label>
@@ -1181,6 +1230,14 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
         <div class="aide">FGL embarque déjà une clé, tu n'as rien à faire. Colle la tienne
           (gratuite sur <a href="https://rawg.io/apidocs" target="_blank" rel="noopener">rawg.io/apidocs</a>)
           seulement si tu préfères utiliser ton propre quota. Elle reste sur cet appareil.</div>
+      </div>
+      <div class="champ">
+        <label for="rMailTrad">E-mail pour la traduction — facultatif</label>
+        <input id="rMailTrad" type="email" placeholder="toi@exemple.fr" autocomplete="off">
+        <div class="aide">La traduction des succès passe par MyMemory, qui est gratuit mais limité
+          à environ 5 000 caractères par jour et par adresse IP. Donner une adresse e-mail fait
+          passer cette limite à 50 000, soit une dizaine de jeux par jour au lieu d'un. Elle n'est
+          envoyée qu'à ce service, et reste sur cet appareil.</div>
       </div>
       <div class="champ">
         <label>Fond animé</label>
@@ -1396,7 +1453,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 /* =========================================================
    FGL — FelGamesList
    ========================================================= */
-const VERSION = '0.9.26';
+const VERSION = '0.9.28';
 
 /* ---------- Constantes ---------- */
 const PLATEFORMES = ['PC','PlayStation','Xbox','Nintendo','Mobile','Rétro'];
@@ -1536,7 +1593,8 @@ function imgAvatar(cls, src, ini, id){
 /* ---------- État ---------- */
 const CLE = 'fgl_data_v1';
 let DATA = null;
-let UI = { statut:'', plateforme:'', tri:'recent', vue:'grille', vue2:'accueil', q:'' };
+let UI = { statut:'', plateforme:'', tri:'recent', vue:'grille', vue2:'accueil', q:'',
+           trpQ:'', trpF:'tous' };   // recherche et filtre dans la liste des succès
 let lecture = null;      // profil consulté en lecture seule (null = ma liste)
 let jeuEnCours = null;   // id du jeu ouvert dans la modale
 let noteTmp = null;      // note en cours de saisie
@@ -1544,8 +1602,10 @@ let centTmp = false;     // case « fait à 100 % » en cours de saisie
 
 function dataVierge(){
   return {
-    version: 10,
-    reglages: { cleRawg:'', cleSgdb:'', cleYT:'', cleGB:'', proxySgdb:'', theme:'sombre', palette:'auto', anim:true },
+    version: 12,
+    reglages: { cleRawg:'', cleSgdb:'', cleYT:'', cleGB:'', proxySgdb:'', mailTrad:'',
+                langueSucces:'french',
+                theme:'sombre', palette:'auto', anim:true },
     cloud: { login:'', gistData:'', gistProfil:'', auto:true, syncAt:'', majAt:'', connus:[] },
     defis: {},              // id du défi → jour du déblocage
     osts: [],               // bandes originales
@@ -1605,6 +1665,26 @@ function migre(){
     if(g.achievementsTotal == null) g.achievementsTotal = g.achievements.length;
     if(!g.addedAt) g.addedAt = isoLocal();
     if(g.cent100 === undefined) g.cent100 = false;
+    // v10 → v11 : ce que RAWG annonçait, pour pouvoir dire qu'une liste est tronquée
+    if(g.trpAnnonces == null) g.trpAnnonces = 0;
+    // v11 → v12 : l'identifiant Steam du jeu, retenu une fois pour toutes.
+    // Le retrouver coûte une requête RAWG : on ne la refait pas à chaque ouverture.
+    // '' = pas encore cherché, 0 = cherché et absent (jeu hors Steam).
+    if(g.steamAppId === undefined) g.steamAppId = '';
+    // v11 → v12 : une traduction n'est plus « le français », c'est UNE langue parmi
+    // d'autres. `nameFr` / `descFr` deviennent `tr.french`, et disparaissent : garder
+    // les deux formes en parallèle finirait par les faire diverger.
+    g.achievements.forEach(a => {
+      if(!a.tr || typeof a.tr !== 'object' || Array.isArray(a.tr)) a.tr = {};
+      if(a.nameFr || a.descFr){
+        if(!a.tr.french) a.tr.french = { n:'', d:'' };
+        if(!a.tr.french.n && a.nameFr) a.tr.french.n = a.nameFr;
+        if(!a.tr.french.d && a.descFr) a.tr.french.d = a.descFr;
+      }
+      delete a.nameFr; delete a.descFr;
+      if(a.iconGray === undefined) a.iconGray = '';
+      if(a.hidden === undefined) a.hidden = 0;
+    });
     // v8 → v9 : libellés de plateforme simplifiés. Sans cette migration, un jeu
     // gardait « PC (Steam) », absent de la nouvelle liste, et le menu déroulant
     // lui attribuait silencieusement la première plateforme venue.
@@ -1621,7 +1701,7 @@ function migre(){
   });
   if(!Array.isArray(DATA.profil.amis)) DATA.profil.amis = [];
   if(!DATA.profil.visibilite) DATA.profil.visibilite = 'public';
-  DATA.version = 10;
+  DATA.version = 12;
 }
 /* écriture brute, sans toucher aux repères de synchro */
 function ecrit(){
@@ -1888,7 +1968,7 @@ function majCent(){
   b.classList.toggle('on', centTmp);
 }
 
-function initEtoiles(){ ET_JEU.init(); ET_OST.init(); }
+function initEtoiles(){ ET_JEU.init(); ET_OST.init(); chargeCacheTrad(); }
 
 /* =========================================================
    MODALE JEU
@@ -2095,7 +2175,7 @@ async function testeSgdb(){
   if(!relaisSgdb()){
     L.push(ligneDiag('⚪', 'SteamGridDB', 'aucun relais configuré, donc pas appelée. '
       + 'Son serveur refuse les appels d\'un site (pas d\'en-tête CORS) : le fichier '
-      + '<b>relais-steamgriddb.js</b> se déploie en 5 minutes sur Cloudflare, gratuitement, '
+      + '<b>relais-fgl.js</b> se déploie en 5 minutes sur Cloudflare, gratuitement, '
       + 'et son adresse se colle ci-dessous.'));
     pousse();
   }else{
@@ -2225,8 +2305,46 @@ async function testeSgdb(){
     L.push(ligneDiag('❌', 'RAWG', 'ne répond pas. Détail dans la console (F12).'));
   }
 
-  L.push('<div class="diagL" style="opacity:.75;margin-top:8px">Les sources sont essayées dans cet ordre, '
-    + 'et la première qui donne une vraie image gagne. Il suffit donc qu\'une seule soit au vert.</div>');
+  /* 8. Succès Steam — la source complète des succès. Elle n'a rien à voir avec
+     les jaquettes, mais elle passe par le même relais : c'est ici qu'on veut
+     savoir si elle répond, plutôt que de le découvrir jeu par jeu. */
+  L.push('<div class="diagL" style="opacity:.75;margin-top:10px"><b>Succès</b></div>');
+  pousse();
+  try{
+    if(!relaisSgdb()){
+      L.push(ligneDiag('⚪', 'Succès Steam', 'aucun relais configuré, donc pas appelée. '
+        + 'C\'est la seule source qui donne la liste <b>complète</b> et traduite par '
+        + 'l\'éditeur : sans elle, les succès viennent de RAWG, dont la base est '
+        + 'souvent partielle. Le fichier <b>relais-fgl.js</b> se déploie en 5 minutes '
+        + 'sur Cloudflare, gratuitement.'));
+    }else{
+      const lg = langueSucces();
+      const brut = await schemaSteam(JEU_TEST.steam, lg);
+      if(brut && brut.length){
+        const trad = lg === 'english' ? brut.length
+          : brut.filter(a => a.displayName).length;
+        L.push(ligneDiag('✅', 'Succès Steam', 'répond : ' + brut.length + ' succès sur le jeu '
+          + 'test, ' + trad + ' avec un intitulé en ' + infoLangue(lg).nom + '. '
+          + 'C\'est la liste officielle et complète.'));
+      }else{
+        L.push(ligneDiag('⚠️', 'Succès Steam', 'le relais répond, mais rien pour le jeu test. '
+          + 'Vérifie que CLE_STEAM est bien enregistrée dans le Worker.'));
+      }
+    }
+  }catch(e){
+    console.error('Diagnostic succès Steam', e);
+    const m = String(e.message || '');
+    L.push(ligneDiag('❌', 'Succès Steam',
+      /403/.test(m) ? 'clé Steam refusée par Valve. Vérifie CLE_STEAM dans le Worker.'
+      : /50[0-9]/.test(m) ? 'le relais répond ' + m + '. Souvent : CLE_STEAM absente.'
+      : 'le relais ne répond pas (' + m + '). Vérifie son adresse, et que ton domaine '
+        + 'figure bien dans SITES_OK.'));
+  }
+  pousse();
+
+  L.push('<div class="diagL" style="opacity:.75;margin-top:8px">Pour les jaquettes, les sources sont '
+    + 'essayées dans l\'ordre et la première qui donne une vraie image gagne : il suffit qu\'une '
+    + 'seule soit au vert. Pour les succès, Steam passe devant RAWG quand il répond.</div>');
   pousse();
   b.disabled = false;
 }
@@ -2757,7 +2875,7 @@ function imageOK(url, delai){
 /* Recherche d'une jaquette chez SteamGridDB à partir du seul titre. */
 /* SteamGridDB refuse les appels directs d'un navigateur : pas d'en-tête CORS.
    La seule façon de l'utiliser depuis un site statique est un petit relais
-   (voir le fichier relais-steamgriddb.js livré à côté). Sans relais configuré,
+   (voir le fichier relais-fgl.js livré à côté). Sans relais configuré,
    on n'essaie même pas : ça échouerait à tous les coups. */
 /* Adresse du relais valable pour TOUT LE SITE. Renseignée ici, elle profite
    à chaque visiteur sans réglage. Le champ des Réglages, lui, ne vaut que
@@ -3211,12 +3329,87 @@ function couleurBadge(nom){
   return 'linear-gradient(150deg,hsl(' + h + ',52%,42%),hsl(' + ((h+42)%360) + ',58%,26%))';
 }
 
+/* Un succès traduit garde son intitulé d'origine : on affiche le français s'il
+   existe, l'anglais sinon, et la recherche fouille les deux. */
+/* =========================================================
+   LANGUE DES SUCCÈS
+   =========================================================
+   Steam publie les succès dans la langue de son choix via le paramètre `l`,
+   avec la traduction faite PAR L'ÉDITEUR quand elle existe. C'est infiniment
+   meilleur que de la traduction machine, et ça ne coûte aucun quota.
+   `mm` est le code équivalent chez MyMemory, qui reste le filet pour les jeux
+   que Steam ne connaît pas (exclusivités console) ou que l'éditeur n'a pas
+   traduits. Une langue sans `mm` ne peut pas être obtenue par traduction
+   machine — c'est le cas de l'anglais, qui est déjà la version d'origine. */
+const LANGUES_SUCCES = [
+  { code:'french',     nom:'Français',        mm:'fr' },
+  { code:'english',    nom:'English (VO)',    mm:''   },
+  { code:'spanish',    nom:'Español',         mm:'es' },
+  { code:'german',     nom:'Deutsch',         mm:'de' },
+  { code:'italian',    nom:'Italiano',        mm:'it' },
+  { code:'portuguese', nom:'Português',       mm:'pt' },
+  { code:'brazilian',  nom:'Português (BR)',  mm:'pt' },
+  { code:'dutch',      nom:'Nederlands',      mm:'nl' },
+  { code:'polish',     nom:'Polski',          mm:'pl' },
+  { code:'russian',    nom:'Русский',         mm:'ru' },
+  { code:'turkish',    nom:'Türkçe',          mm:'tr' },
+  { code:'japanese',   nom:'日本語',            mm:'ja' },
+  { code:'koreana',    nom:'한국어',            mm:'ko' },
+  { code:'schinese',   nom:'简体中文',          mm:'zh' }
+];
+/* Toujours passer par ici : une langue inconnue (réglage importé d'une version
+   future, valeur bricolée à la main) doit retomber sur le français, jamais
+   laisser l'affichage vide. */
+function langueSucces(){
+  const l = (DATA.reglages && DATA.reglages.langueSucces) || 'french';
+  return LANGUES_SUCCES.some(x => x.code === l) ? l : 'french';
+}
+function infoLangue(code){
+  const c = code || langueSucces();
+  return LANGUES_SUCCES.find(x => x.code === c) || LANGUES_SUCCES[0];
+}
+
+/* L'anglais reste TOUJOURS dans `name` / `desc` : c'est la version d'origine,
+   on ne l'écrase jamais. Les traductions vivent à côté, dans `tr[langue]`.
+   Sans traduction disponible, on retombe sur l'anglais plutôt que sur du vide. */
+function nomSucces(a){
+  if(!a) return 'Succès';
+  const l = langueSucces();
+  if(l !== 'english'){
+    const t = a.tr && a.tr[l];
+    if(t && t.n) return t.n;
+  }
+  return a.name || 'Succès';
+}
+function descSucces(a){
+  if(!a) return '';
+  const l = langueSucces();
+  if(l !== 'english'){
+    const t = a.tr && a.tr[l];
+    if(t && t.d) return t.d;
+  }
+  return a.desc || '';
+}
+/* Vrai si ce succès est bien affiché dans la langue demandée. Sert à compter
+   ce qu'il reste à traduire, et à afficher la VO en sous-titre. */
+function estTraduit(a){
+  const l = langueSucces();
+  if(l === 'english') return true;
+  const t = a && a.tr && a.tr[l];
+  return !!(t && t.n);
+}
+
 function ouvreTrophees(){
   $('#trpFt').style.display = '';   // mes succès : les boutons reviennent
   if(!jeuEnCours) return;
   const j = DATA.jeux.find(x => x.id === jeuEnCours);
   if(!j) return;
   $('#trpTitre').textContent = '🏆 ' + j.title;
+  // on repart d'une recherche vide, sinon un filtre oublié fait croire à des succès disparus
+  UI.trpQ = ''; UI.trpF = 'tous';
+  $('#trpQ').value = '';
+  document.querySelectorAll('[data-trpf]').forEach(b =>
+    b.classList.toggle('on', b.dataset.trpf === 'tous'));
   rendTrophees();
   ouvre('mTrp');
 }
@@ -3226,6 +3419,9 @@ function rendTrophees(){
   if(!j) return;
   const z = $('#trpCorps');
   const L = j.achievements;
+  majBoutonTrad();
+  $('#trpBarre').style.display = L.length ? '' : 'none';
+  $('#bTrpRaz').style.display = UI.trpQ ? '' : 'none';
 
   if(!L.length){
     z.innerHTML = '<div class="trp-vide">Aucun succès chargé pour ce jeu.<br>'
@@ -3235,11 +3431,30 @@ function rendTrophees(){
   }
   const obt = L.filter(a => a.unlocked).length;
   const tot = j.achievementsTotal || L.length;
-  const pct = tot ? Math.round(obt / tot * 100) : 0;
+
+  // recherche insensible aux accents et à la casse, sur le titre ET la description,
+  // en français comme en anglais — on peut avoir mémorisé l'un ou l'autre
+  const q = normaliseTitre(UI.trpQ || '');
+  const vus = L.filter(a => {
+    if(UI.trpF === 'obtenus'   && !a.unlocked) return false;
+    if(UI.trpF === 'manquants' &&  a.unlocked) return false;
+    if(!q) return true;
+    const foin = normaliseTitre([nomSucces(a), descSucces(a), a.name, a.desc].join(' '));
+    return foin.indexOf(q) >= 0;
+  });
 
   let h = htmlJauge(obt, tot);
-
-  h += htmlTrophees(L, tot, true);
+  if(q || UI.trpF !== 'tous'){
+    h += '<div class="trp-cpt">' + vus.length + ' succès sur ' + L.length + '</div>';
+  }
+  // Dire quand la liste a l'air tronquée, plutôt que de laisser croire qu'elle est entière
+  if(j.trpAnnonces && L.length < j.trpAnnonces){
+    h += '<div class="trp-cpt">RAWG annonçait ' + j.trpAnnonces + ' succès et n\'en a donné que '
+      + L.length + '. « 🎯 Pas le bon jeu ? » permet de viser une autre fiche.</div>';
+  }
+  h += vus.length
+    ? htmlTrophees(vus, tot, true)
+    : '<div class="trp-vide">Aucun succès ne correspond à cette recherche.</div>';
   z.innerHTML = h;
 }
 
@@ -3249,18 +3464,24 @@ function htmlTrophees(L, tot, interactif){
   let h = '<div class="trp-grille">';
   L.forEach(a => {
     const r = classeRarete(a.rarity);
-    const img = a.icon
-      ? '<img src="' + esc(a.icon) + '" alt="" loading="lazy">'
+    // Steam fournit une icône grisée pour les succès non obtenus : autant s'en
+    // servir quand on l'a, c'est le rendu officiel. Sinon le CSS grise l'icône.
+    const src = (!a.unlocked && a.iconGray) ? a.iconGray : a.icon;
+    const img = src
+      ? '<img src="' + esc(src) + '" alt="" loading="lazy">'
       : '<div class="gen" style="background:' + couleurBadge(a.name || '?') + '">🏆</div>';
     const bal = interactif ? 'button' : 'div';
     const att = interactif ? ' data-trp="' + esc(a.id) + '"' : '';
+    const nom = nomSucces(a), dsc = descSucces(a);
     h += '<' + bal + ' class="trp ' + (a.unlocked ? 'on' : 'off') + '"' + att
-      + ' title="' + esc(a.name) + (a.desc ? ' — ' + esc(a.desc) : '') + '">'
+      + ' title="' + esc(nom) + (dsc ? ' — ' + esc(dsc) : '') + '">'
       + '<div class="img">' + img
       + (r.t ? '<span class="rar ' + r.c + '">' + r.t + '</span>' : '')
       + (a.unlocked && a.date ? '<span class="dt">' + esc(a.date.slice(8,10) + '/' + a.date.slice(5,7) + '/' + a.date.slice(0,4)) + '</span>' : '')
       + (!a.unlocked ? '<span class="cad">🔒</span>' : '')
-      + '</div><div class="nom">' + esc(a.name) + '</div></' + bal + '>';
+      + '</div><div class="nom">' + esc(nom)
+      + (a.name && nom !== a.name ? '<span class="vo">' + esc(a.name) + '</span>' : '')
+      + '</div></' + bal + '>';
   });
   return h + '</div>';
 }
@@ -3274,63 +3495,514 @@ function htmlJauge(obt, tot){
     + (obt === tot && tot > 0 ? ' 💯' : '') + '</div></div>';
 }
 
+/* RAWG cherche de façon floue : « Persona 5 » peut ramener « Persona 5 Strikers »
+   en tête. Prendre bêtement le premier résultat, c'est parfois pointer une extension,
+   une édition ou une compilation qui n'a qu'une partie des succès — et c'est la
+   première cause de listes à moitié vides. On note donc les candidats. */
+async function chercheRawg(titre, combien){
+  const u = 'https://api.rawg.io/api/games?key=' + encodeURIComponent(cleRawg())
+    + '&search=' + encodeURIComponent(titre) + '&search_precise=true'
+    + '&page_size=' + (combien || 10);
+  const r = await fetch(u);
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  const js = await r.json();
+  return js.results || [];
+}
+
+function scoreRawg(r, titre){
+  const cible = normaliseTitre(titre), nom = normaliseTitre(r && r.name || '');
+  let s = 0;
+  if(nom === cible) s += 1000;                      // titre exact : rien ne bat ça
+  else if(nom.indexOf(cible) === 0) s += 400;       // « … » ajouté derrière
+  else if(nom.indexOf(cible) >= 0) s += 200;
+  // à titre équivalent, la fiche la plus suivie est la bonne dans presque tous les cas
+  s += Math.min(120, Math.log10(1 + (r && r.added || 0)) * 40);
+  if((r && r.achievements_count || 0) > 0) s += 60;
+  // une extension ou une bande-son n'a jamais la liste complète du jeu de base
+  if(/\b(dlc|expansion|season pass|bundle|soundtrack|demo|beta|pack)\b/.test(nom)) s -= 500;
+  return s;
+}
+
+async function meilleurRawg(titre){
+  const L = await chercheRawg(titre, 10);
+  if(!L.length) return null;
+  return L.slice().sort((a, b) => scoreRawg(b, titre) - scoreRawg(a, titre))[0];
+}
+
+/* Quand la liste reste incomplète, c'est presque toujours la fiche qui est mauvaise.
+   On montre les candidats plutôt que de laisser l'utilisateur deviner. */
+async function autreJeuRawg(){
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!j) return;
+  if(!cleRawg()){ toast('Clé RAWG manquante → ⚙️ Réglages.'); return; }
+  const z = $('#trpCorps');
+  z.innerHTML = '<div class="trp-vide">Recherche des fiches RAWG…</div>';
+  try{
+    const L = await chercheRawg(j.title, 10);
+    if(!L.length){
+      z.innerHTML = '<div class="trp-vide">Aucune fiche RAWG pour ce titre.</div>';
+      return;
+    }
+    const tri = L.slice().sort((a, b) => scoreRawg(b, j.title) - scoreRawg(a, j.title));
+    z.innerHTML = '<div class="trp-vide" style="text-align:left;padding:6px 0 0">'
+      + 'Une liste incomplète vient presque toujours d\'une fiche mal choisie : RAWG cherche '
+      + 'de façon floue et peut avoir pointé une extension ou une édition. Choisis la bonne, '
+      + 'les succès seront rechargés.</div>'
+      + '<div class="rawg-liste">' + tri.map(r =>
+          '<button class="rawg-l' + (r.id === j.rawgId ? ' on' : '') + '" data-rawgid="' + r.id + '">'
+          + (r.background_image
+              ? '<img src="' + esc(r.background_image) + '" alt="" loading="lazy">'
+              : '<span class="rawg-v">🎮</span>')
+          + '<div><b>' + esc(r.name || '?') + '</b><span>'
+          + esc(String(r.released || '').slice(0, 4) || 'année inconnue')
+          + (r.achievements_count ? ' · ' + r.achievements_count + ' succès' : '')
+          + (r.id === j.rawgId ? ' · fiche actuelle' : '') + '</span></div></button>').join('')
+      + '</div>';
+  }catch(e){
+    console.error(e);
+    z.innerHTML = '<div class="trp-vide">La recherche a échoué.<br>Vérifie ta clé RAWG et ta connexion.</div>';
+  }
+}
+
+function choisitRawg(id){
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!j) return;
+  j.rawgId = +id;
+  j.trpAnnonces = 0;
+  sauve();
+  chargeTrophees();
+}
+
+/* =========================================================
+   SUCCÈS VIA STEAM  —  la source complète
+   =========================================================
+   Valve publie le schéma intégral de chaque jeu : tous les succès, leurs
+   icônes officielles, et les intitulés TRADUITS PAR L'ÉDITEUR quand il a fait
+   le travail. C'est exactement la base que RAWG recopie — mal, et rarement
+   remise à jour. C'est donc la source de vérité, et la seule façon d'avoir
+   « tous les succès » au sens strict.
+
+   Elle exige un relais, pour deux raisons qui se cumulent :
+   - `api.steampowered.com` ne renvoie aucun en-tête CORS (même mur que
+     SteamGridDB : un navigateur ne peut pas lire sa réponse) ;
+   - la clé Steam est liée à un compte, elle n'a rien à faire dans un fichier
+     public. Elle vit côté relais, dans un secret Cloudflare.
+   Sans relais configuré, on n'essaie même pas : ça échouerait à tous les coups,
+   exactement comme pour les jaquettes SteamGridDB. */
+function urlSteamRelais(params){
+  const r = relaisSgdb();
+  return r ? r + (r.indexOf('?') >= 0 ? '&' : '?') + params : '';
+}
+
+/* Liste brute des succès d'un jeu, dans une langue Steam donnée.
+   Renvoie null si le relais n'est pas là ou si le jeu n'a aucun succès. */
+async function schemaSteam(appid, langue){
+  const u = urlSteamRelais('steam=schema&appid=' + encodeURIComponent(appid)
+          + '&l=' + encodeURIComponent(langue));
+  if(!u) return null;
+  const r = await fetch(u);
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  const js = await r.json();
+  const L = js && js.game && js.game.availableGameStats
+         && js.game.availableGameStats.achievements;
+  return Array.isArray(L) && L.length ? L : null;
+}
+
+/* Rareté de chaque succès : le pourcentage de joueurs qui l'ont obtenu.
+   Confort, pas nécessité — un échec ici ne doit jamais empêcher le chargement,
+   d'où le try/catch qui rend un objet vide plutôt que de propager l'erreur. */
+async function raretesSteam(appid){
+  try{
+    const u = urlSteamRelais('steam=percent&appid=' + encodeURIComponent(appid));
+    if(!u) return {};
+    const r = await fetch(u);
+    if(!r.ok) return {};
+    const js = await r.json();
+    const L = (js && js.achievementpercentages
+            && js.achievementpercentages.achievements) || [];
+    const m = {};
+    L.forEach(x => { if(x && x.name) m[x.name] = parseFloat(x.percent); });
+    return m;
+  }catch(e){
+    console.warn('Raretés Steam indisponibles (sans conséquence) :', e);
+    return {};
+  }
+}
+
+/* L'identifiant Steam se paie une requête RAWG. On le retient donc sur le jeu :
+   '' = jamais cherché, 0 = cherché et absent (jeu qui n'est pas sur Steam),
+   sinon l'appid. Sans ce cache, chaque ouverture de fiche relancerait la
+   recherche — et la deuxième donnerait le même résultat que la première. */
+async function steamAppIdDuJeu(j){
+  if(j.steamAppId === 0) return 0;
+  if(j.steamAppId) return j.steamAppId;
+  try{
+    const id = await appIdSteam(j.rawgId);
+    j.steamAppId = id ? String(id) : 0;
+  }catch(e){
+    console.warn('Identifiant Steam introuvable :', e);
+    return 0;                       // on ne fige pas : ça peut être un souci réseau
+  }
+  return j.steamAppId;
+}
+
 async function chargeTrophees(){
   const j = DATA.jeux.find(x => x.id === jeuEnCours);
   if(!j) return;
   if(!cleRawg()){ toast('Clé RAWG manquante → ⚙️ Réglages.'); return; }
 
   const z = $('#trpCorps');
-  z.innerHTML = '<div class="trp-vide">Chargement des succès…</div>';
+  const dis = m => { z.innerHTML = '<div class="trp-vide">' + m + '</div>'; };
+  dis('Chargement des succès…');
   try{
-    // 1. retrouver l'id RAWG si on ne l'a pas
+    // 1. retrouver l'id RAWG si on ne l'a pas : il sert à identifier le jeu,
+    //    y compris pour remonter jusqu'à sa fiche Steam.
     if(!j.rawgId){
-      const u = 'https://api.rawg.io/api/games?key=' + encodeURIComponent(cleRawg())
-        + '&search=' + encodeURIComponent(j.title) + '&page_size=1';
-      const rp = await fetch(u);
-      if(!rp.ok) throw new Error('HTTP ' + rp.status);
-      const js = await rp.json();
-      if(!js.results || !js.results[0]) throw new Error('introuvable');
-      j.rawgId = js.results[0].id;
+      const m = await meilleurRawg(j.title);
+      if(!m) throw new Error('introuvable');
+      j.rawgId = m.id;
     }
-    // 2. récupérer les succès (plusieurs pages)
-    let url = 'https://api.rawg.io/api/games/' + j.rawgId + '/achievements?key=' + encodeURIComponent(cleRawg());
-    const trouves = [];
-    let pages = 0;
-    while(url && pages < 6 && trouves.length < 300){
-      const rep = await fetch(url);
-      if(!rep.ok) throw new Error('HTTP ' + rep.status);
-      const js = await rep.json();
-      (js.results || []).forEach(a => trouves.push(a));
-      url = js.next || null;
-      pages++;
+
+    const lg = langueSucces();
+    let liste = null, viaSteam = false, annonces = 0, soucisSteam = '';
+
+    // ---------------------------------------------------------------
+    // 2a. STEAM — la liste complète, quand un relais est configuré
+    // ---------------------------------------------------------------
+    if(relaisSgdb()){
+      dis('Recherche de la fiche Steam…');
+      const app = await steamAppIdDuJeu(j);
+      if(app){
+        dis('Chargement des succès depuis Steam…');
+        try{
+          const brut = await schemaSteam(app, lg);
+          if(brut){
+            // La VO n'est pas dans la même réponse : on redemande en anglais
+            // pour garder l'intitulé d'origine à côté de la traduction. C'est
+            // une requête de plus, mais le relais la met en cache une semaine.
+            const vo = {};
+            if(lg !== 'english'){
+              try{
+                (await schemaSteam(app, 'english') || []).forEach(a => { vo[a.name] = a; });
+              }catch(e){ console.warn('VO anglaise indisponible :', e); }
+            }
+            const rar = await raretesSteam(app);
+            liste = brut.map(a => {
+              const en = vo[a.name] || (lg === 'english' ? a : null);
+              const o = {
+                cle: 'sa_' + a.name,
+                name: (en && en.displayName) || a.displayName || a.name,
+                desc: (en && en.description) || '',
+                icon: a.icon || '',
+                iconGray: a.icongray || '',
+                hidden: a.hidden ? 1 : 0,
+                rarity: (rar[a.name] != null) ? rar[a.name] : null,
+                tr: {}
+              };
+              // l'éditeur n'a pas forcément traduit : on ne pose la clé que si
+              // le texte est réellement différent de la VO, sinon on croirait
+              // à une traduction là où Steam a simplement rendu l'anglais.
+              if(lg !== 'english' && a.displayName
+                 && (!en || a.displayName !== en.displayName)){
+                o.tr[lg] = { n: a.displayName, d: a.description || '' };
+              }
+              return o;
+            });
+            viaSteam = true;
+            annonces = liste.length;
+          }
+        }catch(e){
+          soucisSteam = e.message || 'erreur';
+          console.warn('Steam a refusé, repli sur RAWG :', e);
+        }
+      }
     }
-    if(!trouves.length){
-      z.innerHTML = '<div class="trp-vide">La base RAWG n\'a aucun succès pour ce jeu.<br>'
-        + 'C\'est fréquent pour les exclusivités PlayStation et Xbox : ajoute-les à la main '
-        + 'en collant l\'adresse de l\'icône depuis PSNProfiles ou TrueAchievements.</div>';
+
+    // ---------------------------------------------------------------
+    // 2b. RAWG — le repli. Sa base est recopiée de Steam, souvent
+    //     partiellement : c'est elle qui donnait des listes tronquées.
+    //     On la garde parce qu'elle marche sans rien configurer.
+    // ---------------------------------------------------------------
+    if(!liste){
+      dis('Chargement des succès (RAWG)…');
+      let url = 'https://api.rawg.io/api/games/' + j.rawgId + '/achievements?page_size=40&key='
+        + encodeURIComponent(cleRawg());
+      const trouves = [];
+      let pages = 0, cnt = null;
+      while(url && pages < 40 && trouves.length < 1500){
+        const rp = await fetch(url);
+        if(!rp.ok) throw new Error('HTTP ' + rp.status);
+        const js = await rp.json();
+        if(cnt == null && typeof js.count === 'number') cnt = js.count;
+        (js.results || []).forEach(a => trouves.push(a));
+        url = js.next || null;
+        pages++;
+        if(url) dis('Chargement des succès… ' + trouves.length + (cnt ? ' sur ' + cnt : ''));
+      }
+      if(trouves.length){
+        annonces = cnt || trouves.length;
+        liste = trouves.map(a => ({
+          cle: 'a_' + a.id,
+          name: a.name || 'Succès',
+          desc: a.description || '',
+          icon: a.image || '',
+          iconGray: '',
+          hidden: 0,
+          rarity: a.percent != null ? parseFloat(a.percent) : null,
+          tr: {}
+        }));
+      }
+    }
+
+    if(!liste || !liste.length){
+      dis('Aucune source n\'a de succès pour ce jeu.<br>'
+        + (relaisSgdb()
+            ? 'Ni Steam ni RAWG ne le référencent — c\'est le cas des exclusivités '
+              + 'PlayStation et Xbox, et des jeux qui n\'ont tout simplement pas de succès.'
+            : 'RAWG n\'en a aucun, et le relais n\'est pas configuré : <b>Steam n\'a pas été '
+              + 'interrogé</b>. C\'est lui qui a les listes complètes → ⚙️ Réglages.')
+        + '<br>Tu peux les ajouter à la main en collant l\'adresse de l\'icône '
+        + 'depuis PSNProfiles ou TrueAchievements.');
       return;
     }
-    // 3. fusionner sans perdre ce qui est déjà débloqué
-    const dejaOk = {};
-    j.achievements.forEach(a => { if(a.unlocked) dejaOk[a.name] = a.date || ''; });
-    j.achievements = trouves.map(a => ({
-      id: 'a_' + a.id,
-      name: a.name || 'Succès',
-      desc: a.description || '',
-      icon: a.image || '',
-      rarity: a.percent != null ? parseFloat(a.percent) : null,
-      source: 'steam',
-      unlocked: Object.prototype.hasOwnProperty.call(dejaOk, a.name),
-      date: dejaOk[a.name] || ''
-    }));
+
+    // ---------------------------------------------------------------
+    // 3. fusionner sans rien perdre : ni ce qui est coché, ni les
+    //    traductions déjà payées, ni les succès ajoutés à la main.
+    //    Les ajouts manuels étaient jusqu'ici effacés à chaque
+    //    rechargement — sur une exclusivité console, c'était tout le
+    //    travail de saisie qui partait.
+    // ---------------------------------------------------------------
+    const avant = {};
+    j.achievements.forEach(a => {
+      if(a.id)   avant[a.id] = a;
+      if(a.name) avant['n:' + normaliseTitre(a.name)] = a;
+    });
+    const manuels = j.achievements.filter(a => a.source === 'manuel');
+
+    j.achievements = liste.map(o => {
+      const v = avant[o.cle] || avant['n:' + normaliseTitre(o.name)] || null;
+      return {
+        id: o.cle,
+        name: o.name,
+        desc: o.desc || (v && v.desc) || '',
+        // les traductions déjà obtenues restent, l'officielle du jour prime
+        tr: Object.assign({}, (v && v.tr) || {}, o.tr),
+        icon: o.icon || (v && v.icon) || '',
+        iconGray: o.iconGray || '',
+        hidden: o.hidden || 0,
+        rarity: (o.rarity != null) ? o.rarity : (v ? v.rarity : null),
+        source: viaSteam ? 'steam-api' : 'rawg',
+        unlocked: !!(v && v.unlocked),
+        date: (v && v.date) || ''
+      };
+    });
+    // on remet les manuels que la nouvelle liste ne couvre pas
+    const vus = {};
+    j.achievements.forEach(a => { vus[normaliseTitre(a.name)] = 1; });
+    manuels.forEach(a => { if(!vus[normaliseTitre(a.name)]) j.achievements.push(a); });
+
     j.achievementsTotal = j.achievements.length;
+    // l'avertissement « liste tronquée » ne concerne que RAWG : ce que Steam
+    // renvoie EST la liste complète, il n'y a rien à comparer.
+    j.trpAnnonces = viaSteam ? 0 : (annonces || 0);
     sauve(); rendTrophees(); rendGrille();
-    toast(trouves.length + ' succès chargés. Coche ceux que t\'as eus.');
+
+    // ---------------------------------------------------------------
+    // 4. dire franchement d'où ça vient et ce qui manque
+    // ---------------------------------------------------------------
+    const n = j.achievements.length;
+    if(viaSteam){
+      const traduits = j.achievements.filter(estTraduit).length;
+      if(lg === 'english'){
+        toast(n + ' succès chargés depuis Steam — la liste complète.');
+      }else if(traduits === n){
+        toast(n + ' succès chargés depuis Steam, tous en ' + infoLangue().nom + '.');
+      }else{
+        toast(n + ' succès depuis Steam · ' + traduits + ' traduits par l\'éditeur, '
+          + 'le reste passe par la traduction automatique.');
+        traduitSucces(true);
+      }
+    }else{
+      if(annonces && n < annonces){
+        toast(n + ' succès chargés sur les ' + annonces + ' annoncés par RAWG.');
+      }else if(!relaisSgdb()){
+        toast(n + ' succès chargés depuis RAWG. Un relais donnerait la liste '
+          + 'complète et traduite → ⚙️ Réglages.');
+      }else if(soucisSteam){
+        toast(n + ' succès depuis RAWG : Steam a lâché (' + soucisSteam + ').');
+      }else{
+        toast(n + ' succès chargés. Coche ceux que t\'as eus.');
+      }
+      traduitSucces(true);
+    }
   }catch(e){
     console.error(e);
-    z.innerHTML = '<div class="trp-vide">Le chargement a échoué.<br>'
-      + 'Vérifie ta clé RAWG et ta connexion, puis réessaie.</div>';
+    dis('Le chargement a échoué.<br>'
+      + 'Vérifie ta clé RAWG, le relais et ta connexion, puis réessaie.');
   }
+}
+
+/* =========================================================
+   TRADUCTION DES SUCCÈS
+   =========================================================
+   RAWG sert les succès tels que Steam les publie : en anglais, sans version
+   localisée. Il n'existe pas de source française toute faite, et le site est
+   hébergé sur GitHub Pages, donc sans serveur pour traduire.
+   On passe donc par MyMemory : gratuit, sans clé, et il accepte les appels
+   depuis un navigateur. Sa limite est basse (~5 000 caractères par jour, dix
+   fois plus en donnant une adresse e-mail dans les Réglages), d'où le choix de
+   traduire à la demande, jeu par jeu, et de garder le résultat.
+   L'anglais n'est jamais écrasé : il reste dans `name` / `desc`, et les
+   traductions vivent à côté, dans `tr[langue]`. */
+const CLE_TRAD = 'fgl_trad_v1';
+let cacheTrad = new Map();
+let tradSauveT = null;
+
+/* Le cache vit dans sa PROPRE clé localStorage, jamais dans `fgl_data_v1` :
+   il n'a rien à faire dans le gist, il grossirait la synchro pour rien. Il est
+   partagé par tous les jeux — « Complete the game » n'est traduit qu'une fois
+   dans toute la collection, ce qui économise beaucoup de quota. */
+function chargeCacheTrad(){
+  try{ cacheTrad = new Map(Object.entries(JSON.parse(localStorage.getItem(CLE_TRAD) || '{}'))); }
+  catch(e){ cacheTrad = new Map(); }
+}
+function sauveCacheTrad(){
+  clearTimeout(tradSauveT);
+  tradSauveT = setTimeout(() => {
+    try{
+      let e = [...cacheTrad.entries()];
+      if(e.length > 4000) e = e.slice(e.length - 4000);   // plafond : pas de croissance sans fin
+      localStorage.setItem(CLE_TRAD, JSON.stringify(Object.fromEntries(e)));
+    }catch(err){ console.warn('cache de traduction non enregistré', err); }
+  }, 800);
+}
+
+/* Le cache est désormais indexé PAR LANGUE : « Complete the game » n'a pas la
+   même traduction en français et en allemand. Sans le préfixe, changer de
+   langue aurait resservi les traductions de la précédente — un bug silencieux
+   et très difficile à comprendre pour qui l'aurait rencontré. */
+async function traduitVers(txt, mm){
+  const t = String(txt || '').trim();
+  if(!t || !mm) return '';
+  const cle = mm + '|' + t;
+  if(cacheTrad.has(cle)) return cacheTrad.get(cle);
+  let u = 'https://api.mymemory.translated.net/get?langpair=en|' + encodeURIComponent(mm)
+        + '&q=' + encodeURIComponent(t.slice(0, 480));
+  const mail = (DATA.reglages.mailTrad || '').trim();
+  if(mail) u += '&de=' + encodeURIComponent(mail);
+  const r = await fetch(u);
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  const js = await r.json();
+  // quota épuisé : MyMemory répond 200 mais glisse son avertissement dans le texte
+  if(js.responseStatus && +js.responseStatus !== 200) throw new Error('quota');
+  const out = String((js.responseData && js.responseData.translatedText) || '');
+  if(!out || /MYMEMORY WARNING|QUERY LENGTH LIMIT/i.test(out)) throw new Error('quota');
+  cacheTrad.set(cle, out);
+  sauveCacheTrad();
+  return out;
+}
+
+function majBoutonTrad(){
+  const b = $('#bTradTrp');
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  const L = (j && j.achievements) || [];
+  const lg = infoLangue();
+  // En anglais il n'y a rien à traduire : la VO est déjà ce qui s'affiche.
+  // Le bouton disparaît plutôt que de proposer une action sans effet.
+  b.style.display = (L.length && lg.code !== 'english') ? '' : 'none';
+  if(!L.length || lg.code === 'english') return;
+  const faits = L.filter(estTraduit).length;
+  const tout = faits === L.length;
+  b.dataset.mode = tout ? 'vo' : 'trad';
+  b.textContent = tout
+    ? '↩︎ Retirer la traduction'
+    : '🌍 Traduire le reste (' + (L.length - faits) + ')';
+  b.title = tout
+    ? 'Efface les traductions ' + lg.nom + ' et réaffiche les intitulés d\'origine.'
+    : 'Complète en ' + lg.nom + ' ce que l\'éditeur n\'a pas traduit, via MyMemory.';
+}
+
+/* N'efface QUE la langue affichée : celui qui a payé du quota pour l'espagnol
+   ne doit pas le perdre en faisant un aller-retour sur le français. */
+function enleveTrad(){
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!j) return;
+  const lg = langueSucces();
+  if(lg === 'english') return;
+  j.achievements.forEach(a => { if(a.tr) delete a.tr[lg]; });
+  sauve(); rendTrophees(); rendGrille();
+  toast('Intitulés d\'origine rétablis.');
+}
+
+/* Deux passes, et c'est tout l'enjeu : le quota MyMemory se compte en caractères,
+   et les descriptions en dévorent les trois quarts. En traduisant TOUS les titres
+   avant la première description, un même quota couvre trois ou quatre jeux au lieu
+   d'un seul — c'est la raison pour laquelle presque tout restait en anglais.
+   `titresSeuls` sert à l'appel automatique qui suit le chargement des succès. */
+async function traduitSucces(titresSeuls){
+  const j = DATA.jeux.find(x => x.id === jeuEnCours);
+  if(!j || !j.achievements.length){
+    if(!titresSeuls) toast('Charge d\'abord les succès.');
+    return;
+  }
+  const lg = langueSucces();
+  if(lg === 'english'){
+    if(!titresSeuls) toast('L\'anglais est la version d\'origine : rien à traduire.');
+    return;
+  }
+  const mm = infoLangue(lg).mm;
+  if(!mm){
+    if(!titresSeuls) toast('Pas de traduction automatique pour cette langue.');
+    return;
+  }
+  const pose = (a, champ, val) => {
+    if(!a.tr) a.tr = {};
+    if(!a.tr[lg]) a.tr[lg] = { n:'', d:'' };
+    a.tr[lg][champ] = val;
+  };
+  const manqueN = a => !(a.tr && a.tr[lg] && a.tr[lg].n);
+  const manqueD = a => !(a.tr && a.tr[lg] && a.tr[lg].d);
+  const taches = j.achievements.filter(a => a.name && manqueN(a))
+      .map(a => ({ a:a, champ:'n', src:a.name }))
+    .concat(titresSeuls ? [] : j.achievements.filter(a => a.desc && manqueD(a))
+      .map(a => ({ a:a, champ:'d', src:a.desc })));
+  if(!taches.length){
+    if(!titresSeuls) toast('Tout est déjà en ' + infoLangue(lg).nom + '.');
+    return;
+  }
+
+  const b = $('#bTradTrp');
+  b.disabled = true;
+  let faits = 0, ratesDeSuite = 0, souci = '';
+  try{
+    for(const t of taches){
+      b.textContent = '⏳ ' + (faits + 1) + ' / ' + taches.length;
+      try{
+        const v = await traduitVers(t.src, mm);
+        if(v) pose(t.a, t.champ, v);
+        faits++; ratesDeSuite = 0;
+      }catch(e){
+        souci = e.message || 'erreur';
+        ratesDeSuite++;
+        // le quota est définitif pour la journée : inutile d'insister
+        if(/quota/i.test(souci) || ratesDeSuite >= 3) break;
+      }
+      // on enregistre en cours de route : une coupure ne doit pas tout perdre
+      if(faits % 8 === 0){ sauve(); rendTrophees(); }
+      await new Promise(r => setTimeout(r, 120));
+    }
+  }finally{
+    b.disabled = false;
+    sauve(); rendTrophees(); rendGrille();
+  }
+
+  if(faits === taches.length) toast(faits + ' succès traduits en ' + infoLangue(lg).nom + '.');
+  else if(/quota/i.test(souci)) toast(faits + ' traductions faites, puis quota du jour épuisé. '
+    + ((DATA.reglages.mailTrad || '').trim()
+        ? 'Réessaie demain, le reste est gardé.'
+        : 'Mets ton e-mail dans ⚙️ Réglages pour dix fois plus.'));
+  else toast(faits + ' succès traduits, puis la traduction a lâché (' + souci + ').');
 }
 
 function basculeTrophee(aid){
@@ -4508,7 +5180,7 @@ async function contenuFichier(f){
 function payloadData(){
   // le token n'est JAMAIS envoyé, et la clé RAWG reste sur l'appareil
   return {
-    app:'FGL', version:10, syncAt: isoLocal(),
+    app:'FGL', version:11, syncAt: isoLocal(),
     profil: DATA.profil, jeux: DATA.jeux,
     defis: DATA.defis, osts: DATA.osts, palmares: DATA.palmares,
     reactions: DATA.reactions
@@ -4540,13 +5212,13 @@ function payloadSucces(){
       if(!A.length) return;
       jeux[String(g.title || '').toLowerCase()] = A.map(a => {
         const o = {
-          n: a.name || '',
+          n: nomSucces(a),
           u: a.unlocked ? 1 : 0,
           d: a.date || '',
           r: (typeof a.rarity === 'number') ? a.rarity : null
         };
         if(a.icon && (a.unlocked || avecIconeVerrou)) o.i = a.icon;
-        if(avecTexte && a.desc) o.t = String(a.desc).slice(0, 140);
+        if(avecTexte && descSucces(a)) o.t = String(descSucces(a)).slice(0, 140);
         return o;
       });
     });
@@ -4562,7 +5234,7 @@ function payloadProfil(){
   const p = DATA.profil;
   const partage = p.visibilite !== 'prive';
   return {
-    app:'FGL', version:10,
+    app:'FGL', version:11,
     login: DATA.cloud.login || '', pseudo: p.pseudo || 'Sans pseudo',
     avatar: monAvatar(), bio: p.bio || '',
     visibilite: p.visibilite || 'public',
@@ -5263,8 +5935,14 @@ function init(){
   $('#bAdd').onclick = () => ouvreJeu(null);
   $('#bRegl').onclick = () => {
     $('#rCle').value = DATA.reglages.cleRawg || '';
+    $('#rMailTrad').value = DATA.reglages.mailTrad || '';
     $('#rSgdb').value = DATA.reglages.cleSgdb || '';
-    $('#rProxy').value = DATA.reglages.proxySgdb || '';
+    $('#rRelais').value = DATA.reglages.proxySgdb || '';
+    // le menu des langues est construit ici plutôt qu'écrit dans le HTML :
+    // une seule liste, LANGUES_SUCCES, sert au menu ET à l'affichage.
+    $('#rLangSucces').innerHTML = LANGUES_SUCCES.map(l =>
+      '<option value="' + esc(l.code) + '">' + esc(l.nom) + '</option>').join('');
+    $('#rLangSucces').value = langueSucces();
     $('#rYT').value = DATA.reglages.cleYT || '';
     $('#rAnim').textContent = DATA.reglages.anim ? 'Animé ✓' : 'Coupé';
     $('#rAnim').classList.toggle('on', DATA.reglages.anim);
@@ -5382,6 +6060,8 @@ function init(){
     }
     const re = e.target.closest('[data-rea]');
     if(re){ reagitCourant(re.dataset.emo); return; }
+    const rg = e.target.closest('[data-rawgid]');
+    if(rg){ choisitRawg(rg.dataset.rawgid); return; }
     const yt = e.target.closest('[data-yt]');
     if(yt){ choisitYT(yt.dataset.yt); return; }
     const os = e.target.closest('[data-ost]');
@@ -5452,6 +6132,18 @@ function init(){
   $('#afRech').addEventListener('keydown', e => { if(e.key === 'Enter') chercheAffiches(); });
   $('#bTestSgdb').onclick = testeSgdb;
 
+  // recherche et filtres dans la liste des succès
+  $('#trpQ').addEventListener('input', e => { UI.trpQ = e.target.value; rendTrophees(); });
+  document.querySelectorAll('[data-trpf]').forEach(b => {
+    b.onclick = () => {
+      UI.trpF = b.dataset.trpf;
+      document.querySelectorAll('[data-trpf]').forEach(x => x.classList.toggle('on', x === b));
+      rendTrophees();
+    };
+  });
+  $('#bTradTrp').onclick = () =>
+    ($('#bTradTrp').dataset.mode === 'vo') ? enleveTrad() : traduitSucces(false);
+
   // le mot laissé sur un jeu ou une OST : il s'enregistre quand on quitte le champ.
   // Écouteur délégué, parce que le champ est reconstruit à chaque rendu du bloc.
   document.addEventListener('change', e => {
@@ -5467,6 +6159,10 @@ function init(){
 
   // succès
   $('#bChargeTrp').onclick = chargeTrophees;
+  $('#bAutreJeu').onclick = autreJeuRawg;
+  $('#bTrpRaz').onclick = () => {
+    UI.trpQ = ''; $('#trpQ').value = ''; $('#trpQ').focus(); rendTrophees();
+  };
   $('#bAjoutTrp').onclick  = ajouteTropheeManuel;
 
   // profil
@@ -5485,11 +6181,24 @@ function init(){
   };
   $('#bSauveRegl').onclick = () => {
     DATA.reglages.cleRawg = $('#rCle').value.trim();
+    DATA.reglages.mailTrad = $('#rMailTrad').value.trim();
     DATA.reglages.cleSgdb = $('#rSgdb').value.trim();
-    DATA.reglages.proxySgdb = $('#rProxy').value.trim().replace(/\/+$/, '');
+    DATA.reglages.proxySgdb = $('#rRelais').value.trim().replace(/\/+$/, '');
+    // Changer de langue ne retraduit rien tout de suite : ce serait des dizaines
+    // de requêtes d'un coup. Ce qu'on a déjà s'affiche, le reste vient au
+    // prochain « Charger les succès » sur chaque jeu — et on le dit.
+    const avantLangue = DATA.reglages.langueSucces;
+    DATA.reglages.langueSucces = $('#rLangSucces').value;
+    const langueChangee = avantLangue !== DATA.reglages.langueSucces;
     DATA.reglages.cleYT = $('#rYT').value.trim();
-    sauve(); ferme('mRegl');
-    toast('Réglages enregistrés.');
+    sauve(); ferme('mRegl'); rendGrille();
+    // si la fenêtre des succès est ouverte derrière, elle se remet dans la
+    // bonne langue tout de suite ; sinon on ne touche à rien.
+    if(jeuEnCours && $('#mTrp').classList.contains('on')) rendTrophees();
+    toast(langueChangee
+      ? 'Succès en ' + infoLangue().nom + '. Rouvre « Charger les succès » sur un jeu '
+        + 'pour récupérer les intitulés officiels dans cette langue.'
+      : 'Réglages enregistrés.');
   };
   $('#bExport').onclick = exporte;
   $('#bImport').onclick = () => $('#fichierImport').click();
