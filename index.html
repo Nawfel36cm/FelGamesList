@@ -197,12 +197,30 @@ select{
 .compte{font-family:var(--mono);font-size:12px;color:var(--muted)}
 
 /* ===== GRILLE ===== */
-.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(124px,1fr));padding-bottom:40px}
+/* La grille ne montre que des affiches : aucun texte, tout vit dans la fiche. */
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));padding-bottom:40px}
 .carte{
-  background:var(--ink2);border:1px solid var(--line);border-radius:var(--r);
-  overflow:hidden;transition:.18s;text-align:left;display:flex;flex-direction:column;
+  position:relative;background:var(--ink2);border:0;border-radius:var(--r);
+  overflow:hidden;text-align:left;display:flex;flex-direction:column;
+  box-shadow:0 3px 12px rgba(0,0,0,.3);
+  transition:transform .22s cubic-bezier(.2,.9,.3,1), box-shadow .22s;
 }
-.carte:hover{transform:translateY(-4px);border-color:var(--accent);box-shadow:var(--ombre)}
+/* liseré : invisible au repos, il n'apparaît qu'au survol et pour le 100 % */
+.carte::before{
+  content:'';position:absolute;inset:0;z-index:4;pointer-events:none;border-radius:inherit;
+  box-shadow:none;transition:box-shadow .2s;
+}
+.carte:hover{transform:translateY(-6px);box-shadow:0 20px 42px rgba(0,0,0,.5)}
+.carte:focus-visible{outline:none}
+.carte:hover::before,.carte:focus-visible::before{box-shadow:inset 0 0 0 2px var(--accent)}
+/* fini à 100 % : liseré doré et pastille, sans une seule lettre */
+.carte.cent100::before,.carte.cent100:hover::before{box-shadow:inset 0 0 0 2px var(--or)}
+.cent-pip{
+  position:absolute;top:9px;right:9px;z-index:4;width:21px;height:21px;border-radius:99px;
+  display:grid;place-items:center;font-size:11px;color:#8a5f06;
+  background:linear-gradient(160deg,#fff,#f2cf83);
+  box-shadow:0 3px 12px rgba(232,176,75,.5);
+}
 .aff{aspect-ratio:2/3;background:var(--ink3);position:relative;overflow:hidden}
 .aff img{width:100%;height:100%;object-fit:cover;display:block}
 .aff .vide{
@@ -210,33 +228,51 @@ select{
   font-weight:800;font-size:32px;color:var(--line);
   background:linear-gradient(150deg,var(--ink3),var(--ink2));
 }
-.note-b{
-  position:absolute;top:8px;right:8px;font-family:var(--mono);font-weight:700;font-size:13px;
-  padding:4px 8px;border-radius:8px;background:rgba(10,8,16,.78);color:var(--brass);
-  backdrop-filter:blur(6px);
-}
+/* le statut : une pastille de couleur, dans la plaque, au survol */
+.st-dot{width:9px;height:9px;border-radius:99px;flex:0 0 9px;
+  box-shadow:0 0 0 2px rgba(255,255,255,.22)}
 .stat-b{
   position:absolute;bottom:8px;left:8px;font-size:11px;padding:3px 8px;border-radius:7px;
   background:rgba(10,8,16,.78);backdrop-filter:blur(6px);color:#fff;font-weight:500;
 }
-.trp-b{
-  position:absolute;bottom:8px;right:8px;font-family:var(--mono);font-size:11px;
-  padding:3px 7px;border-radius:7px;background:rgba(10,8,16,.78);color:var(--or);
-  backdrop-filter:blur(6px);
+
+/* la plaque : elle monte du bas de l'affiche au survol, et ne porte que la note */
+.plaque{
+  position:absolute;left:0;right:0;bottom:0;z-index:2;
+  display:flex;justify-content:center;align-items:center;gap:9px;padding:10px 8px 12px;
+  background:linear-gradient(0deg,rgba(6,4,12,.94) 18%,rgba(6,4,12,.6) 66%,transparent);
+  transform:translateY(101%);opacity:0;
+  transition:transform .24s cubic-bezier(.2,.9,.3,1), opacity .18s;
 }
+.carte:hover .plaque,.carte:focus-visible .plaque,
+.ost-c:hover .plaque,.ost-c:focus-visible .plaque{transform:none;opacity:1}
+
+/* note en étoiles, en lecture : 5 étoiles, chacune vaut 2 points */
+.etl{display:inline-flex;gap:1px;align-items:center;line-height:1;white-space:nowrap}
+.etl i{position:relative;font-style:normal;font-size:15px;color:rgba(255,255,255,.22)}
+.etl i span{
+  position:absolute;inset:0;overflow:hidden;width:0;color:var(--nc,var(--brass));
+  text-shadow:0 1px 7px color-mix(in srgb,var(--nc,var(--brass)) 55%,transparent);
+}
+.etl.g i{font-size:23px}
+.etl.p i{font-size:13px}
+[data-theme="clair"] .etl i{color:rgba(0,0,0,.15)}
+[data-theme="clair"] .plaque .etl i{color:rgba(255,255,255,.24)}
+
 .carte-txt{padding:11px 12px 13px}
 .carte-t{font-weight:600;font-size:14.5px;line-height:1.25;margin:0 0 3px;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .carte-s{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
 
-/* vue liste */
+/* vue liste : la seule vue qui garde les titres, c'est sa raison d'être */
 .grid.liste{grid-template-columns:1fr;gap:9px}
-.grid.liste .carte{flex-direction:row;align-items:stretch}
+.grid.liste .carte{flex-direction:row;align-items:stretch;box-shadow:none}
+.grid.liste .carte::before{box-shadow:inset 0 0 0 1px var(--line)}
+.grid.liste .carte:hover{transform:none;box-shadow:var(--ombre)}
 .grid.liste .aff{width:64px;aspect-ratio:auto;flex:0 0 64px}
-.grid.liste .note-b,.grid.liste .stat-b,.grid.liste .trp-b{display:none}
+.grid.liste .plaque,.grid.liste .cent-pip,.grid.liste .stat-b{display:none}
 .grid.liste .carte-txt{display:flex;align-items:center;gap:14px;flex:1;padding:12px 14px}
 .grid.liste .carte-t{margin:0;-webkit-line-clamp:1;flex:1}
-.grid.liste .l-note{font-family:var(--mono);font-weight:700;color:var(--brass)}
 
 .vide-etat{text-align:center;padding:70px 20px;color:var(--muted)}
 .vide-etat h2{font-family:var(--dsp);font-size:26px;color:var(--paper);margin:0 0 8px;letter-spacing:-.02em}
@@ -282,8 +318,8 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);
 .etoiles{display:flex;gap:2px;align-items:center;user-select:none}
 .et{position:relative;width:26px;height:26px;cursor:pointer;font-size:23px;line-height:26px;
   color:var(--line);text-align:center}
-.et .plein{position:absolute;inset:0;overflow:hidden;color:var(--brass);width:0}
-.note-txt{font-family:var(--mono);font-weight:700;color:var(--brass);margin-left:10px;font-size:15px}
+.et .plein{position:absolute;inset:0;overflow:hidden;color:var(--nc,var(--brass));width:0}
+.note-txt{font-family:var(--mono);font-weight:700;color:var(--nc,var(--brass));margin-left:10px;font-size:15px}
 .note-raz{font-size:11px;color:var(--muted);margin-left:8px;text-decoration:underline}
 
 /* ===== SUCCÈS ===== */
@@ -360,7 +396,8 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);
 .top-a{width:32px;height:48px;border-radius:6px;object-fit:cover;background:var(--ink3);flex:0 0 32px}
 .top-n{flex:1;font-size:13.5px;font-weight:500;line-height:1.25;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.top-v{font-family:var(--mono);font-weight:700;color:var(--brass);font-size:14px}
+.top-v{display:inline-flex;align-items:center;font-family:var(--mono);font-weight:700;
+  color:var(--brass);font-size:14px}
 
 .toast{
   position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);
@@ -400,27 +437,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);
 .voir-aff.rien{background:var(--logo) center/cover;opacity:.55}
 
 /* ===== PASTILLE 100 % ===== */
-.coin-hd{
-  position:absolute;top:8px;right:8px;z-index:2;
-  display:flex;flex-direction:column;align-items:flex-end;gap:5px;
-}
-.note-b{
-  position:static;font-size:16px;font-weight:800;letter-spacing:-.03em;
-  padding:5px 11px;border-radius:12px;color:#fff;
-  background:linear-gradient(160deg,rgba(8,6,14,.92),rgba(8,6,14,.76));
-  box-shadow:0 0 0 2px var(--nc,var(--brass)), 0 8px 22px rgba(0,0,0,.5);
-}
-.grid.liste .l-note{
-  font-family:var(--mono);font-weight:800;font-size:17px;color:#fff;
-  padding:4px 11px;border-radius:10px;background:rgba(8,6,14,.72);
-  box-shadow:0 0 0 2px var(--nc,var(--brass));
-}
-.cent-b{
-  font-family:var(--mono);font-weight:800;font-size:11px;letter-spacing:-.02em;
-  padding:3px 9px;border-radius:99px;background:#fff;color:#b07d10;
-  box-shadow:0 0 0 1px rgba(176,125,16,.45), 0 4px 14px rgba(232,176,75,.4);
-}
-.grid.liste .coin-hd{display:none}
+.grid.liste .l-note{display:inline-flex;align-items:center}
 .l-cent{
   font-family:var(--mono);font-weight:800;font-size:11px;background:#fff;color:#b07d10;
   padding:2px 8px;border-radius:99px;box-shadow:0 0 0 1px rgba(176,125,16,.35);
@@ -543,18 +560,31 @@ body.sansanim .confetti{display:none}
 .th-nom small{font-family:var(--mono);font-size:10.5px;color:var(--muted);font-weight:400}
 
 /* ===== RÉACTIONS ===== */
+.rc{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.rc-t{font-family:var(--dsp);font-size:14.5px;font-weight:700;margin:0 0 10px;letter-spacing:-.01em}
 .rea{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .rea button{
-  width:36px;height:36px;border-radius:10px;border:1px solid var(--line);
-  background:var(--ink2);font-size:16px;transition:.14s;
+  width:42px;height:42px;border-radius:12px;border:1px solid var(--line);
+  background:var(--ink2);font-size:19px;transition:.14s;
 }
 .rea button:hover{transform:translateY(-2px);border-color:var(--accent)}
-.rea button.on{background:var(--accent);border-color:transparent}
-.rea-recu{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
-.rea-p{
-  display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;
-  padding:2px 7px;border-radius:99px;background:var(--ink3);color:var(--muted);
+.rea button.on{background:var(--accent);border-color:transparent;transform:translateY(-2px)}
+.rc-mot{margin-top:11px}
+.rc-mot textarea{min-height:62px;resize:vertical}
+.rc-cpt{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:5px}
+.rc-liste{display:flex;flex-direction:column;gap:8px;margin-top:13px}
+.rc-l{
+  display:flex;gap:10px;align-items:flex-start;background:var(--ink2);
+  border:1px solid var(--line);border-radius:12px;padding:9px 11px;
 }
+.rc-l.moi{border-color:color-mix(in srgb,var(--accent) 55%,transparent)}
+.rc-av{width:28px;height:28px;border-radius:99px;object-fit:cover;flex:0 0 28px;
+  display:grid;place-items:center;background:var(--ink3);font-size:12px;font-weight:700}
+.rc-c{flex:1;min-width:0}
+.rc-c b{font-size:12.5px;font-weight:600}
+.rc-c p{margin:4px 0 0;font-size:13px;line-height:1.45;word-break:break-word}
+.rc-e{font-size:19px;line-height:1;flex:0 0 auto}
+.rc-vide{font-size:12.5px;color:var(--muted);line-height:1.5}
 
 /* ===== OSTs DES AUTRES ===== */
 .ost-qui{
@@ -581,37 +611,35 @@ body.sansanim .confetti{display:none}
 /* ===== OST ===== */
 .ost-grille{
   display:grid;gap:14px;padding-bottom:40px;
-  grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+  grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
 }
+/* même parti pris que les jeux : la miniature occupe toute la carte */
 .ost-c{
-  background:var(--ink2);border:1px solid var(--line);border-radius:var(--r);
-  overflow:hidden;text-align:left;transition:.18s;display:flex;flex-direction:column;
+  position:relative;background:var(--ink2);border:0;border-radius:var(--r);
+  overflow:hidden;text-align:left;display:flex;flex-direction:column;
+  box-shadow:0 3px 12px rgba(0,0,0,.3);
+  transition:transform .22s cubic-bezier(.2,.9,.3,1), box-shadow .22s;
 }
-.ost-c:hover{transform:translateY(-4px);border-color:var(--accent);box-shadow:var(--ombre)}
-.ost-v{aspect-ratio:16/9;background:var(--ink3);position:relative;overflow:hidden}
-.ost-v img{width:100%;height:100%;object-fit:cover;display:block}
-.ost-v::after{content:'';position:absolute;inset:0;
-  background:linear-gradient(180deg,transparent 52%,rgba(0,0,0,.55))}
+.ost-c::before{
+  content:'';position:absolute;inset:0;z-index:4;pointer-events:none;border-radius:inherit;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);transition:box-shadow .2s;
+}
+.ost-c:hover{transform:translateY(-6px);box-shadow:0 20px 42px rgba(0,0,0,.5)}
+.ost-c:focus-visible{outline:none}
+.ost-c:hover::before,.ost-c:focus-visible::before{box-shadow:inset 0 0 0 2px var(--accent)}
+.ost-v{aspect-ratio:16/9;background:var(--ink3);position:relative;overflow:hidden;width:100%}
+.ost-v img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
+.ost-c:hover .ost-v img{transform:scale(1.06)}
 .ost-play{
-  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1;
-  width:46px;height:46px;border-radius:99px;display:grid;place-items:center;
-  background:rgba(10,8,16,.72);backdrop-filter:blur(6px);color:#fff;font-size:16px;
-  transition:.18s;
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;
+  width:52px;height:52px;border-radius:99px;display:grid;place-items:center;
+  background:rgba(10,8,16,.6);backdrop-filter:blur(8px);color:#fff;font-size:17px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.22);transition:.2s;
 }
-.ost-c:hover .ost-play{background:var(--accent);transform:translate(-50%,-50%) scale(1.08)}
-.ost-n{
-  position:absolute;bottom:8px;right:8px;z-index:1;font-family:var(--mono);
-  font-weight:800;font-size:15px;letter-spacing:-.03em;
-  padding:4px 10px;border-radius:11px;color:#fff;
-  background:linear-gradient(160deg,rgba(8,6,14,.92),rgba(8,6,14,.76));
-  box-shadow:0 0 0 2px var(--nc,var(--brass)), 0 6px 18px rgba(0,0,0,.45);
+.ost-c:hover .ost-play{
+  background:var(--accent);transform:translate(-50%,-50%) scale(1.1);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.35), 0 10px 26px rgba(0,0,0,.45);
 }
-.ost-t{padding:11px 12px 13px}
-.ost-t b{
-  display:-webkit-box;font-size:14.5px;font-weight:600;line-height:1.25;margin-bottom:3px;
-  -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
-}
-.ost-t span{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
 .ov-lect{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;
   background:#000;margin-bottom:14px}
 .ov-lect iframe{width:100%;height:100%;border:0;display:block}
@@ -730,7 +758,7 @@ body.sansanim .confetti{display:none}
 /* ===== AFFICHES ===== */
 .aff .flou{
   position:absolute;inset:0;background-size:cover;background-position:center;
-  filter:blur(17px) saturate(1.35) brightness(.48);transform:scale(1.2);
+  filter:blur(20px) saturate(1.4) brightness(.6);transform:scale(1.35);
 }
 /* l'image couvre tout le cadre : le flou ne se voit que si elle ne charge pas */
 .aff img{
@@ -742,12 +770,9 @@ body.sansanim .confetti{display:none}
 }
 /* affiche montrée en entier : les bords sont comblés par sa version floutée */
 .aff.entiere img{object-fit:contain}
-.aff::after{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(180deg,rgba(0,0,0,.34) 0%,transparent 26%,
-                                     transparent 58%,rgba(0,0,0,.5) 100%);
-}
-.carte:hover .aff img{transform:scale(calc(var(--z,1) * 1.035))}
+/* plus aucun voile permanent : l'affiche est montrée telle quelle, bord à bord.
+   Le seul assombrissement est celui de la plaque, et il n'apparaît qu'au survol. */
+.carte:hover .aff img{transform:scale(calc(var(--z,1) * 1.06))}
 
 /* vue liste : l'affiche se fond en noir vers le texte */
 .grid.liste .aff{width:132px;flex:0 0 132px;aspect-ratio:auto}
@@ -826,6 +851,10 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
   .carte:hover{transform:none}
   .u-carte:hover{transform:none}
   .carte:hover .aff img{transform:scale(var(--z,1))}
+  .ost-c:hover{transform:none}
+  .ost-c:hover .ost-v img{transform:none}
+  /* pas de survol au doigt : sans ça la note ne serait jamais visible */
+  .plaque{transform:none;opacity:1}
 }
 
 /* ===== TÉLÉPHONE ===== */
@@ -859,7 +888,9 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 
   .t-duel{grid-template-columns:1fr;gap:12px}
   .t-vs{padding:2px 0}
-  .ost-grille{grid-template-columns:1fr}
+  .ost-grille{grid-template-columns:repeat(2,1fr);gap:11px}
+  .ost-play{width:42px;height:42px;font-size:14px}
+  .etl i{font-size:13px}
   .d-grille{grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
   .grid.liste .aff{width:104px;flex:0 0 104px}
   .grid.liste .carte-txt{margin-left:-20px;gap:9px;padding:10px 12px}
@@ -1082,6 +1113,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
         <label for="jAvis">Mon avis</label>
         <textarea id="jAvis" placeholder="Ce que t'en as pensé…"></textarea>
       </div>
+      <div id="jReac"></div>
     </div>
     <div class="boite-ft">
       <button class="btn pri" id="bSauve">Enregistrer</button>
@@ -1186,11 +1218,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
       </div>
       <div class="champ">
         <label for="oLien">…ou colle le lien YouTube</label>
-        <div class="ligne">
-          <input id="oLien" placeholder="https://youtu.be/…" autocomplete="off">
-          <button class="btn" id="bColler" title="Coller le presse-papiers">📋</button>
-          <button class="btn" id="bChercheOst" title="Retrouver le titre et le jeu">🔍</button>
-        </div>
+        <input id="oLien" placeholder="https://youtu.be/…" autocomplete="off">
         <div class="aide" id="oLienAide"></div>
         <div id="oApercu"></div>
       </div>
@@ -1202,11 +1230,9 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
         <label for="oJeu">Jeu</label>
         <input id="oJeu" placeholder="Rempli tout seul" autocomplete="off">
       </div>
-      <div class="duo">
-        <div class="champ">
-          <label for="oNote">Ma note (sur 10)</label>
-          <input id="oNote" type="number" min="0" max="10" step="0.1" placeholder="9.5">
-        </div>
+      <div class="champ">
+        <label>Ma note</label>
+        <div class="etoiles" id="oEtoiles"></div>
       </div>
     </div>
     <div class="boite-ft">
@@ -1370,10 +1396,10 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 /* =========================================================
    FGL — FelGamesList
    ========================================================= */
-const VERSION = '0.9.21';
+const VERSION = '0.9.26';
 
 /* ---------- Constantes ---------- */
-const PLATEFORMES = ['PC (Steam)','PlayStation','Xbox','Nintendo Switch','Mobile','Rétro','Autre'];
+const PLATEFORMES = ['PC','PlayStation','Xbox','Nintendo','Mobile','Rétro'];
 const STATUTS = [
   {id:'encours',   nom:'En cours',  c:'#7b5cd6'},
   {id:'termine',   nom:'Terminé',   c:'#4fd1a5'},
@@ -1449,12 +1475,15 @@ function toast(msg){
 const statutDe = id => STATUTS.find(s => s.id === (id === 'cent' ? 'termine' : id)) || STATUTS[0];
 
 /* la couleur de la note : d'un coup d'œil on sait ce qu'on a aimé */
+/* Couleur d'une note : rouge quand elle est basse, orange quand elle est haute.
+   Teinte continue plutôt que par paliers — sur des étoiles, un saut de couleur
+   entre 7,4 et 7,5 se voit et donne l'impression d'un bug. La luminosité monte
+   avec la note pour que les 9 et 10 se détachent nettement des moyennes. */
 function couleurNote(n){
-  if(n >= 9)   return '#4fd1a5';
-  if(n >= 7.5) return '#9ed14f';
-  if(n >= 6)   return '#e8b04b';
-  if(n >= 4)   return '#e8874b';
-  return '#e0555f';
+  const v = Math.max(0, Math.min(10, typeof n === 'number' ? n : 0)) / 10;
+  return 'hsl(' + (v * 36).toFixed(1) + ' '   // 0° rouge → 36° orange
+       + (72 + v * 24).toFixed(0) + '% '      // 72 % → 96 % de saturation
+       + (46 + v * 12).toFixed(0) + '%)';     // 46 % → 58 % de luminosité
 }
 
 /* Petite pluie de confettis pour les 100 % */
@@ -1515,14 +1544,14 @@ let centTmp = false;     // case « fait à 100 % » en cours de saisie
 
 function dataVierge(){
   return {
-    version: 8,
+    version: 10,
     reglages: { cleRawg:'', cleSgdb:'', cleYT:'', cleGB:'', proxySgdb:'', theme:'sombre', palette:'auto', anim:true },
     cloud: { login:'', gistData:'', gistProfil:'', auto:true, syncAt:'', majAt:'', connus:[] },
     defis: {},              // id du défi → jour du déblocage
     osts: [],               // bandes originales
     tournoi: { jeux:null, ost:null },
     palmares: [],
-    reactions: {},          // login → emoji envoyé
+    reactions: {},          // "login|type|repère" → { emo, mot, at }
     profil: {
       pseudo:'Nawfel', githubLogin:'', avatar:'', bio:'',
       visibilite:'public', amis:[], lastSeen: isoLocal()
@@ -1553,6 +1582,13 @@ function migre(){
   if(DATA.reglages.cleGB === undefined) DATA.reglages.cleGB = '';
   if(!DATA.reglages.palette) DATA.reglages.palette = 'auto';
   if(!DATA.reactions || typeof DATA.reactions !== 'object') DATA.reactions = {};
+  // v9 → v10 : une réaction ne vise plus un membre mais un jeu ou une OST précis.
+  // L'ancienne forme était « login → emoji » : ces entrées n'ont plus de cible,
+  // on les retire plutôt que de les laisser polluer le profil public.
+  for(const k in DATA.reactions){
+    const r = DATA.reactions[k];
+    if(k.indexOf('|') < 0 || !r || typeof r !== 'object') delete DATA.reactions[k];
+  }
   (DATA.osts || []).forEach(o => { delete o.comment; });
   if(!Array.isArray(DATA.cloud.connus)) DATA.cloud.connus = [];
   if(!DATA.defis || typeof DATA.defis !== 'object') DATA.defis = {};
@@ -1569,6 +1605,11 @@ function migre(){
     if(g.achievementsTotal == null) g.achievementsTotal = g.achievements.length;
     if(!g.addedAt) g.addedAt = isoLocal();
     if(g.cent100 === undefined) g.cent100 = false;
+    // v8 → v9 : libellés de plateforme simplifiés. Sans cette migration, un jeu
+    // gardait « PC (Steam) », absent de la nouvelle liste, et le menu déroulant
+    // lui attribuait silencieusement la première plateforme venue.
+    if(g.platform === 'PC (Steam)') g.platform = 'PC';
+    if(g.platform === 'Nintendo Switch') g.platform = 'Nintendo';
     if(!g.fit) g.fit = 'remplir';   // remplir | entiere
     // cadrage réglable : zoom en %, et point de l'image gardé au centre du cadre
     if(!g.cadre || typeof g.cadre !== 'object') g.cadre = { z:100, x:50, y:50 };
@@ -1580,7 +1621,7 @@ function migre(){
   });
   if(!Array.isArray(DATA.profil.amis)) DATA.profil.amis = [];
   if(!DATA.profil.visibilite) DATA.profil.visibilite = 'public';
-  DATA.version = 8;
+  DATA.version = 10;
 }
 /* écriture brute, sans toucher aux repères de synchro */
 function ecrit(){
@@ -1745,80 +1786,109 @@ function rendGrille(){
       : '<div class="vide">' + esc((j.title || '?').slice(0,1).toUpperCase()) + '</div>';
     const cadre = j.fit === 'entiere' ? ' entiere' : '';
     const cad = ' style="' + styleCadre(j) + '"';
-    const note = j.note != null
-      ? '<div class="note-b">' + j.note.toFixed(1) + '</div>' : '';
-    const teinte = j.note != null ? ' style="--nc:' + couleurNote(j.note) + '"' : '';
     // 100 % : coché à la main, ou tous les succès obtenus
     const cent = !!j.cent100 || j.status === 'cent' || (tot > 0 && obt === tot);
-    const centB = cent ? '<div class="cent-b">100%</div>' : '';
-    const trp = tot ? '<div class="trp-b">🏆 ' + obt + '/' + tot + '</div>' : '';
-    const sous = [j.platform, j.lastPlayed ? depuisJour(j.lastPlayed) : ''].filter(Boolean).join(' · ');
+    // la plaque monte du bas au survol : pastille de statut, puis la note en étoiles
+    const plaque = '<div class="plaque"><span class="st-dot" style="background:' + st.c + '" '
+      + 'title="' + esc(st.nom) + '"></span>' + htmlEtoiles(j.note) + '</div>';
     const cible = lecture ? 'data-voir="' + j._i + '"' : 'data-jeu="' + j.id + '"';
-    return '<button class="carte" ' + cible + teinte + '>'
-      + '<div class="aff' + cadre + '"' + cad + '>' + aff + '<div class="coin-hd">' + centB + note + '</div>' + trp
-      + '<div class="stat-b" style="background:' + st.c + 'cc">' + st.nom + '</div></div>'
-      + '<div class="carte-txt">'
-      + '<div class="carte-t">' + esc(j.title) + '</div>'
-      + '<div class="carte-s">' + esc(sous) + '</div>'
-      + (UI.vue === 'liste' && cent ? '<div class="l-cent">100%</div>' : '')
-      + (UI.vue === 'liste' && j.note != null ? '<div class="l-note">' + j.note.toFixed(1) + '</div>' : '')
-      + '</div></button>';
+    // aucun texte sur la carte : le titre passe en infobulle et en libellé lecteur d'écran
+    const nom = esc(j.title || 'Jeu');
+    const sous = [j.platform, j.lastPlayed ? depuisJour(j.lastPlayed) : ''].filter(Boolean).join(' · ');
+    return '<button class="carte' + (cent ? ' cent100' : '') + '" ' + cible
+      + ' title="' + nom + '" aria-label="' + nom + '">'
+      + '<div class="aff' + cadre + '"' + cad + '>' + aff
+      + (cent ? '<div class="cent-pip">★</div>' : '')
+      + plaque + '</div>'
+      + (UI.vue === 'liste'
+          ? '<div class="carte-txt">'
+            + '<div class="carte-t">' + nom + '</div>'
+            + '<div class="carte-s">' + esc(sous) + '</div>'
+            + (cent ? '<div class="l-cent">100%</div>' : '')
+            + (j.note != null ? '<div class="l-note">' + htmlEtoiles(j.note, 'p') + '</div>' : '')
+            + '</div>'
+          : '')
+      + '</button>';
   }).join('');
 }
 
 /* =========================================================
    ÉTOILES (0 à 10, demi-crans)
    ========================================================= */
-function rendEtoiles(val){
-  const z = $('#jEtoiles');
-  let h = '';
-  for(let i = 1; i <= 10; i++){
-    const p = val == null ? 0 : Math.max(0, Math.min(1, val - (i-1))) * 100;
-    h += '<div class="et" data-e="' + i + '">★<span class="plein" style="width:' + p + '%">★</span></div>';
+/* Lecture seule : la note /10 devient 5 étoiles, chacune valant 2 points.
+   Les demis et les quarts se rendent en découpant l'étoile pleine en largeur. */
+function htmlEtoiles(note, cls){
+  if(note == null) return '';
+  let h = '<span class="etl' + (cls ? ' ' + cls : '') + '"'
+        + ' style="--nc:' + couleurNote(note) + '"'
+        + ' role="img" aria-label="' + note.toFixed(1) + ' sur 10">';
+  for(let i = 1; i <= 5; i++){
+    const p = Math.max(0, Math.min(1, (note / 2) - (i - 1))) * 100;
+    h += '<i>★<span style="width:' + p + '%">★</span></i>';
   }
-  h += '<span class="note-txt">' + (val == null ? '—' : val.toFixed(1)) + '</span>';
-  if(val != null) h += '<button type="button" class="note-raz" id="bRaz">effacer</button>';
-  z.innerHTML = h;
-  const raz = $('#bRaz');
-  if(raz) raz.onclick = () => { noteTmp = null; rendEtoiles(null); };
+  return h + '</span>';
 }
+
+/* Saisie : 10 étoiles à demi-crans. Le même moteur sert à la fiche jeu et à la
+   fiche OST — `lit` renvoie la note en cours, `pose` l'enregistre. */
+function saisieEtoiles(sel, lit, pose){
+  const zone = () => $(sel);
+  function dessine(val){
+    const z = zone(); if(!z) return;
+    let h = '';
+    for(let i = 1; i <= 10; i++){
+      const p = val == null ? 0 : Math.max(0, Math.min(1, val - (i-1))) * 100;
+      h += '<div class="et" data-e="' + i + '">★<span class="plein" style="width:' + p + '%">★</span></div>';
+    }
+    h += '<span class="note-txt">' + (val == null ? '—' : val.toFixed(1)) + '</span>';
+    if(val != null) h += '<button type="button" class="note-raz">effacer</button>';
+    z.style.setProperty('--nc', val == null ? 'var(--brass)' : couleurNote(val));
+    z.innerHTML = h;
+    const raz = z.querySelector('.note-raz');
+    if(raz) raz.onclick = () => { pose(null); dessine(null); };
+  }
+  function apercu(val){
+    const z = zone(); if(!z) return;
+    z.querySelectorAll('.et').forEach((el, k) => {
+      const p = val == null ? 0 : Math.max(0, Math.min(1, val - k)) * 100;
+      el.querySelector('.plein').style.width = p + '%';
+    });
+    z.style.setProperty('--nc', val == null ? 'var(--brass)' : couleurNote(val));
+    const t = z.querySelector('.note-txt');
+    if(t) t.textContent = val == null ? '—' : val.toFixed(1);
+  }
+  /* moitié gauche de l'étoile = demi-point */
+  function sous(e, et){
+    const i = +et.dataset.e, r = et.getBoundingClientRect();
+    return (e.clientX - r.left) < r.width / 2 ? i - 0.5 : i;
+  }
+  function init(){
+    const z = zone(); if(!z) return;
+    z.addEventListener('click', e => {
+      const et = e.target.closest('.et'); if(!et) return;
+      const v = sous(e, et); pose(v); dessine(v);
+    });
+    z.addEventListener('mousemove', e => {
+      const et = e.target.closest('.et'); if(!et) return;
+      apercu(sous(e, et));
+    });
+    z.addEventListener('mouseleave', () => apercu(lit()));
+  }
+  return { dessine, apercu, init };
+}
+
+let noteOstTmp = null;                 // note en cours de saisie dans la fiche OST
+const ET_JEU = saisieEtoiles('#jEtoiles', () => noteTmp,    v => { noteTmp = v; });
+const ET_OST = saisieEtoiles('#oEtoiles', () => noteOstTmp, v => { noteOstTmp = v; });
+
+function rendEtoiles(val){ ET_JEU.dessine(val); }
 function majCent(){
   const b = $('#jCent');
   b.textContent = centTmp ? '💯 Fait à 100 %' : 'Marquer 100 %';
   b.classList.toggle('on', centTmp);
 }
 
-function initEtoiles(){
-  const z = $('#jEtoiles');
-  z.addEventListener('click', e => {
-    const et = e.target.closest('.et');
-    if(!et) return;
-    const i = +et.dataset.e;
-    const r = et.getBoundingClientRect();
-    const demi = (e.clientX - r.left) < r.width / 2;
-    noteTmp = demi ? i - 0.5 : i;
-    rendEtoiles(noteTmp);
-  });
-  z.addEventListener('mousemove', e => {
-    const et = e.target.closest('.et');
-    if(!et) return;
-    const i = +et.dataset.e;
-    const r = et.getBoundingClientRect();
-    const demi = (e.clientX - r.left) < r.width / 2;
-    apercuEtoiles(demi ? i - 0.5 : i);
-  });
-  z.addEventListener('mouseleave', () => apercuEtoiles(noteTmp));
-}
-function apercuEtoiles(val){
-  const ets = document.querySelectorAll('#jEtoiles .et');
-  ets.forEach((el, k) => {
-    const i = k + 1;
-    const p = val == null ? 0 : Math.max(0, Math.min(1, val - (i-1))) * 100;
-    el.querySelector('.plein').style.width = p + '%';
-  });
-  const t = document.querySelector('#jEtoiles .note-txt');
-  if(t) t.textContent = val == null ? '—' : val.toFixed(1);
-}
+function initEtoiles(){ ET_JEU.init(); ET_OST.init(); }
 
 /* =========================================================
    MODALE JEU
@@ -1839,13 +1909,27 @@ function coupeVideos(zone){
   });
 }
 
+/* Le menu ne propose que les plateformes de PLATEFORMES, mais un jeu peut
+   porter un libellé retiré depuis (« Autre ») ou venu d'un import. On l'ajoute
+   alors au menu le temps de la fiche : sans ça, le <select> ne trouverait pas
+   la valeur, retomberait sur la première option, et la plateforme du jeu
+   serait changée en silence à la première ouverture. */
+function posePlateforme(valeur){
+  const v = String(valeur || '');
+  const sel = $('#jPlat');
+  const liste = PLATEFORMES.slice();
+  if(v && liste.indexOf(v) < 0) liste.push(v);
+  sel.innerHTML = liste.map(p => '<option>' + esc(p) + '</option>').join('');
+  sel.value = v || PLATEFORMES[0];
+}
+
 function ouvreJeu(id){
   jeuEnCours = id;
   rawgTmp = null;
   const j = id ? DATA.jeux.find(x => x.id === id) : null;
   $('#jTitreH').textContent = j ? 'Modifier' : 'Ajouter un jeu';
   $('#jTitre').value   = j ? (j.title || '') : '';
-  $('#jPlat').value    = j ? (j.platform || PLATEFORMES[0]) : PLATEFORMES[0];
+  posePlateforme(j ? j.platform : '');
   $('#jStat').value    = j ? (j.status || 'encours') : 'encours';
   $('#jJoue').value    = j ? (j.lastPlayed || '') : dayLocal();
   $('#jHeures').value  = j && j.playtime ? j.playtime : '';
@@ -1864,6 +1948,9 @@ function ouvreJeu(id){
   majCent();
   $('#bSuppr').style.display = j ? '' : 'none';
   $('#bTrophees').style.display = j ? '' : 'none';
+  // sur mon propre jeu on ne réagit pas : on lit ce que le réseau a laissé
+  if(j) poseReactions('#jReac', monLogin(), 'jeu', j);
+  else { reacCtx = null; $('#jReac').innerHTML = ''; }
   ouvre('mJeu');
   if(!j) setTimeout(() => $('#jTitre').focus(), 60);
 }
@@ -2274,8 +2361,9 @@ const LIBRETRO = 'https://thumbnails.libretro.com/';
 const PLAYLISTS_LIBRETRO = {
   'PlayStation': ['Sony - PlayStation', 'Sony - PlayStation 2',
                   'Sony - PlayStation Portable', 'Sony - PlayStation Vita'],
-  'Nintendo Switch': ['Nintendo - Nintendo 64', 'Nintendo - GameCube',
-                      'Nintendo - Wii', 'Nintendo - Nintendo 3DS', 'Nintendo - Nintendo DS'],
+  'Nintendo': ['Nintendo - Nintendo 64', 'Nintendo - GameCube',
+               'Nintendo - Wii', 'Nintendo - Nintendo 3DS', 'Nintendo - Nintendo DS',
+               'Nintendo - Super Nintendo Entertainment System'],
   'Xbox': ['Microsoft - Xbox'],
   'Rétro': ['Nintendo - Super Nintendo Entertainment System',
             'Nintendo - Nintendo Entertainment System',
@@ -2285,8 +2373,10 @@ const PLAYLISTS_LIBRETRO = {
             'Nintendo - Nintendo 64',
             'Sega - Dreamcast'],
   'Mobile': [],
-  'PC (Steam)': ['DOS'],
-  'Autre': ['Nintendo - Super Nintendo Entertainment System',
+  'PC': ['DOS'],
+  // repli quand la plateforme est vide ou inconnue. Le nom commence par « _ »
+  // pour qu'il ne puisse jamais être confondu avec une plateforme proposée.
+  '_defaut': ['Nintendo - Super Nintendo Entertainment System',
             'Sony - PlayStation',
             'Nintendo - Nintendo 64',
             'Nintendo - Game Boy Advance',
@@ -2311,7 +2401,7 @@ const REGIONS_LIBRETRO = ['(USA)', '(USA, Europe)', '(Europe)', '(Japan)',
                           '(World)', '(Japan, USA)'];
 
 async function candidatsLibretro(titre, plateforme, pousse, budget){
-  const listes = PLAYLISTS_LIBRETRO[plateforme] || PLAYLISTS_LIBRETRO['Autre'];
+  const listes = PLAYLISTS_LIBRETRO[plateforme] || PLAYLISTS_LIBRETRO['_defaut'];
   if(!listes || !listes.length) return;
   const noms = variantesTitre(titre);
   const essais = [];
@@ -2433,7 +2523,7 @@ async function candidatsAffiche(titre, plateforme){
   catch(e){ console.warn('candidats RAWG', e); soucis.push('RAWG'); }
 
   const sansRelais = relaisSgdb() ? '' : 'aucun relais configuré';
-  const horsLibretro = (PLAYLISTS_LIBRETRO[plateforme] || PLAYLISTS_LIBRETRO['Autre'] || []).length
+  const horsLibretro = (PLAYLISTS_LIBRETRO[plateforme] || PLAYLISTS_LIBRETRO['_defaut'] || []).length
     ? '' : 'ne couvre pas cette plateforme';
 
   await Promise.all([
@@ -3340,7 +3430,7 @@ function rendProfil(){
       h += '<button class="top-l' + (rang ? ' podium ' + rang : '') + '" data-jeu="' + j.id + '">'
         + '<span class="top-r">' + (medaille || (i+1)) + '</span>' + aff
         + '<span class="top-n">' + esc(j.title) + '</span>'
-        + '<span class="top-v">' + j.note.toFixed(1) + '</span></button>';
+        + '<span class="top-v">' + htmlEtoiles(j.note, 'p') + '</span></button>';
     });
     h += '</div>';
   }
@@ -3743,18 +3833,6 @@ function choisitYT(vid){
   chercheOst(false);
 }
 
-/* bouton 📋 : lit le presse-papiers si le navigateur l'autorise */
-async function collerLien(){
-  try{
-    const t = await navigator.clipboard.readText();
-    if(!t || !t.trim()){ toast('Presse-papiers vide.'); return; }
-    $('#oLien').value = t.trim();
-    majLienOst();
-  }catch(e){
-    toast('Ton navigateur refuse la lecture du presse-papiers — colle avec Ctrl+V.');
-  }
-}
-
 /* ---------- Remplissage automatique d'une OST ----------
    YouTube expose le titre d'une vidéo sans clé d'API via oEmbed. Si l'appel
    échoue (réseau, CORS), on ne casse rien : les champs restent à remplir. */
@@ -3876,7 +3954,8 @@ function ouvreOst(id){
   $('#oTitre').value = o ? o.titre : '';
   $('#oJeu').value   = o ? o.jeu : '';
   $('#oLien').value  = o ? lienYT(o.videoId) : '';
-  $('#oNote').value  = (o && o.note != null) ? o.note : '';
+  noteOstTmp = (o && o.note != null) ? o.note : null;
+  ET_OST.dessine(noteOstTmp);
   $('#bSuppOst').style.display = o ? '' : 'none';
   $('#oLienAide').textContent = '';
   ostPoses = { oTitre:'', oJeu:'' };
@@ -3900,7 +3979,7 @@ function sauveOst(){
   const lien = $('#oLien').value.trim();
   const vid = idYoutube(lien);
   if(lien && !vid){ toast('Ce lien YouTube n\'est pas reconnu.'); return; }
-  const note = $('#oNote').value === '' ? null : Math.max(0, Math.min(10, parseFloat($('#oNote').value)));
+  const note = noteOstTmp == null ? null : Math.max(0, Math.min(10, noteOstTmp));
   const champs = {
     titre: titre,
     jeu: $('#oJeu').value.trim(),
@@ -3952,13 +4031,13 @@ function rendOst(){
     const img = vig
       ? '<img src="' + esc(vig) + '" alt="" loading="lazy">'
       : '';
-    const teinte = o.note != null ? ' style="--nc:' + couleurNote(o.note) + '"' : '';
-    return '<button class="ost-c" data-ost="' + (lecture ? 'l' + i : esc(o.id)) + '"' + teinte + '>'
+    // même règle que les jeux : rien d'écrit sur la carte, le titre passe en infobulle
+    const nom = esc([o.titre, o.jeu].filter(Boolean).join(' — ') || 'OST');
+    return '<button class="ost-c" data-ost="' + (lecture ? 'l' + i : esc(o.id)) + '"'
+      + ' title="' + nom + '" aria-label="' + nom + '">'
       + '<div class="ost-v">' + img + '<div class="ost-play">▶</div>'
-      + (o.note != null ? '<div class="ost-n">' + o.note.toFixed(1) + '</div>' : '')
-      + '</div>'
-      + '<div class="ost-t"><b>' + esc(o.titre) + '</b>'
-      + '<span>' + esc(o.jeu || 'Jeu inconnu') + '</span></div></button>';
+      + (o.note != null ? '<div class="plaque">' + htmlEtoiles(o.note) + '</div>' : '')
+      + '</div></button>';
   }).join('');
 }
 
@@ -3975,15 +4054,19 @@ function ouvreOstVoir(ref){
       + 'allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture"></iframe></div>';
   }
   h += '<div class="voir-l"><span>Jeu</span><b>' + esc(o.jeu || '—') + '</b></div>'
-    + (o.note != null ? '<div class="voir-l"><span>Ma note</span><b>' + o.note.toFixed(1) + ' / 10</b></div>' : '')
-    ;
+    + (o.note != null
+        ? '<div class="voir-l"><span>' + (lecture ? 'Sa note' : 'Ma note') + '</span>'
+          + '<b style="display:flex;align-items:center;gap:8px">' + htmlEtoiles(o.note)
+          + '<span class="note-txt" style="margin:0;font-size:13px">' + o.note.toFixed(1) + '</span></b></div>'
+        : '');
   h += '<div class="t-opts" style="justify-content:flex-start;margin-top:16px">';
   if(vid){
     h += '<a class="btn pri" href="' + esc(lienYT(vid)) + '" target="_blank" rel="noopener">▶ Ouvrir sur YouTube</a>';
   }
   if(!lecture) h += '<button class="btn" data-editost="' + esc(o.id) + '">✏️ Modifier</button>';
-  h += '</div>';
+  h += '</div><div id="ovReac"></div>';
   $('#ovCorps').innerHTML = h;
+  poseReactions('#ovReac', lecture ? lecture.login : monLogin(), 'ost', o);
   ouvre('mOstVoir');
 }
 
@@ -4230,44 +4313,154 @@ function rendThemes(){
 }
 
 /* =========================================================
-   RÉACTIONS ENTRE MEMBRES
-   ========================================================= */
-const REACTIONS = ['❤️', '🔥', '👏', '🎮', '🤝'];
+   RÉACTIONS — sur un jeu ou une OST précis, jamais sur la page d'un membre
+   =========================================================
+   Impossible d'écrire dans le gist de quelqu'un d'autre : chacun stocke ses
+   réactions SORTANTES dans son propre profil public, et l'agrégation se fait
+   en lecture, comme avant. Ce qui change, c'est la cible.
 
-function reagit(login, emo){
-  if(!login) return;
+   Clé : "login|type|repère". Le repère doit être calculable des DEUX côtés,
+   donc il ne peut pas être l'identifiant interne `g_…` : celui-ci ne part pas
+   dans le profil public (voir `jeuPublic`). On prend donc le titre normalisé
+   pour un jeu, et l'identifiant de la vidéo pour une OST. */
+const REACTIONS = ['❤️', '🔥', '👏', '🤯', '😂', '🎮'];
+const MOT_MAX = 240;
+
+function repereItem(type, it){
+  if(!it) return '';
+  const brut = type === 'ost' ? (it.videoId || it.titre || '') : (it.title || it.titre || '');
+  return normaliseTitre(brut).slice(0, 60);
+}
+function cleReac(login, type, it){
+  return String(login || '').toLowerCase() + '|' + type + '|' + repereItem(type, it);
+}
+function monLogin(){ return String(DATA.cloud.login || '').toLowerCase(); }
+
+/* ma réaction à cet objet, ou null */
+function maReaction(login, type, it){
+  return (DATA.reactions || {})[cleReac(login, type, it)] || null;
+}
+
+/* Un clic sur le même emoji annule la réaction — mais on garde le mot s'il y en a un,
+   sinon écrire un message puis changer d'avis sur l'emoji effacerait le texte. */
+function reagit(login, type, it, emo){
+  const cle = cleReac(login, type, it);
   DATA.reactions = DATA.reactions || {};
-  const l = String(login).toLowerCase();
-  if(DATA.reactions[l] === emo) delete DATA.reactions[l];
-  else DATA.reactions[l] = emo;
+  const a = DATA.reactions[cle];
+  if(a && a.emo === emo){
+    if(a.mot) a.emo = '';
+    else delete DATA.reactions[cle];
+  }else{
+    DATA.reactions[cle] = { emo: emo, mot: (a && a.mot) || '', at: isoLocal() };
+  }
   sauve();
   if(connecte()) cloudPushProfil().catch(e => console.warn(e));
-  rendBandeau(); rendUsers();
 }
 
-/* ce que les autres membres ont envoyé à quelqu'un */
-function reactionsRecues(login){
-  const l = String(login || '').toLowerCase();
-  const out = {};
+function ecritMot(login, type, it, mot){
+  const cle = cleReac(login, type, it);
+  const t = String(mot || '').trim().slice(0, MOT_MAX);
+  DATA.reactions = DATA.reactions || {};
+  const a = DATA.reactions[cle];
+  if(!t && !a) return;                          // rien à écrire, rien à effacer
+  if(t === ((a && a.mot) || '')) return;         // inchangé : pas de synchro inutile
+  if(!t && a && !a.emo) delete DATA.reactions[cle];
+  else if(a) { a.mot = t; a.at = isoLocal(); }
+  else DATA.reactions[cle] = { emo:'', mot:t, at: isoLocal() };
+  sauve();
+  if(connecte()) cloudPushProfil().catch(e => console.warn(e));
+  toast(t ? 'Mot enregistré.' : 'Mot effacé.');
+}
+
+/* tout ce que le réseau a laissé sur cet objet, moi compris */
+function reactionsItem(login, type, it){
+  const cle = cleReac(login, type, it);
+  const L = [];
+  const moi = (DATA.reactions || {})[cle];
+  if(moi && (moi.emo || moi.mot)){
+    L.push({ pseudo: DATA.profil.pseudo || 'Moi', avatar: monAvatar(),
+             emo: moi.emo || '', mot: moi.mot || '', moi: true });
+  }
+  const mien = monLogin();
   USERS.forEach(u => {
-    const r = u.reactions && (u.reactions[l] || u.reactions[login]);
-    if(r) out[r] = (out[r] || 0) + 1;
+    if(!u || !u.reactions) return;
+    if(mien && String(u.login || '').toLowerCase() === mien) return;   // pas compté deux fois
+    const r = u.reactions[cle];
+    // les entrées de l'ancien format sont des chaînes : elles sont ignorées d'elles-mêmes
+    if(r && typeof r === 'object' && (r.emo || r.mot)){
+      L.push({ pseudo: u.pseudo || u.login, avatar: u.avatar,
+               emo: r.emo || '', mot: r.mot || '' });
+    }
   });
-  return out;
+  return L;
 }
-function htmlRecues(login){
-  const r = reactionsRecues(login);
-  const ks = Object.keys(r);
-  if(!ks.length) return '';
-  return '<div class="rea-recu">'
-    + ks.map(k => '<span class="rea-p">' + k + ' ' + r[k] + '</span>').join('')
-    + '</div>';
+
+/* Contexte de la fiche ouverte : le clic sur un emoji n'a pas besoin de retrouver
+   l'objet dans le DOM, il le relit ici. */
+let reacCtx = null;
+
+function poseReactions(zone, login, type, it){
+  reacCtx = { zone: zone, login: login, type: type, it: it };
+  rendReactions();
 }
-function htmlBoutonsReaction(login){
-  const mien = (DATA.reactions || {})[String(login).toLowerCase()];
-  return '<div class="rea">' + REACTIONS.map(e =>
-    '<button class="' + (mien === e ? 'on' : '') + '" data-rea="' + esc(login) + '" '
-    + 'data-emo="' + e + '" title="Réagir">' + e + '</button>').join('') + '</div>';
+function rendReactions(){
+  if(!reacCtx) return;
+  const z = $(reacCtx.zone);
+  if(!z) return;
+  z.innerHTML = htmlReactions(reacCtx.login, reacCtx.type, reacCtx.it);
+}
+function reagitCourant(emo){
+  if(!reacCtx) return;
+  reagit(reacCtx.login, reacCtx.type, reacCtx.it, emo);
+  rendReactions();
+}
+function ecritMotCourant(mot){
+  if(!reacCtx) return;
+  ecritMot(reacCtx.login, reacCtx.type, reacCtx.it, mot);
+  rendReactions();
+}
+
+function htmlReactions(login, type, it){
+  const quoi = type === 'ost' ? 'cette OST' : 'ce jeu';
+  // chez soi on ne réagit pas : on lit ce que les autres ont laissé
+  const chezMoi = !login || (!!monLogin() && String(login).toLowerCase() === monLogin());
+  const L = reactionsItem(login, type, it);
+  let h = '<div class="rc"><div class="rc-t">💬 Réactions</div>';
+
+  if(!chezMoi){
+    const mien = maReaction(login, type, it) || {};
+    h += '<div class="rea">' + REACTIONS.map(e =>
+        '<button type="button" class="' + (mien.emo === e ? 'on' : '') + '" data-rea="1" '
+        + 'data-emo="' + e + '" title="Réagir">' + e + '</button>').join('') + '</div>'
+      + '<div class="rc-mot"><textarea id="reaMot" maxlength="' + MOT_MAX + '" '
+      + 'placeholder="Un mot sur ' + quoi + ' ? Quelques lignes suffisent.">'
+      + esc(mien.mot || '') + '</textarea>'
+      + '<div class="rc-cpt">Enregistré dès que tu quittes le champ · '
+      + MOT_MAX + ' caractères max</div></div>';
+    if(!connecte()){
+      h += '<div class="rc-cpt">Sans compte GitHub connecté, ta réaction reste sur cet appareil : '
+        + 'personne ne la verra.</div>';
+    }
+  }
+
+  if(L.length){
+    h += '<div class="rc-liste">' + L.map(r =>
+        '<div class="rc-l' + (r.moi ? ' moi' : '') + '">'
+        + (r.avatar
+            ? '<img class="rc-av" src="' + esc(r.avatar) + '" alt="">'
+            : '<span class="rc-av">' + esc((r.pseudo || '?').slice(0,1).toUpperCase()) + '</span>')
+        + '<div class="rc-c"><b>' + esc(r.pseudo) + (r.moi ? ' · toi' : '') + '</b>'
+        + (r.mot ? '<p>' + esc(r.mot) + '</p>' : '') + '</div>'
+        + (r.emo ? '<span class="rc-e">' + r.emo + '</span>' : '')
+        + '</div>').join('') + '</div>';
+  }else{
+    h += '<div class="rc-vide" style="margin-top:12px">'
+      + (chezMoi
+          ? 'Personne n\'a encore réagi. Les réactions des membres que FGL a chargés apparaîtront ici.'
+          : 'Sois le premier à réagir.')
+      + '</div>';
+  }
+  return h + '</div>';
 }
 
 /* =========================================================
@@ -4315,7 +4508,7 @@ async function contenuFichier(f){
 function payloadData(){
   // le token n'est JAMAIS envoyé, et la clé RAWG reste sur l'appareil
   return {
-    app:'FGL', version:8, syncAt: isoLocal(),
+    app:'FGL', version:10, syncAt: isoLocal(),
     profil: DATA.profil, jeux: DATA.jeux,
     defis: DATA.defis, osts: DATA.osts, palmares: DATA.palmares,
     reactions: DATA.reactions
@@ -4369,7 +4562,7 @@ function payloadProfil(){
   const p = DATA.profil;
   const partage = p.visibilite !== 'prive';
   return {
-    app:'FGL', version:8,
+    app:'FGL', version:10,
     login: DATA.cloud.login || '', pseudo: p.pseudo || 'Sans pseudo',
     avatar: monAvatar(), bio: p.bio || '',
     visibilite: p.visibilite || 'public',
@@ -4874,7 +5067,6 @@ function rendUsers(){
       + '<span>' + ((p.osts || []).length) + ' OSTs</span>'
       + '<span>' + ((p.defis || []).length) + ' défis</span>'
       + '</div>'
-      + htmlRecues(p.login)
       + '</button>';
   }).join('');
 }
@@ -4940,7 +5132,6 @@ function rendBandeau(){
     + '<button class="puce' + (UI.vue2 !== 'ost' ? ' on' : '') + '" data-lecvue="jeux">🎮 Jeux</button>'
     + '<button class="puce' + (UI.vue2 === 'ost' ? ' on' : '') + '" data-lecvue="ost">🎵 OSTs</button>'
     + '</div>'
-    + htmlBoutonsReaction(lecture.login)
     + '<button class="btn" id="bRetourL">← Revenir à ma liste</button></div>';
   $('#bRetourL').onclick = quitteLecture;
 }
@@ -4956,8 +5147,9 @@ function ouvreVoir(i){
   $('#voirCorps').innerHTML = '<div class="voir-tete">' + aff + '<div style="flex:1">'
     + '<div class="stat-b" style="position:static;display:inline-block;background:' + st.c + 'cc">'
     + st.nom + '</div>'
-    + (g.note != null ? '<div class="note-txt" style="margin:10px 0 0;font-size:26px">'
-        + g.note.toFixed(1) + '<span style="font-size:13px;color:var(--muted)"> / 10</span></div>' : '')
+    + (g.note != null ? '<div style="margin:11px 0 0;display:flex;align-items:center;gap:9px">'
+        + htmlEtoiles(g.note, 'g')
+        + '<span class="note-txt" style="margin:0;font-size:14px">' + g.note.toFixed(1) + '</span></div>' : '')
     + (g.genres && g.genres.length ? '<div class="carte-s" style="margin-top:8px">'
         + esc(g.genres.join(' · ')) + '</div>' : '')
     + '</div></div>'
@@ -4970,7 +5162,9 @@ function ouvreVoir(i){
     + (g.trpTot
         ? '<button class="btn pri" style="margin-top:16px;width:100%" data-voirtrp="' + i + '">'
           + '🏆 Voir les ' + g.trpTot + ' succès en détail</button>'
-        : '');
+        : '')
+    + '<div id="voirReac"></div>';
+  poseReactions('#voirReac', lecture.login, 'jeu', g);
   ouvre('mVoir');
 }
 
@@ -5055,7 +5249,7 @@ function init(){
   $('#pied').textContent = 'FelGamesList ' + VERSION + ' — tes données restent dans ce navigateur';
 
   // listes déroulantes
-  $('#jPlat').innerHTML = PLATEFORMES.map(p => '<option>' + esc(p) + '</option>').join('');
+  posePlateforme('');
   $('#jStat').innerHTML = STATUTS.map(s => '<option value="' + s.id + '">' + s.nom + '</option>').join('');
   $('#puces').innerHTML = '<button class="puce on" data-st="">Tous</button>'
     + STATUTS.map(s => '<button class="puce" data-st="' + s.id + '">' + s.nom + '</button>').join('');
@@ -5123,9 +5317,7 @@ function init(){
   $('#bSauveOst').onclick = sauveOst;
   $('#bSuppOst').onclick = suppOst;
   $('#oLien').addEventListener('input', majLienOst);
-  $('#bChercheOst').onclick = () => chercheOst(false);
   $('#bRechYT').onclick = lanceRechercheYT;
-  $('#bColler').onclick = collerLien;
   $('#oRech').addEventListener('keydown', e => { if(e.key === 'Enter') lanceRechercheYT(); });
   $('#oTitre').addEventListener('keydown', e => { if(e.key === 'Enter') sauveOst(); });
   $('#q').addEventListener('input', e => { UI.q = e.target.value; rendGrille(); });
@@ -5189,7 +5381,7 @@ function init(){
       return;
     }
     const re = e.target.closest('[data-rea]');
-    if(re){ reagit(re.dataset.rea, re.dataset.emo); return; }
+    if(re){ reagitCourant(re.dataset.emo); return; }
     const yt = e.target.closest('[data-yt]');
     if(yt){ choisitYT(yt.dataset.yt); return; }
     const os = e.target.closest('[data-ost]');
@@ -5259,6 +5451,12 @@ function init(){
   $('#bAfRech').onclick = chercheAffiches;
   $('#afRech').addEventListener('keydown', e => { if(e.key === 'Enter') chercheAffiches(); });
   $('#bTestSgdb').onclick = testeSgdb;
+
+  // le mot laissé sur un jeu ou une OST : il s'enregistre quand on quitte le champ.
+  // Écouteur délégué, parce que le champ est reconstruit à chaque rendu du bloc.
+  document.addEventListener('change', e => {
+    if(e.target && e.target.id === 'reaMot') ecritMotCourant(e.target.value);
+  });
 
   // bouton « fait à 100 % »
   $('#jCent').onclick = () => {
