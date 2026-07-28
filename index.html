@@ -431,11 +431,26 @@
 
 /* Un jeu mobile ne vient pas dans une boîte : il se range dans son appareil.
    Le boîtier devient un téléphone, écran compris, avec ses boutons de tranche.
-   C'est le seul endroit où l'objet posé change de nature. */
-.liv.tel{--ep:12px}
+   C'est le seul endroit où l'objet posé change de nature.
+
+   ⚠️ Donc PAS de tranche de boîtier. Un téléphone n'a pas de dos épais qui
+   part vers l'arrière : la tranche rabattue dépassait sur le côté gauche du
+   cadre et se lisait comme un défaut de découpe. Tout ce qui vient du
+   boîtier — tranche, ombre portée, voile du haut, liseré — est retiré ici ;
+   le châssis de l'appareil fait déjà tout le travail. */
+.liv.tel .liv-s{display:none}
 .liv.tel .liv-a{background:none;box-shadow:none;overflow:visible;filter:none}
 .liv.tel .liv-a::after{display:none}
 .liv.tel:hover .liv-a{box-shadow:none;filter:none}
+/* la note suit l'arrondi de l'écran au lieu de déborder sur le châssis */
+.liv.tel .liv-n{left:5px;right:5px;bottom:7px;border-radius:0 0 10px 10px}
+/* Le liseré doré des 100 % vit sur la face avant du boîtier — que le
+   téléphone n'a plus. Sans ce report, un jeu mobile fini à 100 % perdait
+   silencieusement son repère : il passe sur le châssis. */
+.liv.tel.cent .tel-b{
+  box-shadow:0 3px 5px rgba(0,0,0,.75),0 12px 22px rgba(0,0,0,.5),
+             inset 0 1px 0 rgba(255,255,255,.28),0 0 0 2px var(--or);
+}
 .tel-b{
   position:absolute;inset:0;border-radius:16px;padding:7px 5px;
   background:linear-gradient(160deg,#3a3f4d,#15171d 45%,#22252e);
