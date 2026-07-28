@@ -266,6 +266,51 @@
    verticale est convertie en défilement horizontal (voir `roueEtagere`). */
 .etg-in::-webkit-scrollbar{display:none}
 
+/* ---------- TOUT VOIR ----------
+   Une étagère qui déborde cache ce qu'elle a au bout : il faut la parcourir
+   pour savoir ce qui s'y trouve. En mode « tout voir », elle ne défile plus,
+   elle REVIENT À LA LIGNE — et chaque rangée reçoit sa propre tablette.
+
+   Ces tablettes-là sont un fond répété, pas des éléments : il en faut une par
+   rangée, et le nombre de rangées dépend de la largeur de l'écran. Le motif
+   se répète depuis le BAS (`background-position:bottom`, origine sur la boîte
+   de contenu, donc calé sur la rangée du bas) avec une période de
+   « hauteur d'un objet + hauteur d'une tablette » :
+
+     transparent sur --oh  → la rangée d'objets
+     ombre, tranche, dessus sur --pl → la tablette sur laquelle pose la
+                                       rangée du DESSUS
+
+   `--oh` est la hauteur d'un objet, la seule valeur qui change d'un meuble à
+   l'autre : 198 px pour une jaquette 2/3 de 132, 170 px pour un boîtier carré. */
+#grille .etg-in{--oh:198px}
+#ostGrille .etg-in{--oh:170px}
+body.deplie .etg-in{
+  flex-wrap:wrap;align-content:flex-end;overflow:visible;
+  --pl:42px;row-gap:var(--pl);
+  background-origin:content-box;background-clip:content-box;
+  background-position:left bottom;
+  background-image:repeating-linear-gradient(to top,
+    transparent 0 var(--oh),
+    rgba(0,0,0,.55) var(--oh) calc(var(--oh) + 7px),
+    var(--planche) calc(var(--oh) + 7px) calc(var(--oh) + 10px),
+    var(--bois3) calc(var(--oh) + 10px) calc(var(--oh) + 20px),
+    var(--bois4) calc(var(--oh) + 20px) calc(var(--oh) + 23px),
+    color-mix(in srgb,var(--bois3) 88%,#000) calc(var(--oh) + 23px) calc(var(--oh) + 30px),
+    color-mix(in srgb,var(--bois3) 42%,#000) calc(var(--oh) + 30px) calc(var(--oh) + var(--pl)));
+}
+/* le filet d'accent de chaque tablette intercalaire, posé par-dessus le motif */
+body.deplie .etg-in::after{
+  content:"";position:absolute;left:20px;right:20px;top:0;bottom:76px;
+  pointer-events:none;z-index:-1;
+  background-image:repeating-linear-gradient(to top,
+    transparent 0 calc(var(--oh) + 10px),
+    color-mix(in srgb,var(--accent) calc(var(--filet-op,.55) * 100%),transparent)
+      calc(var(--oh) + 10px) calc(var(--oh) + 12px),
+    transparent calc(var(--oh) + 12px) calc(var(--oh) + var(--pl)));
+  background-position:left bottom;
+}
+
 /* La tablette : une SURFACE de pose, puis sa tranche.
 
    ⚠️ Le dessus n'est plus tourné en 3D. Il l'a été de la 0.9.37 à la 1.0, et
@@ -599,6 +644,10 @@ body.edit-dec .dec-barre{display:flex}
 
 @media (max-width:640px){
   .liv{width:92px;--ep:13px;--ry:11deg}
+  #grille .etg-in{--oh:138px}
+  #ostGrille .etg-in{--oh:116px}
+  body.deplie .etg-in{--pl:30px}
+  body.deplie .etg-in::after{left:12px;right:12px;bottom:56px}
   .etg-in{min-height:252px;padding:58px 12px 56px;margin-bottom:-56px}
   .meuble{padding:0 20px}
   .meuble > .flanc{width:26px}
@@ -1557,6 +1606,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
   <div class="bar" id="barre">
     <div class="rech"><span>🔎</span><input id="q" placeholder="Chercher un jeu…" autocomplete="off"></div>
     <div class="espace"></div>
+    <button class="btn" id="bDeplie" title="Voir tout le contenu de chaque étagère">⊞ Tout voir</button>
     <button class="btn" id="bDecJeux" title="Décorer autour de la bibliothèque">🖼 Décors</button>
     <button class="btn pri" id="bAdd">+ Ajouter</button>
   </div>
@@ -1588,6 +1638,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
       <div class="titre-s" style="margin:0" id="ostTitreV">🎵 Mes OSTs</div>
       <div class="espace"></div>
       <div class="compte" id="ostCompte"></div>
+      <button class="btn" id="bDeplieOst" title="Voir tout le contenu de chaque étagère">⊞ Tout voir</button>
       <button class="btn" id="bDecOst" title="Décorer autour du meuble">🖼 Décors</button>
       <button class="btn pri" id="bAddOst">+ Ajouter une OST</button>
     </div>
@@ -2003,7 +2054,7 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
         <label>Ce que FGL crée sur ton compte</label>
         <div class="aide">
           • <b>fgl-data.json</b> — gist <b>secret</b> : toute ta collection, succès compris.<br>
-          • <b>fgl-profile.json</b> — gist <b>public</b> : pseudo, avatar, bio, présence, top 10 et ta liste allégée. C'est celui-là que tes amis lisent.<br>
+          • <b>fgl-profile.json</b> — gist <b>public</b> : pseudo, avatar, bio, présence, top 10, ta liste allégée et le décor de ta bibliothèque. C'est celui-là que tes amis lisent.<br>
           Ne les supprime pas depuis GitHub, FGL les retrouve tout seul à chaque connexion.
         </div>
       </div>
@@ -2243,10 +2294,11 @@ let centTmp = false;     // case « fait à 100 % » en cours de saisie
 
 function dataVierge(){
   return {
-    version: 19,
+    version: 20,
     reglages: { cleRawg:'', cleSgdb:'', cleYT:'', cleGB:'', proxySgdb:'', mailTrad:'',
                 langueSucces:'french',
-                theme:'sombre', palette:'auto', anim:true, meuble:'metal' },
+                theme:'sombre', palette:'auto', anim:true, meuble:'metal',
+                deplie:false },
     cloud: { login:'', gistData:'', gistProfil:'', auto:true, syncAt:'', majAt:'', connus:[] },
     etageres: [],           // étagères des OST, créées à la main
     // v18 → v19 : les décors ne sont plus accrochés au bout d'une étagère.
@@ -2290,6 +2342,9 @@ function migre(){
   // v17 → v18 : la matière du meuble. « metal » est l'ancienne apparence, donc
   // une collection existante s'affiche exactement pareil après migration.
   if(!DATA.reglages.meuble) DATA.reglages.meuble = 'metal';
+  // v19 → v20 : « tout voir ». `false` = les étagères défilent, l'apparence
+  // d'avant : une collection existante s'affiche donc à l'identique.
+  DATA.reglages.deplie = DATA.reglages.deplie === true;
   // v18 → v19 : les décors changent complètement de nature. En v18 c'était
   // « une étagère → une adresse d'image », posée au bout de la rangée. Ce
   // sont maintenant des images libres, placées à la main autour du meuble.
@@ -2454,7 +2509,7 @@ function migre(){
   });
   if(!Array.isArray(DATA.profil.amis)) DATA.profil.amis = [];
   if(!DATA.profil.visibilite) DATA.profil.visibilite = 'public';
-  DATA.version = 19;
+  DATA.version = 20;
 }
 /* écriture brute, sans toucher aux repères de synchro */
 function ecrit(){
@@ -4949,6 +5004,7 @@ function appliqueTheme(){
   // de variables CSS, exactement comme le thème
   document.documentElement.dataset.meuble = DATA.reglages.meuble || 'metal';
   appliquePalette();
+  appliqueDeplie();
   document.querySelector('meta[name=theme-color]')
     .setAttribute('content', t === 'sombre' ? '#12101a' : '#f4f1f7');
   document.body.classList.toggle('sansanim', !DATA.reglages.anim);
@@ -5563,9 +5619,16 @@ function prendMaintenant(){
   clearTimeout(dragT);
   if(!presse || !presse.el || drag) return;
   const r = presse.el.getBoundingClientRect();
+  // En mode « tout voir » l'étagère revient à la ligne : le repérage à
+  // l'horizontale seule ne suffit plus, il faut savoir sur quelle rangée on
+  // survole. On le calcule UNE fois, à la prise — et seulement s'il y a
+  // vraiment plusieurs rangées, pour ne rien changer au cas courant.
+  const lignes = new Set(Array.from(presse.etg.querySelectorAll(SEL_PRISE))
+    .map(n => n.offsetTop)).size > 1;
   drag = { el: presse.el, etg: presse.etg,
            id: presse.el.dataset.liv || presse.el.dataset.ost,
            ost: presse.el.dataset.ost != null,
+           lignes: lignes,
            bouge: false, dx: 0,
            // où le doigt a saisi l'objet, en pixels depuis son bord gauche :
            // c'est ce point-là qui doit rester sous le curseur du début à la fin
@@ -5610,13 +5673,17 @@ function bougePrise(e){
   drag.el.style.setProperty('--dx', drag.dx + 'px');
 
   // on insère avant le premier objet dont le milieu est passé à droite du
-  // curseur : c'est le calcul qui donne un ressenti « naturel »
+  // curseur : c'est le calcul qui donne un ressenti « naturel ». Sur plusieurs
+  // rangées, on lit d'abord la rangée puis la position dedans — c'est l'ordre
+  // de lecture, donc c'est aussi l'ordre de rangement.
   const freres = Array.from(drag.etg.querySelectorAll(SEL_PRISE))
     .filter(n => n !== drag.el);
   let cible = null;
   for(const n of freres){
     const r = n.getBoundingClientRect();
-    if(e.clientX < r.left + r.width / 2){ cible = n; break; }
+    if(drag.lignes && e.clientY < r.top - 4){ cible = n; break; }
+    const memeLigne = !drag.lignes || (e.clientY >= r.top - 4 && e.clientY <= r.bottom + 4);
+    if(memeLigne && e.clientX < r.left + r.width / 2){ cible = n; break; }
   }
   // Plus rien ne traîne en fin de rangée depuis que les décors ont quitté les
   // étagères (1.0) : l'objet lâché après le dernier va simplement au bout.
@@ -5769,15 +5836,51 @@ function htmlUnDecor(d){
 }
 
 /* Les deux calques d'une scène : ce qui est derrière le meuble, ce qui est
-   devant. Rendus vides en lecture seule — on ne décore pas chez les autres,
-   et les décors ne partent pas dans le profil public. */
+   devant. En lecture seule, ce sont les décors DU MEMBRE : sa vitrine doit
+   ressembler à ce qu'il en a fait, pas à ce que j'ai fait de la mienne. */
 function calquesDecors(ou){
-  if(lecture) return { fond:'', avant:'' };
-  const L = listeDecors(ou);
+  let L;
+  if(lecture){
+    const d = lecture.decors;
+    L = (d && Array.isArray(d[ou])) ? d[ou].slice(0, MAX_DECORS) : [];
+    // un profil bricolé à la main ne doit pas pouvoir casser le rendu
+    L = L.filter(x => x && typeof x === 'object' && typeof x.url === 'string' && x.url)
+         .map(x => ({ id: String(x.id || ''), url: x.url,
+                      x: borne(x.x, 0, 100, 50), y: borne(x.y, 0, 100, 50),
+                      w: borne(x.w, 3, 70, 14), r: borne(x.r, -180, 180, 0),
+                      plan: x.plan === 'fond' ? 'fond' : 'avant' }));
+  }else{
+    L = listeDecors(ou);
+  }
   return {
     fond:  L.filter(d => d.plan === 'fond').map(htmlUnDecor).join(''),
     avant: L.filter(d => d.plan !== 'fond').map(htmlUnDecor).join('')
   };
+}
+
+/* Le design d'une scène : la matière du meuble et la couleur d'accent.
+
+   Chez soi, on ne pose RIEN : `<html>` porte déjà l'attribut et les variables,
+   la scène en hérite. Chez les autres, on pose le design du membre sur la
+   scène seule — surtout pas sur `<html>`, qui repeindrait toute l'interface
+   du visiteur aux couleurs de l'hôte.
+
+   La palette `auto` ne peut pas être reproduite : elle se déduit de l'affiche
+   n°1 de celui qui la regarde. Dans ce cas on laisse la couleur du visiteur —
+   c'est aussi ce que l'hôte voit chez lui. */
+function designScene(){
+  if(!lecture) return '';
+  const d = lecture.design || {};
+  const mat = MEUBLES.some(m => m.id === d.meuble) ? d.meuble : 'metal';
+  let style = '';
+  const pal = PALETTES.find(x => x.id === d.palette);
+  if(pal && !pal.auto){
+    // calculée dans le thème DU VISITEUR : un accent clair posé dans une
+    // interface sombre serait illisible, et inversement
+    const c = couleursPalette(pal, DATA.reglages.theme === 'clair');
+    style = ' style="--accent:' + c['--accent'] + '"';
+  }
+  return ' data-meuble="' + esc(mat) + '"' + style;
 }
 
 /* La scène complète : les décors du fond, la pièce (meuble + sol), les décors
@@ -5785,11 +5888,35 @@ function calquesDecors(ou){
    bibliothèques en héritent forcément. */
 function htmlScene(ou, meuble){
   const c = calquesDecors(ou);
-  return '<div class="scene" data-scene="' + ou + '">'
+  return '<div class="scene" data-scene="' + ou + '"' + designScene() + '>'
     + '<div class="calque fond">' + c.fond + '</div>'
     + '<div class="piece">' + meuble + '<div class="sol"></div></div>'
     + '<div class="calque avant">' + c.avant + '</div>'
     + '</div>';
+}
+
+/* ---------- Tout voir ----------
+   Une étagère qui déborde cache ce qu'elle a au bout. En mode « tout voir »
+   elle revient à la ligne au lieu de défiler, et chaque rangée reçoit sa
+   propre tablette (voir le CSS de `body.deplie`). Le réglage est global aux
+   deux meubles : c'est une façon de regarder, pas une propriété d'un meuble. */
+function appliqueDeplie(){
+  const on = !!DATA.reglages.deplie;
+  document.body.classList.toggle('deplie', on);
+  [['#bDeplie', 'jeu'], ['#bDeplieOst', 'ost']].forEach(([sel]) => {
+    const b = $(sel);
+    if(!b) return;
+    b.textContent = on ? '\u229f En rang\u00e9e' : '\u229e Tout voir';
+    b.classList.toggle('pri', on);
+    b.title = on
+      ? 'Revenir aux \u00e9tag\u00e8res qui d\u00e9filent'
+      : 'Voir tout le contenu de chaque \u00e9tag\u00e8re';
+  });
+}
+function basculeDeplie(){
+  DATA.reglages.deplie = !DATA.reglages.deplie;
+  sauve();
+  appliqueDeplie();
 }
 
 /* ---------- Le mode d'édition ---------- */
@@ -6563,11 +6690,26 @@ async function contenuFichier(f){
 
 /* ---------- Ce qu'on publie ---------- */
 function payloadData(){
-  // le token n'est JAMAIS envoyé, et la clé RAWG reste sur l'appareil
+  // le token n'est JAMAIS envoyé, et les clés d'API restent sur l'appareil
   return {
-    app:'FGL', version:11, syncAt: isoLocal(),
+    app:'FGL', version:12, syncAt: isoLocal(),
     profil: DATA.profil, jeux: DATA.jeux,
     defis: DATA.defis, osts: DATA.osts, palmares: DATA.palmares,
+    // v12 de la sauvegarde : les étagères d'OST et les décors manquaient à
+    // l'appel. Sans `etageres`, une OST arrivant sur le second appareil
+    // pointait vers une étagère inconnue et redescendait sur la commune : le
+    // rangement était perdu en silence à chaque synchro.
+    etageres: DATA.etageres || [],
+    decors: DATA.decors || { jeux:[], ost:[] },
+    // le design suit aussi : voir sa bibliothèque décorée sur un appareil et
+    // nue sur l'autre n'aurait aucun sens. Les clés d'API, elles, ne partent
+    // pas — ce sont des secrets d'appareil, pas des préférences.
+    design: {
+      meuble: DATA.reglages.meuble || 'metal',
+      palette: DATA.reglages.palette || 'auto',
+      theme: DATA.reglages.theme || 'sombre',
+      deplie: !!DATA.reglages.deplie
+    },
     reactions: DATA.reactions
   };
 }
@@ -6619,7 +6761,7 @@ function payloadProfil(){
   const p = DATA.profil;
   const partage = p.visibilite !== 'prive';
   return {
-    app:'FGL', version:11,
+    app:'FGL', version:12,
     login: DATA.cloud.login || '', pseudo: p.pseudo || 'Sans pseudo',
     avatar: monAvatar(), bio: p.bio || '',
     visibilite: p.visibilite || 'public',
@@ -6629,6 +6771,16 @@ function payloadProfil(){
     defis: Object.keys(DATA.defis || {}),
     defisTotal: DEFIS.length,
     reactions: DATA.reactions || {},
+    // v12 du profil : le DESIGN de la bibliothèque voyage avec elle. Sans lui,
+    // un membre qui vient voir ma collection la voyait dans MA matière et MES
+    // décors… non : dans les SIENS. Une vitrine décorée qui change d'apparence
+    // selon qui la regarde n'est plus une vitrine.
+    design: {
+      meuble: DATA.reglages.meuble || 'metal',
+      palette: DATA.reglages.palette || 'auto',
+      theme: DATA.reglages.theme || 'sombre'
+    },
+    decors: partage ? (DATA.decors || { jeux:[], ost:[] }) : { jeux:[], ost:[] },
     osts: partage ? (DATA.osts || []).map(ostPublic) : [],
     champions: championsPublics(),
     nbJeux: partage ? DATA.jeux.length : 0,
@@ -6728,12 +6880,23 @@ function appliqueDistant(d){
   if(d.defis && typeof d.defis === 'object') DATA.defis = d.defis;
   if(Array.isArray(d.osts)) DATA.osts = d.osts;
   if(Array.isArray(d.palmares)) DATA.palmares = d.palmares;
+  if(Array.isArray(d.etageres)) DATA.etageres = d.etageres;
+  if(d.decors && typeof d.decors === 'object') DATA.decors = d.decors;
+  if(d.design && typeof d.design === 'object'){
+    if(d.design.meuble)  DATA.reglages.meuble  = d.design.meuble;
+    if(d.design.palette) DATA.reglages.palette = d.design.palette;
+    if(d.design.theme)   DATA.reglages.theme   = d.design.theme;
+    DATA.reglages.deplie = d.design.deplie === true;
+  }
   if(d.reactions && typeof d.reactions === 'object') DATA.reactions = d.reactions;
+  // `migre()` borne et répare tout ce qui vient d'arriver — un gist se modifie
+  // à la main, on ne lui fait pas plus confiance qu'à un import
   migre();
   DATA.cloud.syncAt = d.syncAt || isoLocal();
   DATA.cloud.majAt  = DATA.cloud.syncAt;   // rien de neuf en local depuis
   ecrit();
   lecture = null;
+  appliqueTheme();          // la matière, la palette et « tout voir » viennent d'arriver
   toutRendre();
 }
 async function cloudPull(manuel){
@@ -7704,6 +7867,10 @@ function init(){
   document.addEventListener('pointerup', finPrise);
   document.addEventListener('pointercancel', finPrise);
 
+  // ---------- Tout voir ----------
+  $('#bDeplie').onclick    = basculeDeplie;
+  $('#bDeplieOst').onclick = basculeDeplie;
+
   // ---------- Décors ----------
   $('#bDecJeux').onclick = () => ouvreDecors('jeux');
   $('#bDecOst').onclick  = () => ouvreDecors('ost');
@@ -7726,20 +7893,37 @@ function init(){
 
   /* La molette fait défiler l'étagère HORIZONTALEMENT. C'est la contrepartie
      d'avoir masqué la barre de défilement : sans elle, une étagère bien
-     remplie n'aurait plus aucun moyen d'être parcourue à la souris. On ne
-     détourne le geste que si l'étagère déborde vraiment, sinon la page ne
-     défilerait plus dès que le curseur passe sur un meuble. */
+     remplie n'aurait plus aucun moyen d'être parcourue à la souris.
+
+     ⚠️ L'étagère défilait bien, mais la page descendait EN MÊME TEMPS. Deux
+     causes, il fallait traiter les deux :
+
+     1. On écrivait `scrollLeft += d` PUIS on comparait à la valeur d'avant.
+        Le navigateur borne l'écriture : dès que l'étagère touchait un bord,
+        la valeur ne bougeait plus, `preventDefault` n'était pas appelé, et la
+        page prenait le geste. La cible est maintenant calculée AVANT d'écrire.
+     2. L'écouteur était posé en phase de bulle. Une fois une chaîne de
+        défilement engagée, le navigateur peut rendre les événements suivants
+        NON annulables : il faut être servi en premier, donc en CAPTURE.
+
+     On ne détourne le geste que si l'étagère déborde et qu'il lui reste de la
+     place dans ce sens — sinon la page ne défilerait plus dès que le curseur
+     passe sur un meuble, et on se croirait bloqué. */
   document.addEventListener('wheel', e => {
-    const etg = e.target.closest && e.target.closest('.etg-in');
+    if(e.ctrlKey) return;                       // zoom du navigateur
+    if(!(e.target instanceof Element)) return;
+    const etg = e.target.closest('.etg-in');
     if(!etg) return;
-    if(etg.scrollWidth <= etg.clientWidth + 2) return;
-    if(Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    const max = etg.scrollWidth - etg.clientWidth;
+    if(max <= 2) return;                        // rien à parcourir (dont « tout voir »)
+    const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if(!d) return;
     const avant = etg.scrollLeft;
-    etg.scrollLeft += e.deltaY;
-    // arrivé au bout, on rend la molette à la page : rester bloqué sur une
-    // étagère en fin de course donnerait l'impression que la page est figée
-    if(etg.scrollLeft !== avant) e.preventDefault();
-  }, { passive: false });
+    const apres = Math.max(0, Math.min(max, avant + d));
+    if(apres === avant) return;                 // bout de course : à la page de jouer
+    etg.scrollLeft = apres;
+    if(e.cancelable) e.preventDefault();
+  }, { passive: false, capture: true });
 
   $('#bFicheSteam').onclick = choisitFicheSteam;
   $('#bTrpRaz').onclick = () => {
