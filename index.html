@@ -45,17 +45,72 @@
    la lumière qui tombe du haut sont ce qui fait qu'on y croit : sans eux, ce
    sont des rangées de vignettes avec une bordure marron.
    Les teintes sont dans des variables à part pour suivre le thème clair. */
+/* Le meuble a SIX matières au choix (⚙ onglet Thèmes). Chacune tient dans
+   six variables : les quatre tons du corps, la tranche de planche, plus le
+   grain de surface et l'intensité du filet lumineux. Ajouter une matière ne
+   demande donc rien d'autre qu'un bloc de variables — aucune règle en plus.
+
+   Ordre important : les blocs [data-meuble] viennent APRÈS [data-theme="clair"]
+   et le neutralisent. Un chêne reste un chêne en thème clair ; seule la
+   matière « métal » suit le thème, parce que c'est la seule qui n'est pas
+   une vraie matière. */
+/* Chaque matière définit AUSSI la couleur du sol : un sol de béton sous un
+   meuble en chêne se voit tout de suite, et c'est le sol qui donne l'échelle. */
 :root{
-  /* Le meuble n'est plus en bois : chêne verni et interface violette ne se
-     parlaient pas, ça faisait meuble de grand-mère sous un site moderne.
-     Métal anodisé sombre, verre fumé, et un liseré lumineux à la couleur
-     d'accent sous chaque planche — le meuble suit désormais le thème. */
   --bois:#15131d; --bois2:#1e1b29; --bois3:#2c2839; --bois4:#3b3550;
-  --planche:#0d0c13;
+  --planche:#0d0c13; --etq:#e9e2f8; --filet-op:.55; --sol:#0b0a11;
+  --grain:repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px);
 }
 [data-theme="clair"]{
   --bois:#d8d2e4; --bois2:#e7e3ef; --bois3:#cdc5dd; --bois4:#b6accb;
-  --planche:#a79cc0;
+  --planche:#a79cc0; --etq:#2b2338; --sol:#b3aac6;
+}
+/* métal & verre — l'apparence d'avant la 0.9.45, la seule qui suive le thème */
+[data-meuble="metal"]{
+  --bois:#15131d; --bois2:#1e1b29; --bois3:#2c2839; --bois4:#3b3550;
+  --planche:#0d0c13; --etq:#e9e2f8; --filet-op:.55; --sol:#0b0a11;
+  --grain:repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px);
+}
+[data-theme="clair"][data-meuble="metal"],[data-theme="clair"] [data-meuble="metal"]{
+  --bois:#d8d2e4; --bois2:#e7e3ef; --bois3:#cdc5dd; --bois4:#b6accb;
+  --planche:#a79cc0; --etq:#2b2338; --sol:#b3aac6;
+}
+/* chêne verni — le meuble d'origine, celui qu'on garde pour la chaleur */
+[data-meuble="chene"]{
+  --bois:#4a2f16; --bois2:#6b4423; --bois3:#83552c; --bois4:#9c6636;
+  --planche:#35200f; --etq:#f6e6c9; --filet-op:.14; --sol:#1d1208;
+  --grain:repeating-linear-gradient(90deg,
+    rgba(0,0,0,.22) 0 2px,rgba(255,214,150,.06) 2px 5px,
+    rgba(0,0,0,.12) 5px 9px,rgba(255,214,150,.04) 9px 13px);
+}
+/* frêne — le même bois, en clair : pour les palettes pâles */
+[data-meuble="frene"]{
+  --bois:#a98a63; --bois2:#c6a878; --bois3:#d6bb8d; --bois4:#e3cda6;
+  --planche:#8a6c48; --etq:#3a2a16; --filet-op:.16; --sol:#6b5335;
+  --grain:repeating-linear-gradient(90deg,
+    rgba(120,84,44,.20) 0 2px,rgba(255,255,255,.10) 2px 6px,
+    rgba(120,84,44,.10) 6px 11px);
+}
+/* acajou & laiton — bois sombre et liseré doré */
+[data-meuble="acajou"]{
+  --bois:#33130f; --bois2:#521e17; --bois3:#67261c; --bois4:#7d3124;
+  --planche:#240d0a; --etq:#f0d7a4; --filet-op:.30; --sol:#170806;
+  --grain:repeating-linear-gradient(90deg,
+    rgba(0,0,0,.26) 0 2px,rgba(255,190,120,.05) 2px 6px,rgba(0,0,0,.14) 6px 11px);
+}
+/* arcade — laque noire, néon sous chaque planche */
+[data-meuble="arcade"]{
+  --bois:#07070c; --bois2:#101019; --bois3:#191926; --bois4:#242435;
+  --planche:#000; --etq:#eaeaff; --filet-op:1; --sol:#04040a;
+  --grain:repeating-linear-gradient(180deg,rgba(255,255,255,.05) 0 1px,transparent 1px 5px);
+}
+/* béton ciré — minéral, mat, sans reflet */
+[data-meuble="beton"]{
+  --bois:#3d3d42; --bois2:#4e4e55; --bois3:#5c5c64; --bois4:#6e6e77;
+  --planche:#2c2c31; --etq:#efefef; --filet-op:.20; --sol:#232327;
+  --grain:radial-gradient(circle at 20% 30%,rgba(255,255,255,.05) 0 2px,transparent 3px),
+          radial-gradient(circle at 70% 60%,rgba(0,0,0,.14) 0 2px,transparent 3px),
+          radial-gradient(circle at 45% 80%,rgba(255,255,255,.04) 0 1px,transparent 2px);
 }
 
 .zone-biblio{display:block;padding-bottom:40px}
@@ -63,34 +118,78 @@
 .bib-tete h2{font:700 clamp(22px,3.4vw,32px)/1.1 var(--dsp);margin:0 0 6px;letter-spacing:-.02em}
 .bib-tete p{margin:0;color:var(--muted);font-size:14px;max-width:62ch}
 
-/* le meuble, en fausse 3D */
+/* =========================================================
+   LA SCÈNE  —  une pièce, pas un meuble posé dans le vide
+   =========================================================
+   Le meuble seul flotte : c'est le SOL qui donne l'échelle et la profondeur.
+   Il part du pied du meuble et vient vers le spectateur, incliné dans la même
+   perspective. Autour, deux calques reçoivent les décors de l'utilisateur —
+   l'un derrière le meuble, l'autre devant — pour qu'on puisse aussi bien
+   poser une plante au fond qu'un objet au premier plan.
+
+   `.scene` coupe ce qui déborde : sans ça le sol, qui s'évase en approchant,
+   ferait apparaître une barre de défilement horizontale sur toute la page. */
+.scene{
+  --marge:clamp(0px,5vw,110px);
+  position:relative;overflow:hidden;border-radius:20px;
+  padding:16px var(--marge) 0;
+}
+.calque{position:absolute;inset:0;pointer-events:none}
+.calque.fond{z-index:0}
+.calque.avant{z-index:6}
+.piece{position:relative;z-index:2;perspective:1700px;perspective-origin:50% 26%}
+
+/* Le sol. `rotateX` positif fait descendre le bas de l'élément VERS le
+   spectateur : la surface s'évase donc en approchant, exactement comme un
+   vrai plancher. Le reflet est une simple bande floutée sous le meuble —
+   un vrai miroir demanderait de dupliquer tout le meuble. */
+.sol{
+  position:relative;height:clamp(140px,20vw,250px);margin:0 -16% -96px;
+  transform:rotateX(72deg);transform-origin:top center;
+  background:
+    radial-gradient(ellipse 42% 90% at 50% -4%,
+      color-mix(in srgb,var(--accent) 22%,transparent),transparent 74%),
+    linear-gradient(180deg,rgba(0,0,0,.75) 0%,var(--sol) 44%,rgba(0,0,0,.92) 100%);
+  box-shadow:inset 0 30px 70px rgba(0,0,0,.7);
+}
+.sol::before{
+  content:"";position:absolute;left:16%;right:16%;top:0;height:42%;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--bois2) 80%,transparent),transparent);
+  filter:blur(12px);opacity:.55;
+}
+/* L'ombre de contact, là où le meuble touche le plancher. Elle était portée
+   par la plinthe ; celle-ci retirée, c'est au sol de la prendre en charge —
+   sans elle le meuble redeviendrait posé sur rien. */
+.sol::after{
+  content:"";position:absolute;left:6%;right:6%;top:0;height:34%;
+  background:linear-gradient(180deg,rgba(0,0,0,.88),rgba(0,0,0,.35) 45%,transparent);
+}
+
+/* le meuble : sa perspective à lui sert aux étagères et aux objets posés */
 .meuble{
-  position:relative;border-radius:14px 14px 6px 6px;padding:0 30px 26px;
-  perspective:1400px;perspective-origin:50% 42%;
+  position:relative;z-index:3;border-radius:16px 16px 4px 4px;padding:0 38px;
+  perspective:1500px;perspective-origin:50% 44%;
   background:
     linear-gradient(180deg,rgba(255,214,150,.09),transparent 260px),
-    linear-gradient(90deg,var(--bois) 0%,var(--bois2) 10%,var(--bois2) 90%,var(--bois) 100%);
-  box-shadow:0 50px 110px rgba(0,0,0,.6),inset 0 2px 0 rgba(255,255,255,.10);
+    linear-gradient(90deg,var(--bois) 0%,var(--bois2) 12%,var(--bois2) 88%,var(--bois) 100%);
+  box-shadow:0 60px 130px rgba(0,0,0,.72),inset 0 2px 0 rgba(255,255,255,.10);
   border:1px solid rgba(0,0,0,.5);
 }
-/* les montants : deux panneaux tournés vers l'intérieur. Ce sont eux qui
-   donnent au meuble une épaisseur, sinon on ne voit qu'un rectangle. */
+/* Les montants sont vraiment TOURNÉS vers l'intérieur (`rotateY`), au lieu
+   d'être deux dégradés à plat : c'est ce qui donne au meuble une caisse. */
 .meuble > .flanc{
-  position:absolute;top:0;bottom:0;width:30px;pointer-events:none;z-index:3;
+  position:absolute;top:0;bottom:0;width:46px;pointer-events:none;z-index:5;
 }
-.meuble > .flanc.g{left:0;
-  background:linear-gradient(90deg,var(--bois) 0%,var(--bois3) 62%,rgba(0,0,0,.5) 100%);
-  box-shadow:inset -6px 0 14px rgba(0,0,0,.5);border-radius:14px 0 0 6px}
-.meuble > .flanc.d{right:0;
-  background:linear-gradient(270deg,var(--bois) 0%,var(--bois3) 62%,rgba(0,0,0,.5) 100%);
-  box-shadow:inset 6px 0 14px rgba(0,0,0,.5);border-radius:0 14px 6px 0}
-/* le fil du bois : deux dégradés répétés, moins coûteux qu'une image */
-/* métal brossé : des traits verticaux très fins, presque invisibles un à un */
+.meuble > .flanc.g{left:0;transform-origin:left center;transform:rotateY(32deg);
+  background:linear-gradient(90deg,var(--bois) 0%,var(--bois3) 58%,rgba(0,0,0,.62) 100%);
+  box-shadow:inset -8px 0 18px rgba(0,0,0,.5);border-radius:16px 0 0 4px}
+.meuble > .flanc.d{right:0;transform-origin:right center;transform:rotateY(-32deg);
+  background:linear-gradient(270deg,var(--bois) 0%,var(--bois3) 58%,rgba(0,0,0,.62) 100%);
+  box-shadow:inset 8px 0 18px rgba(0,0,0,.5);border-radius:0 16px 4px 0}
+/* le fil du bois / le métal brossé : un dégradé répété, moins coûteux qu'une image */
 .meuble::before{
-  content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
-  border-radius:inherit;
-  background:repeating-linear-gradient(90deg,
-    rgba(255,255,255,.035) 0 1px,transparent 1px 3px);
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.6;
+  border-radius:inherit;background:var(--grain);
 }
 /* la lampe : c'est elle qui donne le relief, tout le reste est plat */
 .meuble::after{
@@ -102,114 +201,207 @@
 
 /* corniche haute, vue de dessous : on aperçoit sa sous-face */
 .corniche{
-  position:relative;height:26px;margin:0 -30px 10px;z-index:2;
-  border-radius:14px 14px 0 0;
-  background:linear-gradient(180deg,var(--bois4),var(--bois3) 40%,var(--bois) 100%);
-  box-shadow:0 10px 26px rgba(0,0,0,.55);
+  position:relative;height:30px;margin:0 -38px 12px;z-index:4;
+  border-radius:16px 16px 0 0;
+  background:linear-gradient(180deg,var(--bois4),var(--bois3) 42%,var(--bois) 100%);
+  box-shadow:0 14px 32px rgba(0,0,0,.6);
 }
 .corniche::after{
-  content:"";position:absolute;left:0;right:0;top:100%;height:16px;
-  background:linear-gradient(180deg,rgba(0,0,0,.55),transparent);
+  content:"";position:absolute;left:0;right:0;top:100%;height:22px;
+  background:linear-gradient(180deg,rgba(0,0,0,.62),transparent);
 }
 
-/* une étagère : fond sombre, scène en perspective, planche à deux faces */
-.etg{position:relative;padding:0 0 30px;z-index:1;transform-style:preserve-3d}
-/* le fond du meuble, plus sombre que les côtés : c'est le contraste
-   fond/planche qui crée la lecture de profondeur */
+/* une étagère : fond sombre en creux, scène en perspective, planche à deux faces */
+.etg{position:relative;padding:0 0 30px;z-index:1}
+/* le fond du meuble, plus sombre que les côtés, avec l'ombre des bords :
+   c'est ce creux qui fait lire la profondeur */
 .etg::before{
-  content:"";position:absolute;left:-14px;right:-14px;top:0;bottom:26px;
-  background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.30) 40%,rgba(0,0,0,.55));
-  box-shadow:inset 0 14px 26px rgba(0,0,0,.5);
+  content:"";position:absolute;left:-20px;right:-20px;top:0;bottom:26px;
+  background:
+    radial-gradient(ellipse 72% 62% at 50% 6%,rgba(255,255,255,.055),transparent 72%),
+    linear-gradient(180deg,rgba(0,0,0,.70),rgba(0,0,0,.34) 38%,rgba(0,0,0,.72));
+  box-shadow:inset 0 22px 42px rgba(0,0,0,.62),inset 0 -16px 30px rgba(0,0,0,.5);
 }
+/* Le bandeau : une seule ligne, jamais autre chose que du texte et des
+   boutons. Les enfants ne grandissent pas (`flex:0 0 auto`) et le nom se
+   coupe au besoin — une image tombée là ne peut plus faire enfler la barre. */
 .etg-bd{
-  display:flex;align-items:center;gap:10px;padding:8px 10px 6px;
-  color:#f4e3c8;font:600 13px/1 var(--dsp);letter-spacing:.04em;text-transform:uppercase;
-  background:linear-gradient(180deg,rgba(0,0,0,.28),transparent);
-  border:0;width:100%;text-align:left;cursor:pointer;
-  border-radius:8px 8px 0 0;transition:background .18s ease,color .18s ease;
+  display:flex;align-items:center;gap:10px;flex-wrap:nowrap;
+  padding:8px 10px 6px;min-height:36px;position:relative;z-index:2;
+  color:var(--etq,#f4e3c8);font:600 13px/1 var(--dsp);letter-spacing:.04em;text-transform:uppercase;
+  background:linear-gradient(180deg,rgba(0,0,0,.34),transparent);
+  border:0;width:100%;text-align:left;border-radius:8px 8px 0 0;
 }
-.etg-bd:hover{background:linear-gradient(180deg,rgba(255,206,140,.20),transparent);color:#fff}
+.etg-bd > *{flex:0 0 auto}
+.etg-nom{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .etg-bd .nb{
   margin-left:auto;font:500 11px/1 var(--mono);letter-spacing:0;
-  color:#e8cda2;opacity:.85;text-transform:none;
+  color:var(--etq,#e8cda2);opacity:.7;text-transform:none;
 }
-.etg-bd .fl{opacity:0;transform:translateX(-4px);transition:.18s ease;font-size:15px}
-/* Les rayons d'OST portent un nom mais ne filtrent rien : le bandeau reste
-   une étiquette, pas un bouton. Le montrer cliquable serait une promesse
-   qu'il ne tient pas. */
-.etg-bd.fixe{cursor:default;display:flex;align-items:center;gap:10px;
-  padding:8px 10px 6px;color:#f4e3c8;font:600 13px/1 var(--dsp);
-  letter-spacing:.04em;text-transform:uppercase;position:relative;z-index:1;
-  background:linear-gradient(180deg,rgba(0,0,0,.34),transparent)}
-.etg-bd.fixe:hover{background:linear-gradient(180deg,rgba(0,0,0,.34),transparent)}
-.etg-bd:hover .fl{opacity:1;transform:translateX(0)}
 
-/* la zone où les objets sont posés */
+/* La zone où les objets sont posés.
+
+   ⚠️ EN BAS : `padding-bottom` + `margin-bottom` négatif du même montant. La
+   place ne change pas d'un pixel dans la mise en page, mais le débordement
+   est coupé 76 px PLUS BAS. Sans ça, l'ombre d'une jaquette survolée était
+   tranchée net à la hauteur du bas de la jaquette. `z-index:3` la place
+   au-dessus de la planche, pour que cette ombre tombe SUR la tablette au
+   lieu de passer dessous.
+
+   ⚠️ EN HAUT : de la hauteur sous plafond, et PAS de marge négative pour la
+   compenser. C'est ce qui manquait à l'étiquette de titre : elle se pose
+   au-dessus du boîtier, or au survol le boîtier monte de 12 px ET grossit de
+   6 % en avançant vers le spectateur, donc l'étiquette sortait par le haut
+   et se faisait couper. Une marge négative aurait bien rendu la place, mais
+   la zone serait passée par-dessus le bandeau et aurait avalé ses boutons —
+   une étagère a de l'air au-dessus des objets, c'est normal. */
 .etg-in{
-  position:relative;z-index:1;display:flex;align-items:flex-end;gap:10px;
-  min-height:250px;padding:14px 18px 0;overflow-x:auto;overflow-y:hidden;
-  scrollbar-width:thin;transform-style:preserve-3d;
+  position:relative;z-index:3;display:flex;align-items:flex-end;gap:12px;
+  min-height:352px;padding:78px 20px 76px;margin-bottom:-76px;
+  overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:none;-ms-overflow-style:none;
 }
-.etg-in::-webkit-scrollbar{height:6px}
-.etg-in::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:3px}
+/* Pas de barre de défilement : ce n'est pas un document, c'est une étagère,
+   et la barre tomberait au milieu de la tablette du dessous. La molette
+   verticale est convertie en défilement horizontal (voir `roueEtagere`). */
+.etg-in::-webkit-scrollbar{display:none}
 
-/* La planche a maintenant DEUX faces. Le dessus est incliné en rotateX :
-   il fuit vers le haut, donc on le voit « en enfilade », comme une vraie
-   tablette regardée d'un peu au-dessus. La tranche reste à plat et attrape
-   la lumière — c'est le trait clair qui fait tenir toute l'illusion. */
-.planche{position:relative;margin:0 -14px;z-index:2;transform-style:preserve-3d}
+/* La tablette : une SURFACE de pose, puis sa tranche.
+
+   ⚠️ Le dessus n'est plus tourné en 3D. Il l'a été de la 0.9.37 à la 1.0, et
+   c'était une fausse bonne idée : le point de vue d'une scène en perspective
+   est unique, donc les tablettes situées sous le niveau de l'œil montraient
+   leur dessus et celles du dessus, regardées par en dessous, se réduisaient à
+   un trait. Seule la dernière étagère du meuble avait donc un sol.
+
+   La surface est maintenant dessinée à plat, avec le dégradé qui va du fond
+   sombre vers l'avant éclairé et l'ombre du fond qui tombe dessus. Rendu
+   identique dans tous les navigateurs, rien qui puisse être remis à plat par
+   un conteneur au-dessus.
+
+   Le RELIEF SE CREUSE DU HAUT VERS LE BAS : `--prof` grandit d'une étagère à
+   la suivante. C'est ce que fait un vrai meuble — plus une tablette est basse,
+   plus on la regarde d'en haut et plus on voit sa surface. La différence,
+   c'est qu'ici la tablette du haut garde quand même sa surface : elle est
+   courte, jamais nulle. On imite la perspective au lieu de la subir. */
+.meuble{--ech:1}
+.etg{--prof:calc(30px * var(--ech))}
+.meuble > .etg:nth-child(2){--prof:calc(15px * var(--ech))}
+.meuble > .etg:nth-child(3){--prof:calc(19px * var(--ech))}
+.meuble > .etg:nth-child(4){--prof:calc(23px * var(--ech))}
+.meuble > .etg:nth-child(5){--prof:calc(27px * var(--ech))}
+.meuble > .etg:nth-child(6){--prof:calc(31px * var(--ech))}
+.meuble > .etg:nth-child(n+7){--prof:calc(35px * var(--ech))}
+
+.planche{position:relative;margin:0 -20px;z-index:2}
 .planche .dessus{
-  height:34px;transform:rotateX(72deg);transform-origin:bottom center;
-  background:linear-gradient(180deg,rgba(0,0,0,.5),var(--bois3) 58%,var(--bois4));
-  box-shadow:inset 0 6px 16px rgba(0,0,0,.5);
+  position:relative;height:var(--prof);
+  background:linear-gradient(180deg,
+    rgba(0,0,0,.80) 0%,
+    color-mix(in srgb,var(--bois3) 48%,#000) 24%,
+    color-mix(in srgb,var(--bois3) 88%,#000) 54%,
+    var(--bois3) 78%,
+    var(--bois4) 100%);
+  box-shadow:inset 0 7px 15px rgba(0,0,0,.55);
 }
-/* La tranche porte un filet lumineux à la couleur d'accent : c'est lui qui
-   remplace le reflet du vernis, et il change avec le thème choisi. */
+/* le trait où la surface rencontre le fond du meuble : c'est lui qui dit
+   « ça s'arrête ici et ça repart en profondeur » */
+.planche .dessus::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:1px;
+  background:rgba(255,255,255,.09);
+}
+/* Le fil du bois de la tablette, vu en raccourci : des traits horizontaux —
+   l'exact inverse du grain vertical du fond. Ils se resserrent vers le fond,
+   ce qui suffit à faire lire la surface comme une profondeur et non comme un
+   simple dégradé. */
+.planche .dessus::after{
+  content:"";position:absolute;inset:0;opacity:.55;pointer-events:none;
+  background:
+    linear-gradient(180deg,transparent 0 14%,rgba(255,255,255,.05) 14% 15%,transparent 15% 30%,
+      rgba(255,255,255,.05) 30% 31.6%,transparent 31.6% 50%,
+      rgba(255,255,255,.05) 50% 52.4%,transparent 52.4% 74%,
+      rgba(255,255,255,.05) 74% 77.4%,transparent 77.4% 100%),
+    linear-gradient(180deg,rgba(0,0,0,.28),transparent 40%);
+}
 .planche .tranche{
-  position:relative;height:14px;border-radius:0 0 2px 2px;
-  background:linear-gradient(180deg,var(--bois4) 0%,var(--bois3) 40%,var(--planche) 100%);
-  box-shadow:0 18px 34px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.20);
+  position:relative;height:16px;border-radius:0 0 3px 3px;
+  background:linear-gradient(180deg,var(--bois4) 0%,var(--bois3) 38%,var(--planche) 100%);
+  box-shadow:0 22px 40px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.22);
 }
 .planche .tranche::after{
   content:"";position:absolute;left:8px;right:8px;top:0;height:2px;border-radius:2px;
-  background:var(--accent);opacity:.55;
-  box-shadow:0 0 14px 2px color-mix(in srgb,var(--accent) 55%,transparent);
+  background:var(--accent);opacity:var(--filet-op,.55);
+  box-shadow:0 0 14px 2px color-mix(in srgb,var(--accent) calc(var(--filet-op,.55) * 100%),transparent);
 }
 
-/* un jeu posé debout */
+/* =========================================================
+   UN JEU POSÉ DEBOUT  —  une vraie boîte, pas une vignette
+   =========================================================
+   L'objet porte sa PROPRE perspective (`perspective()` dans son transform).
+   C'est indispensable : l'étagère défile horizontalement, donc elle coupe son
+   débordement, et un conteneur qui coupe remet `transform-style` à plat —
+   la 3D héritée du meuble ne descendait donc jamais jusqu'ici. Avec sa
+   perspective à lui, la jaquette est en volume quoi qu'il arrive au-dessus.
+
+   Trois faces suffisent : la face avant (`.liv-a`), la tranche (`.liv-s`)
+   tournée à 90° autour de son bord gauche, et l'ombre de contact. La légère
+   rotation au repos (`--ry`) est ce qui rend la tranche visible ; sans elle
+   on ne verrait qu'un rectangle. */
 .liv{
   position:relative;flex:0 0 auto;width:132px;aspect-ratio:2/3;border:0;padding:0;
-  background:var(--ink3);border-radius:5px;cursor:pointer;
-  transform:translateZ(0);transform-origin:bottom center;
-  transform-style:preserve-3d;
-  /* l'ombre au sol reste resserrée : c'est elle qui fait reposer le boîtier
-     sur la planche au lieu de le laisser flotter au-dessus */
-  box-shadow:0 3px 5px rgba(0,0,0,.7),0 12px 22px rgba(0,0,0,.45),
-             inset 0 0 0 1px rgba(255,255,255,.09);
-  transition:transform .26s cubic-bezier(.2,.9,.3,1.2),box-shadow .26s ease,filter .26s ease;
-  overflow:hidden;filter:brightness(.9) saturate(.96);
+  background:none;cursor:pointer;--ry:13deg;--ep:20px;
+  transform-style:preserve-3d;transform-origin:bottom center;
+  transform:perspective(900px) rotateY(var(--ry)) translateZ(0);
+  transition:transform .3s cubic-bezier(.2,.9,.3,1.2);
 }
-.liv img{width:100%;height:100%;object-fit:cover;display:block}
-.liv .ini{
+/* la face avant : c'est elle qui porte l'image, l'ombre et le liseré */
+.liv-a{
+  position:absolute;inset:0;border-radius:4px 6px 6px 4px;overflow:hidden;
+  background:var(--ink3);filter:brightness(.9) saturate(.96);
+  box-shadow:0 3px 5px rgba(0,0,0,.7),0 14px 24px rgba(0,0,0,.45),
+             inset 0 0 0 1px rgba(255,255,255,.09);
+  transition:box-shadow .26s ease,filter .26s ease;
+}
+.liv-a img{
+  width:100%;height:100%;object-fit:cover;display:block;
+  transform:scale(var(--z,1));transform-origin:var(--px,50%) var(--py,50%);
+  object-position:var(--px,50%) var(--py,50%);
+}
+.liv-a.entiere img{object-fit:contain}
+/* le fond flouté comble ce que « affiche entière » laisse à découvert */
+.liv-a .flou{
+  position:absolute;inset:0;background-size:cover;background-position:center;
+  filter:blur(20px) saturate(1.1) brightness(.6);transform:scale(1.35);
+}
+.liv-a .ini{
   display:flex;align-items:center;justify-content:center;width:100%;height:100%;
   font:800 30px var(--dsp);color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.5);
 }
-/* Le seul ornement qui reste : l'ombre que projette l'étagère du dessus.
-   La jaquette est déjà une image composée, tout ce qu'on ajoute par-dessus
-   lui dispute l'attention — c'est ce qui rendait la version à tranche
-   colorée plus chargée sans être plus lisible. */
-.liv::after{
+/* l'ombre que projette l'étagère du dessus : le seul ornement qui reste */
+.liv-a::after{
   content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
-  background:linear-gradient(180deg,rgba(0,0,0,.32) 0%,transparent 36%);
+  background:linear-gradient(180deg,rgba(0,0,0,.34) 0%,transparent 38%);
 }
-/* Le boîtier avance vers le spectateur : c'est la perspective du meuble qui
-   fait le travail, pas un simple agrandissement. L'ombre de contact se
-   détache en même temps, comme un objet qu'on soulève. */
+/* la tranche : rabattue à 90° autour de son bord gauche, elle part vers
+   l'arrière. Le boîtier a donc une épaisseur réelle, pas dessinée. */
+.liv-s{
+  position:absolute;left:0;top:1px;bottom:1px;width:var(--ep);
+  transform-origin:left center;transform:rotateY(90deg);
+  border-radius:3px 0 0 3px;
+  background:linear-gradient(90deg,rgba(255,255,255,.22) 0%,rgba(0,0,0,.30) 34%,
+             rgba(0,0,0,.72) 100%),var(--ink3);
+  box-shadow:inset 1px 0 0 rgba(255,255,255,.28);
+}
+/* Le boîtier avance vers le spectateur et se retourne légèrement vers lui :
+   dans une scène en perspective, ce mouvement se lit comme de la profondeur. */
 .liv:hover,.liv:focus-visible{
-  transform:translateY(-10px) translateZ(90px);
-  box-shadow:0 26px 20px rgba(0,0,0,.45),0 46px 66px rgba(0,0,0,.7),
+  transform:perspective(900px) translateY(-12px) rotateY(-3deg) translateZ(54px);
+  z-index:8;outline:none;
+}
+.liv:hover .liv-a,.liv:focus-visible .liv-a{
+  filter:brightness(1.06) saturate(1.04);
+  box-shadow:0 20px 22px rgba(0,0,0,.5),0 44px 60px rgba(0,0,0,.62),
              inset 0 0 0 1px rgba(255,255,255,.12),0 0 0 2px var(--accent);
-  filter:brightness(1.06) saturate(1.04);z-index:8;outline:none;
 }
 /* La note, en bas du boîtier au survol. Elle ne peut pas rester affichée en
    permanence : sur une étagère de vingt jaquettes, vingt plaques d'étoiles
@@ -230,18 +422,20 @@
   background:var(--ink2);color:var(--paper);border:1px solid var(--line);
   padding:5px 9px;border-radius:7px;font:600 12px/1.25 var(--bdy);
   white-space:nowrap;max-width:210px;overflow:hidden;text-overflow:ellipsis;
-  opacity:0;pointer-events:none;transition:.18s ease;box-shadow:var(--ombre);z-index:6;
+  opacity:0;pointer-events:none;transition:opacity .18s ease;box-shadow:var(--ombre);z-index:6;
 }
 .liv:hover .liv-t,.liv:focus-visible .liv-t{opacity:1;transform:translate(-50%,0)}
-/* liseré doré des 100 %, comme sur les cartes */
-.liv.cent{box-shadow:0 8px 14px rgba(0,0,0,.5),inset 0 0 0 2px var(--or)}
-.liv.cent:hover{box-shadow:0 26px 40px rgba(0,0,0,.62),0 0 0 2px var(--or)}
+/* liseré doré des 100 % */
+.liv.cent .liv-a{box-shadow:0 8px 14px rgba(0,0,0,.5),inset 0 0 0 2px var(--or)}
+.liv.cent:hover .liv-a{box-shadow:0 26px 40px rgba(0,0,0,.62),0 0 0 2px var(--or)}
 
 /* Un jeu mobile ne vient pas dans une boîte : il se range dans son appareil.
    Le boîtier devient un téléphone, écran compris, avec ses boutons de tranche.
    C'est le seul endroit où l'objet posé change de nature. */
-.liv.tel{background:none;box-shadow:none;overflow:visible;filter:none}
-.liv.tel::before,.liv.tel::after{display:none}
+.liv.tel{--ep:12px}
+.liv.tel .liv-a{background:none;box-shadow:none;overflow:visible;filter:none}
+.liv.tel .liv-a::after{display:none}
+.liv.tel:hover .liv-a{box-shadow:none;filter:none}
 .tel-b{
   position:absolute;inset:0;border-radius:16px;padding:7px 5px;
   background:linear-gradient(160deg,#3a3f4d,#15171d 45%,#22252e);
@@ -271,24 +465,30 @@
              inset 0 1px 0 rgba(255,255,255,.3),0 0 0 2px var(--accent);
 }
 
-/* la jaquette qu'on tient : décollée, penchée, et elle suit le doigt */
+/* La jaquette qu'on tient : décollée, penchée, et elle suit le doigt.
+
+   ⚠️ PAS de `translateZ` PROFOND ici. Le meuble est une scène en perspective :
+   avancer un objet vers le spectateur l'écarte aussi du centre de la scène,
+   d'autant plus qu'il en est loin. Sur une étagère large, la jaquette tenue
+   partait franchement sur le côté — le défaut corrigé en 0.9.45. Le
+   `perspective()` local est posé APRÈS le `translate` qui suit le curseur,
+   donc il ne déplace jamais l'objet, il ne fait que l'épaissir. */
 .liv.prise{
-  transform:translate(var(--dx,0),-26px) rotate(-2deg) translateZ(140px) scale(1.04) !important;
-  box-shadow:0 40px 50px rgba(0,0,0,.6),0 0 0 2px var(--accent) !important;
+  transform:translate(var(--dx,0),-26px) perspective(900px) rotateY(-4deg) scale(1.04) !important;
   cursor:grabbing;z-index:20;transition:none;touch-action:none;
 }
+.liv.prise .liv-a{box-shadow:0 40px 50px rgba(0,0,0,.6),0 0 0 2px var(--accent)}
 /* pendant le rangement, les voisines s'écartent en douceur */
 .etg-in.range [data-liv]{transition:transform .18s ease}
 .etg-in.range{cursor:grabbing}
-/* Sans ces trois lignes, le rangement est impossible : le navigateur lance
-   son propre glisser-déposer d'image dès qu'on bouge, et au doigt il ouvre
-   le menu « enregistrer l'image ». Les deux tuent la séquence « pointer ». */
+/* Sans ces lignes, le rangement est impossible : le navigateur lance son
+   propre glisser-déposer d'image dès qu'on bouge, et au doigt il ouvre le
+   menu « enregistrer l'image ». Les deux tuent la séquence « pointer ». */
 .liv{touch-action:pan-x;-webkit-user-select:none;user-select:none;
   -webkit-touch-callout:none}
 .liv img,.liv *{-webkit-user-drag:none;user-select:none}
 /* l'enfant ne reçoit plus l'événement : `e.target` est toujours le bouton */
 .liv > *{pointer-events:none}
-.liv-t{pointer-events:none}
 
 /* étagère vide */
 .etg-vide{
@@ -296,19 +496,48 @@
   font:italic 13px var(--bdy);padding:0 12px;
 }
 
-/* décors posés au bout de l'étagère */
-.deco{flex:0 0 auto;align-self:flex-end;margin-left:6px;pointer-events:none;
-  filter:drop-shadow(0 8px 12px rgba(0,0,0,.5))}
-.deco svg{display:block}
-/* ils respirent doucement — assez peu pour ne pas attirer l'œil */
-@media (prefers-reduced-motion:no-preference){
-  .deco{animation:respire 5.5s ease-in-out infinite}
-  .etg:nth-child(odd) .deco{animation-delay:-2.4s}
+/* =========================================================
+   LES DÉCORS  —  posés autour du meuble, placés à la main
+   =========================================================
+   FGL ne fournit AUCUN décor : ce sont des images choisies par l'utilisateur,
+   dont seule l'adresse est retenue. Elles ne sont plus accrochées au bout
+   d'une étagère (0.9.45) mais posées librement sur la scène, devant ou
+   derrière le meuble, et déplaçables dans un mode d'édition. */
+.dec{
+  position:absolute;left:0;top:0;pointer-events:none;
+  transform:translate(-50%,-50%) rotate(var(--r,0deg));
 }
-@keyframes respire{
-  0%,100%{transform:translateY(0) rotate(0deg)}
-  50%{transform:translateY(-4px) rotate(-1.2deg)}
+.dec img{display:block;width:100%;height:auto;
+  -webkit-user-drag:none;user-select:none;
+  filter:drop-shadow(0 16px 22px rgba(0,0,0,.6))}
+/* ce qui est DERRIÈRE le meuble est plus loin : moins lumineux, moins saturé */
+.calque.fond .dec img{filter:drop-shadow(0 16px 22px rgba(0,0,0,.7)) brightness(.66) saturate(.8)}
+.dec.ko{display:none}
+
+/* mode édition : les décors deviennent attrapables, le meuble se met en retrait */
+body.edit-dec .dec{pointer-events:auto;cursor:grab;
+  outline:2px dashed rgba(255,255,255,.4);outline-offset:5px}
+body.edit-dec .dec.on{outline:2px solid var(--accent)}
+body.edit-dec .dec.tenu{cursor:grabbing;outline-style:solid}
+/* Toute la pièce passe en retrait, pas seulement le meuble : un `<div>` sans
+   fond attrape quand même les clics, donc un décor posé DERRIÈRE le meuble
+   serait resté impossible à attraper là où la pièce le recouvre. */
+body.edit-dec .piece{pointer-events:none}
+body.edit-dec .scene{outline:2px dashed color-mix(in srgb,var(--accent) 55%,transparent);
+  outline-offset:-2px}
+.dec-barre{
+  position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:90;
+  display:none;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;
+  max-width:min(960px,94vw);padding:10px 14px;border-radius:16px;
+  background:color-mix(in srgb,var(--ink2) 94%,transparent);
+  border:1px solid var(--line);box-shadow:var(--ombre);
 }
+body.edit-dec .dec-barre{display:flex}
+.dec-barre b{font:700 13px var(--dsp);letter-spacing:.04em;text-transform:uppercase}
+.dec-barre .aide{font-size:12px;color:var(--muted);margin:0}
+.dec-barre label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.dec-barre input[type=range]{width:96px;padding:0;background:none;border:0}
+.dec-barre .btn{padding:7px 12px;font-size:13px}
 
 /* Le bouton d'ajout : posé sous le meuble, il en prolonge la matière plutôt
    que de ressembler à un bouton de formulaire égaré. */
@@ -322,9 +551,14 @@
 .etg-plus:hover{border-color:var(--accent);color:var(--paper);
   background:color-mix(in srgb,var(--accent) 10%,transparent)}
 .etg-plus .pl{font-size:19px;line-height:1}
-/* les actions d'une étagère, discrètes tant qu'on ne la survole pas */
-.etg-act{display:inline-flex;gap:4px;margin-left:10px;opacity:0;transition:opacity .18s ease}
-.etg-bd:hover .etg-act,.etg-act:focus-within{opacity:1}
+/* Les actions d'une étagère restent VISIBLES : une croix qui n'apparaît qu'au
+   survol n'existe pas au doigt, où il n'y a pas de survol. Elles sont juste
+   discrètes au repos. */
+.etg-act{display:inline-flex;gap:4px;margin-left:10px;align-items:center;
+  opacity:.55;transition:opacity .18s ease}
+.etg-bd:hover .etg-act,.etg-act:focus-within,.etg-act:hover{opacity:1}
+.etg-act .ico{background:rgba(0,0,0,.35);border-color:rgba(255,255,255,.14);color:var(--etq,#f4e3c8)}
+.etg-act .ico:hover{background:var(--accent);color:#fff;border-color:transparent}
 .ico.mini{width:24px;height:24px;font-size:12px;border-radius:7px;padding:0}
 
 /* la grille de jeux du choix d'affiche d'une OST */
@@ -349,19 +583,15 @@
 @keyframes monte{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
 
 @media (max-width:640px){
-  .liv{width:92px}
-  .etg-in{min-height:184px;padding:10px 10px 0}
-  .meuble{padding:0 16px 18px}
-  .meuble > .flanc{width:16px}
-  .corniche{margin:0 -16px 8px}
-  .planche{margin:0 -16px}
-  .planche .dessus{height:24px}
-  .deco{transform:scale(.75);transform-origin:bottom right}
-}
-/* au doigt, pas de survol : les jeux restent droits et lisibles */
-@media (hover:none){
-  .liv{transform:none !important}
-  .liv-t{display:none}
+  .liv{width:92px;--ep:13px;--ry:11deg}
+  .etg-in{min-height:252px;padding:58px 12px 56px;margin-bottom:-56px}
+  .meuble{padding:0 20px}
+  .meuble > .flanc{width:26px}
+  .corniche{margin:0 -20px 8px;height:22px}
+  .planche{margin:0 -12px}
+  .meuble{--ech:.62}
+  .sol{height:clamp(90px,26vw,150px);margin:0 -14% -60px}
+  .scene{--marge:0px;padding:10px 0 0}
 }
 
 /* =========================================================
@@ -372,20 +602,22 @@
    boîtier de CD. D'où le carré (un boîtier fait 142×125 mm, quasiment carré),
    la tranche visible à gauche, et le disque argenté qui sort au survol.
 
-   Le seul emprunt aux jaquettes : la note monte du bas au survol, au lieu de
-   rester collée en permanence dans un coin. */
+   Même construction en volume que la jaquette : perspective locale, face
+   avant, tranche rabattue. Seules les proportions changent. */
 .cd{
   position:relative;flex:0 0 auto;width:170px;aspect-ratio:1/1;border:0;padding:0;
-  background:none;cursor:pointer;transform-origin:bottom center;
-  transform:translateZ(0);transform-style:preserve-3d;
-  transition:transform .26s cubic-bezier(.2,.9,.3,1.2);
+  background:none;cursor:pointer;--ry:12deg;--ep:16px;
+  transform-style:preserve-3d;transform-origin:bottom center;
+  transform:perspective(900px) rotateY(var(--ry)) translateZ(0);
+  transition:transform .3s cubic-bezier(.2,.9,.3,1.2);
   -webkit-user-select:none;user-select:none;
 }
 .cd > *{pointer-events:none}
 .cd-b{
-  position:absolute;inset:0;border-radius:2px 4px 4px 2px;overflow:hidden;
+  position:absolute;inset:0;border-radius:2px 5px 5px 2px;overflow:hidden;
   background:var(--ink3);
   box-shadow:0 8px 14px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.10);
+  transition:box-shadow .26s ease;
 }
 .cd-b img{
   width:100%;height:100%;object-fit:cover;display:block;filter:brightness(.94);
@@ -400,15 +632,20 @@
 }
 .cd-b .ini{display:flex;align-items:center;justify-content:center;width:100%;height:100%;
   font:800 26px var(--dsp);color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.5)}
-/* la tranche : deux traits suffisent à faire lire « boîtier » plutôt que « vignette » */
-.cd-b::before{
-  content:"";position:absolute;left:0;top:0;bottom:0;width:9px;z-index:2;
-  background:linear-gradient(90deg,rgba(255,255,255,.30),rgba(255,255,255,.05) 60%,rgba(0,0,0,.35));
-}
+/* le reflet en diagonale du plastique */
 .cd-b::after{
-  content:"";position:absolute;inset:0;pointer-events:none;
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
   background:linear-gradient(180deg,rgba(0,0,0,.30),transparent 40%),
              linear-gradient(115deg,rgba(255,255,255,.16) 0 18%,transparent 34%);
+}
+/* la vraie tranche du boîtier, rabattue vers l'arrière */
+.cd-s{
+  position:absolute;left:0;top:1px;bottom:1px;width:var(--ep);
+  transform-origin:left center;transform:rotateY(90deg);
+  border-radius:3px 0 0 3px;
+  background:linear-gradient(90deg,rgba(255,255,255,.26) 0%,rgba(255,255,255,.06) 40%,
+             rgba(0,0,0,.6) 100%),var(--ink3);
+  box-shadow:inset 1px 0 0 rgba(255,255,255,.2);
 }
 /* le disque, caché derrière le boîtier au repos */
 .cd-d{
@@ -416,7 +653,7 @@
   background:conic-gradient(from 210deg,#c9cfe0,#8f97ad 12%,#eef1f7 26%,#9aa2b8 42%,
              #e6eaf2 58%,#8f97ad 74%,#d5dae7 88%,#c9cfe0);
   box-shadow:0 6px 14px rgba(0,0,0,.45);
-  transform:translateX(0) rotate(0deg);opacity:0;
+  transform:translateZ(-8px) translateX(0) rotate(0deg);opacity:0;
   transition:transform .3s cubic-bezier(.2,.9,.3,1.2),opacity .2s ease;
 }
 .cd-d::after{
@@ -424,14 +661,16 @@
   transform:translate(-50%,-50%);border-radius:99px;
   background:var(--ink);box-shadow:inset 0 0 0 3px rgba(255,255,255,.35);
 }
-.cd:hover,.cd:focus-visible{transform:translateY(-10px) translateZ(90px);z-index:8;outline:none}
+.cd:hover,.cd:focus-visible{
+  transform:perspective(900px) translateY(-12px) rotateY(-3deg) translateZ(54px);
+  z-index:8;outline:none;
+}
 .cd:hover .cd-b,.cd:focus-visible .cd-b{box-shadow:0 30px 44px rgba(0,0,0,.62),0 0 0 2px var(--accent)}
-.cd:hover .cd-d,.cd:focus-visible .cd-d{opacity:1;transform:translateX(46%) rotate(120deg)}
+.cd:hover .cd-d,.cd:focus-visible .cd-d{opacity:1;transform:translateZ(-8px) translateX(46%) rotate(120deg)}
 /* la note monte du bas du boîtier, comme sur une jaquette */
 .cd-n{
   position:absolute;left:0;right:0;bottom:0;z-index:4;
   display:flex;justify-content:center;padding:7px 6px 8px;
-  border-radius:0 0 4px 2px;
   background:linear-gradient(0deg,rgba(0,0,0,.86),rgba(0,0,0,.55) 60%,transparent);
   transform:translateY(100%);transition:transform .2s ease;pointer-events:none;
 }
@@ -441,11 +680,24 @@
   background:var(--ink2);color:var(--paper);border:1px solid var(--line);
   padding:5px 9px;border-radius:7px;font:600 12px/1.25 var(--bdy);
   white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis;
-  opacity:0;pointer-events:none;transition:.18s ease;box-shadow:var(--ombre);z-index:6;
+  opacity:0;pointer-events:none;transition:opacity .18s ease;box-shadow:var(--ombre);z-index:6;
 }
 .cd:hover .cd-t,.cd:focus-visible .cd-t{opacity:1;transform:translate(-50%,0)}
-@media (max-width:640px){ .cd{width:116px} }
-@media (hover:none){ .cd-t{display:none} .cd-n{transform:translateY(0)} .cd-d{display:none} }
+/* Un boîtier d'OST se range exactement comme une jaquette. Les mêmes
+   garde-fous sont indispensables : sans eux le navigateur lance son propre
+   glisser-déposer d'image et la séquence « pointer » est annulée. */
+.cd{touch-action:pan-x;-webkit-touch-callout:none}
+.cd img,.cd *{-webkit-user-drag:none;user-select:none}
+.cd.prise{
+  transform:translate(var(--dx,0),-26px) perspective(900px) rotateY(-4deg) scale(1.04) !important;
+  cursor:grabbing;z-index:20;transition:none;touch-action:none;
+}
+.cd.prise .cd-b{box-shadow:0 40px 50px rgba(0,0,0,.6),0 0 0 2px var(--accent)}
+.cd.prise .cd-d{opacity:0}
+.etg-in.range [data-ost]{transition:transform .18s ease}
+@media (max-width:640px){ .cd{width:116px;--ep:11px;--ry:10deg} }
+@media (hover:none){ .cd-t{display:none} .cd-n{transform:translateY(0)} .cd-d{display:none}
+  .liv-t{display:none} }
 
 /* fiche jeu resserrée */
 .ligne-note{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -611,6 +863,9 @@ body.sansanim #bgTiles{transition:none}
 .btn.pri{background:var(--accent);border-color:transparent;color:#fff;font-weight:600}
 .btn.pri:hover{filter:brightness(1.12)}
 .btn.dgr{color:var(--rouge);border-color:color-mix(in srgb,var(--rouge) 40%,transparent)}
+/* Un bouton désactivé doit SE VOIR désactivé : sans ça, la barre des décors
+   donnerait l'impression d'être en panne quand rien n'est sélectionné. */
+.btn:disabled,.dec-barre label:has(input:disabled){opacity:.4;cursor:default;pointer-events:none}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* ===== BARRE FILTRES ===== */
@@ -628,57 +883,7 @@ select{
 .espace{flex:1}
 .compte{font-family:var(--mono);font-size:12px;color:var(--muted)}
 
-/* ===== GRILLE ===== */
-/* La grille ne montre que des affiches : aucun texte, tout vit dans la fiche. */
-.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));padding-bottom:40px}
-.carte{
-  position:relative;background:var(--ink2);border:0;border-radius:var(--r);
-  overflow:hidden;text-align:left;display:flex;flex-direction:column;
-  box-shadow:0 3px 12px rgba(0,0,0,.3);
-  transition:transform .22s cubic-bezier(.2,.9,.3,1), box-shadow .22s;
-}
-/* liseré : invisible au repos, il n'apparaît qu'au survol et pour le 100 % */
-.carte::before{
-  content:'';position:absolute;inset:0;z-index:4;pointer-events:none;border-radius:inherit;
-  box-shadow:none;transition:box-shadow .2s;
-}
-.carte:hover{transform:translateY(-6px);box-shadow:0 20px 42px rgba(0,0,0,.5)}
-.carte:focus-visible{outline:none}
-.carte:hover::before,.carte:focus-visible::before{box-shadow:inset 0 0 0 2px var(--accent)}
-/* fini à 100 % : liseré doré et pastille, sans une seule lettre */
-.carte.cent100::before,.carte.cent100:hover::before{box-shadow:inset 0 0 0 2px var(--or)}
-.cent-pip{
-  position:absolute;top:9px;right:9px;z-index:4;width:21px;height:21px;border-radius:99px;
-  display:grid;place-items:center;font-size:11px;color:#8a5f06;
-  background:linear-gradient(160deg,#fff,#f2cf83);
-  box-shadow:0 3px 12px rgba(232,176,75,.5);
-}
-.aff{aspect-ratio:2/3;background:var(--ink3);position:relative;overflow:hidden}
-.aff img{width:100%;height:100%;object-fit:cover;display:block}
-.aff .vide{
-  width:100%;height:100%;display:grid;place-items:center;font-family:var(--dsp);
-  font-weight:800;font-size:32px;color:var(--line);
-  background:linear-gradient(150deg,var(--ink3),var(--ink2));
-}
-/* le statut : une pastille de couleur, dans la plaque, au survol */
-.st-dot{width:9px;height:9px;border-radius:99px;flex:0 0 9px;
-  box-shadow:0 0 0 2px rgba(255,255,255,.22)}
-.stat-b{
-  position:absolute;bottom:8px;left:8px;font-size:11px;padding:3px 8px;border-radius:7px;
-  background:rgba(10,8,16,.78);backdrop-filter:blur(6px);color:#fff;font-weight:500;
-}
-
-/* la plaque : elle monte du bas de l'affiche au survol, et ne porte que la note */
-.plaque{
-  position:absolute;left:0;right:0;bottom:0;z-index:2;
-  display:flex;justify-content:center;align-items:center;gap:9px;padding:10px 8px 12px;
-  background:linear-gradient(0deg,rgba(6,4,12,.94) 18%,rgba(6,4,12,.6) 66%,transparent);
-  transform:translateY(101%);opacity:0;
-  transition:transform .24s cubic-bezier(.2,.9,.3,1), opacity .18s;
-}
-.carte:hover .plaque,.carte:focus-visible .plaque,
-.ost-c:hover .plaque,.ost-c:focus-visible .plaque{transform:none;opacity:1}
-
+/* ===== ÉTOILES EN LECTURE ===== */
 /* note en étoiles, en lecture : 5 étoiles, chacune vaut 2 points */
 .etl{display:inline-flex;gap:1px;align-items:center;line-height:1;white-space:nowrap}
 .etl i{position:relative;font-style:normal;font-size:15px;color:rgba(255,255,255,.22)}
@@ -689,22 +894,13 @@ select{
 .etl.g i{font-size:23px}
 .etl.p i{font-size:13px}
 [data-theme="clair"] .etl i{color:rgba(0,0,0,.15)}
-[data-theme="clair"] .plaque .etl i{color:rgba(255,255,255,.24)}
 
-.carte-txt{padding:11px 12px 13px}
-.carte-t{font-weight:600;font-size:14.5px;line-height:1.25;margin:0 0 3px;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* l'étiquette de statut, encore utilisée par la fiche d'un membre */
+.stat-b{
+  display:inline-block;font-size:11px;padding:3px 8px;border-radius:7px;
+  background:rgba(10,8,16,.78);color:#fff;font-weight:500;
+}
 .carte-s{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
-
-/* vue liste : la seule vue qui garde les titres, c'est sa raison d'être */
-.grid.liste{grid-template-columns:1fr;gap:9px}
-.grid.liste .carte{flex-direction:row;align-items:stretch;box-shadow:none}
-.grid.liste .carte::before{box-shadow:inset 0 0 0 1px var(--line)}
-.grid.liste .carte:hover{transform:none;box-shadow:var(--ombre)}
-.grid.liste .aff{width:64px;aspect-ratio:auto;flex:0 0 64px}
-.grid.liste .plaque,.grid.liste .cent-pip,.grid.liste .stat-b{display:none}
-.grid.liste .carte-txt{display:flex;align-items:center;gap:14px;flex:1;padding:12px 14px}
-.grid.liste .carte-t{margin:0;-webkit-line-clamp:1;flex:1}
 
 .vide-etat{text-align:center;padding:70px 20px;color:var(--muted)}
 .vide-etat h2{font-family:var(--dsp);font-size:26px;color:var(--paper);margin:0 0 8px;letter-spacing:-.02em}
@@ -883,22 +1079,10 @@ label{display:block;font-size:12px;font-weight:600;color:var(--muted);
   background:var(--logo) center/cover;opacity:.62;
   box-shadow:0 14px 40px rgba(0,0,0,.35);
 }
-/* affiche manquante : le logo en filigrane derrière l'initiale */
-.aff .vide{
-  background:
-    linear-gradient(150deg, color-mix(in srgb,var(--ink3) 84%, transparent),
-                            color-mix(in srgb,var(--ink2) 93%, transparent)),
-    var(--logo) center/cover;
-}
 .u-top .u-vide{background:var(--logo) center/cover;opacity:.5}
 .voir-aff.rien{background:var(--logo) center/cover;opacity:.55}
 
 /* ===== PASTILLE 100 % ===== */
-.grid.liste .l-note{display:inline-flex;align-items:center}
-.l-cent{
-  font-family:var(--mono);font-weight:800;font-size:11px;background:#fff;color:#b07d10;
-  padding:2px 8px;border-radius:99px;box-shadow:0 0 0 1px rgba(176,125,16,.35);
-}
 .puce.cent.on{background:#fff;color:#b07d10;border-color:transparent;font-weight:800}
 
 /* ===== CONFETTIS ===== */
@@ -1015,6 +1199,12 @@ body.sansanim .confetti{display:none}
 .th-nom{padding:10px 12px 12px;font-size:13.5px;font-weight:600;display:flex;
   align-items:center;justify-content:space-between;gap:8px}
 .th-nom small{font-family:var(--mono);font-size:10.5px;color:var(--muted);font-weight:400}
+.th-sec{font-family:var(--dsp);font-size:19px;margin:26px 0 4px;letter-spacing:-.02em}
+.th-aide{margin:0 0 14px;font-size:13px;color:var(--muted)}
+/* l'aperçu d'une matière : trois planches empilées, la vraie matière dedans */
+.th-meuble{height:78px;position:relative;padding:8px;display:flex;flex-direction:column;
+  justify-content:flex-end;gap:6px;overflow:hidden}
+.th-meuble i{display:block;height:9px;border-radius:0 0 2px 2px}
 
 /* ===== RÉACTIONS ===== */
 .rc{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
@@ -1065,38 +1255,7 @@ body.sansanim .confetti{display:none}
 }
 .yt-l span{display:block;font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:3px}
 
-/* ===== OST ===== */
-.ost-grille{
-  display:grid;gap:14px;padding-bottom:40px;
-  grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
-}
-/* même parti pris que les jeux : la miniature occupe toute la carte */
-.ost-c{
-  position:relative;background:var(--ink2);border:0;border-radius:var(--r);
-  overflow:hidden;text-align:left;display:flex;flex-direction:column;
-  box-shadow:0 3px 12px rgba(0,0,0,.3);
-  transition:transform .22s cubic-bezier(.2,.9,.3,1), box-shadow .22s;
-}
-.ost-c::before{
-  content:'';position:absolute;inset:0;z-index:4;pointer-events:none;border-radius:inherit;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);transition:box-shadow .2s;
-}
-.ost-c:hover{transform:translateY(-6px);box-shadow:0 20px 42px rgba(0,0,0,.5)}
-.ost-c:focus-visible{outline:none}
-.ost-c:hover::before,.ost-c:focus-visible::before{box-shadow:inset 0 0 0 2px var(--accent)}
-.ost-v{aspect-ratio:16/9;background:var(--ink3);position:relative;overflow:hidden;width:100%}
-.ost-v img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
-.ost-c:hover .ost-v img{transform:scale(1.06)}
-.ost-play{
-  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;
-  width:52px;height:52px;border-radius:99px;display:grid;place-items:center;
-  background:rgba(10,8,16,.6);backdrop-filter:blur(8px);color:#fff;font-size:17px;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.22);transition:.2s;
-}
-.ost-c:hover .ost-play{
-  background:var(--accent);transform:translate(-50%,-50%) scale(1.1);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.35), 0 10px 26px rgba(0,0,0,.45);
-}
+/* ===== LECTEUR D'UNE OST ===== */
 .ov-lect{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;
   background:#000;margin-bottom:14px}
 .ov-lect iframe{width:100%;height:100%;border:0;display:block}
@@ -1212,61 +1371,6 @@ body.sansanim .confetti{display:none}
 .u-top img:nth-child(2){box-shadow:0 0 0 2px #c6ccd8}
 .u-top img:nth-child(3){box-shadow:0 0 0 2px #c98f5e}
 
-/* ===== AFFICHES ===== */
-.aff .flou{
-  position:absolute;inset:0;background-size:cover;background-position:center;
-  filter:blur(20px) saturate(1.4) brightness(.6);transform:scale(1.35);
-}
-/* l'image couvre tout le cadre : le flou ne se voit que si elle ne charge pas */
-.aff img{
-  position:relative;width:100%;height:100%;
-  object-fit:cover;transition:transform .35s ease;
-  /* cadrage réglable par jeu : --z zoom, --px/--py point gardé au centre */
-  object-position:var(--px,50%) var(--py,50%);
-  transform:scale(var(--z,1));
-}
-/* affiche montrée en entier : les bords sont comblés par sa version floutée */
-.aff.entiere img{object-fit:contain}
-/* plus aucun voile permanent : l'affiche est montrée telle quelle, bord à bord.
-   Le seul assombrissement est celui de la plaque, et il n'apparaît qu'au survol. */
-.carte:hover .aff img{transform:scale(calc(var(--z,1) * 1.06))}
-
-/* vue liste : l'affiche se fond en noir vers le texte */
-/* La vue liste est le seul endroit où les titres sont écrits : c'est donc
-   là que la typographie doit travailler. Titre en display, grand, serré,
-   posé sur un dégradé qui part de l'affiche et se dissout vers la droite —
-   la ligne se lit d'un coup d'œil sans que l'image gêne le texte. */
-.grid.liste .carte{
-  background:linear-gradient(90deg,
-    color-mix(in srgb,var(--accent) 16%,var(--ink2)) 0%,
-    var(--ink2) 46%,
-    color-mix(in srgb,var(--ink) 70%,var(--ink2)) 100%);
-  border-radius:12px;overflow:hidden;transition:.18s ease;
-}
-.grid.liste .carte:hover{
-  background:linear-gradient(90deg,
-    color-mix(in srgb,var(--accent) 26%,var(--ink2)) 0%,
-    var(--ink2) 52%,
-    color-mix(in srgb,var(--ink) 70%,var(--ink2)) 100%);
-}
-.grid.liste .carte-t{
-  font-family:var(--dsp);font-weight:700;letter-spacing:-.02em;line-height:1.1;
-  color:var(--paper);
-  /* La taille suit la longueur du titre : `ch` mesure en largeur de
-     caractère, donc un titre long descend tout seul au lieu d'être coupé.
-     Bornée entre 15 et 27 px pour rester dans le rythme de la page. */
-  font-size:clamp(15px,calc(27px - (var(--lng,10) - 18) * .55px),27px);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.grid.liste .aff{width:132px;flex:0 0 132px;aspect-ratio:auto}
-.grid.liste .aff img{object-fit:cover}
-.grid.liste .aff .flou{display:none}
-.grid.liste .aff::after{
-  background:linear-gradient(90deg, rgba(0,0,0,.30) 0%, rgba(0,0,0,0) 32%,
-    color-mix(in srgb, var(--ink2) 85%, transparent) 76%, var(--ink2) 100%);
-}
-.grid.liste .carte-txt{margin-left:-26px;position:relative;z-index:1}
-
 /* ===== FOND : MUR D'AFFICHES ===== */
 #bgTiles{
   position:absolute;left:-3%;right:-3%;top:-8%;bottom:-8%;
@@ -1331,20 +1435,13 @@ body.sansanim .tuile{animation:none}
 /* ===== TACTILE ===== */
 button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 @media (hover:none){
-  .carte:hover{transform:none}
   .u-carte:hover{transform:none}
-  .carte:hover .aff img{transform:scale(var(--z,1))}
-  .ost-c:hover{transform:none}
-  .ost-c:hover .ost-v img{transform:none}
-  /* pas de survol au doigt : sans ça la note ne serait jamais visible */
-  .plaque{transform:none;opacity:1}
 }
 
 /* ===== TÉLÉPHONE ===== */
 @media (max-width:640px){
   .wrap{padding:0 14px}
   .u-grille{grid-template-columns:1fr}
-  .grid{grid-template-columns:repeat(2,1fr);gap:11px}
   .marque{font-size:21px}
   .duo{grid-template-columns:1fr}
   .stats{grid-template-columns:repeat(2,1fr)}
@@ -1371,20 +1468,13 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 
   .t-duel{grid-template-columns:1fr;gap:12px}
   .t-vs{padding:2px 0}
-  .ost-grille{grid-template-columns:repeat(2,1fr);gap:11px}
-  .ost-play{width:42px;height:42px;font-size:14px}
   .etl i{font-size:13px}
   .d-grille{grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
-  .grid.liste .aff{width:104px;flex:0 0 104px}
-  .grid.liste .carte-txt{margin-left:-20px;gap:9px;padding:10px 12px}
-  .carte-txt{padding:9px 10px 11px}
-  .carte-t{font-size:13.5px}
   .logo-g{width:104px;height:104px}
   #bgTiles{grid-template-columns:repeat(auto-fill,minmax(112px,1fr));grid-auto-rows:150px;gap:8px}
 }
 @media (max-width:400px){
   .marque small{display:none}
-  .grid{gap:9px}
   .u-intro{font-size:12px}
 }
 .af-src{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
@@ -1444,27 +1534,19 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 
   <!-- ===== VUE ACCUEIL ===== -->
   <section id="vueAccueil">
-  <!-- ===== FILTRES ===== -->
+  <!-- ===== RECHERCHE ===== -->
+  <!-- Les filtres de statut, le menu des plateformes, le tri et la vue liste
+       ont été retirés en 0.9.45 : la bibliothèque range déjà par plateforme et
+       le rangement à la main prime sur tout tri automatique. Ne restent que la
+       recherche, qui sert vraiment, et le bouton d'ajout. -->
   <div class="bar" id="barre">
     <div class="rech"><span>🔎</span><input id="q" placeholder="Chercher un jeu…" autocomplete="off"></div>
-    <div id="puces"></div>
-    <select id="fPlat"><option value="">Toutes plateformes</option></select>
-    <select id="fTri">
-      <option value="recent">Ajout récent</option>
-      <option value="ancien">Ajout ancien</option>
-      <option value="note">Meilleures notes</option>
-      <option value="notebas">Pires notes</option>
-      <option value="meta">Note Metacritic</option>
-      <option value="joue">Joué récemment</option>
-      <option value="az">A → Z</option>
-    </select>
-    <button class="ico" id="bVue" title="Étagères / liste">☰</button>
     <div class="espace"></div>
-    <div class="compte" id="compte"></div>
+    <button class="btn" id="bDecJeux" title="Décorer autour de la bibliothèque">🖼 Décors</button>
     <button class="btn pri" id="bAdd">+ Ajouter</button>
   </div>
 
-  <div class="grid" id="grille"></div>
+  <div class="zone-biblio" id="grille"></div>
   <div id="vide"></div>
   </section>
 
@@ -1491,9 +1573,10 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
       <div class="titre-s" style="margin:0" id="ostTitreV">🎵 Mes OSTs</div>
       <div class="espace"></div>
       <div class="compte" id="ostCompte"></div>
+      <button class="btn" id="bDecOst" title="Décorer autour du meuble">🖼 Décors</button>
       <button class="btn pri" id="bAddOst">+ Ajouter une OST</button>
     </div>
-    <div class="ost-grille" id="ostGrille"></div>
+    <div class="zone-biblio" id="ostGrille"></div>
     <div id="ostVide"></div>
   </section>
 
@@ -1505,6 +1588,9 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
       <div id="thMode"></div>
     </div>
     <div class="th-grille" id="thGrille"></div>
+    <h3 class="th-sec">🪵 Matière du meuble</h3>
+    <p class="th-aide">La bibliothèque et les étagères d'OST prennent cette matière.</p>
+    <div class="th-grille" id="thMeuble"></div>
   </section>
 
   <!-- ===== VUE TOURNOI ===== -->
@@ -1913,6 +1999,27 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
   </div>
 </div>
 
+<!-- ===== MODALE DEMANDE (confirmation / saisie) ===== -->
+<div class="modale" id="mDem">
+  <div class="boite" style="max-width:420px">
+    <div class="boite-hd"><h2 id="demTitre">Confirmer</h2>
+      <button class="ico" data-ferme="mDem">✕</button>
+    </div>
+    <div class="boite-bd">
+      <p id="demTexte" style="margin:0 0 4px;line-height:1.5;white-space:pre-line"></p>
+      <div class="champ" id="demChamp" style="margin-top:14px;display:none">
+        <input id="demVal" autocomplete="off">
+      </div>
+    </div>
+    <div class="boite-ft">
+      <button class="btn pri" id="bDemOui">Confirmer</button>
+      <button class="btn" id="bDemAutre" style="display:none"></button>
+      <div class="espace"></div>
+      <button class="btn" id="bDemNon">Annuler</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODALE FICHE EN LECTURE SEULE ===== -->
 <div class="modale" id="mVoir">
   <div class="boite">
@@ -1925,13 +2032,34 @@ button,.carte,.u-carte,a{-webkit-tap-highlight-color:transparent}
 </div>
 
 <input type="file" id="fichierImport" accept=".json,application/json" style="display:none">
+
+<!-- ===== BARRE D'ÉDITION DES DÉCORS =====
+     Elle ne s'affiche qu'en mode édition (`body.edit-dec`). Une barre plutôt
+     qu'une fenêtre : on règle un décor EN LE VOYANT bouger, ce qu'une modale
+     par-dessus la scène rendrait impossible. -->
+<div class="dec-barre" id="decBarre">
+  <b>🖼 Décors</b>
+  <span class="compte" id="decCompte">0 / 15</span>
+  <p class="aide" id="decAide">Ajoute une image pour commencer.</p>
+  <label>Taille <input type="range" id="decTaille" min="3" max="70" step="1"></label>
+  <label>Angle <input type="range" id="decAngle" min="-180" max="180" step="1"></label>
+  <button class="btn" id="bDecPlan">Devant le meuble</button>
+  <button class="btn" id="decAjout">+ Image</button>
+  <button class="btn dgr" id="bDecSup">Supprimer</button>
+  <button class="btn pri" id="bDecFin">Terminé</button>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 /* =========================================================
    FGL — FelGamesList
    ========================================================= */
-const VERSION = '0.9.44';
+/* ⚠️ Gelée sur 1.0.0 à la demande de Nawfel. La règle du projet — un numéro
+   par livraison — reste vraie, mais tant que la 1.0 n'est pas publiée, les
+   allers-retours de mise au point ne méritent pas chacun leur numéro. À
+   dégeler dès la première correction d'après publication. */
+const VERSION = '1.0.0';
 
 /* ---------- Constantes ---------- */
 const PLATEFORMES = ['PC','PlayStation','Xbox','Nintendo','Mobile','Rétro'];
@@ -1942,8 +2070,6 @@ const STATUTS = [
   {id:'abandonne', nom:'Abandonné', c:'#e0555f'},
   {id:'prevu',     nom:'Prévu',     c:'#4a90d9'}
 ];
-const PALETTE_SECOURS = ['#7b5cd6','#e8b04b','#4fd1a5','#e0555f','#4a90d9'];
-
 /* ---------- Utilitaires dates (heure LOCALE, jamais UTC) ---------- */
 function isoLocal(d = new Date()){
   const p = n => String(n).padStart(2,'0');
@@ -1992,6 +2118,27 @@ function depuisJour(s){
 /* ---------- Petits outils ---------- */
 const $ = s => document.querySelector(s);
 const uid = () => 'g_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,6);
+/* Quinze décors par scène. Le plafond n'est pas décoratif : chaque décor est
+   une image distante que le navigateur va chercher, et une scène qui en
+   charge cinquante met plus longtemps à s'afficher que la bibliothèque
+   elle-même. Quinze suffisent largement à habiller le tour d'un meuble. */
+const MAX_DECORS = 15;
+const uidDecor = () => 'd_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,6);
+/* Ramène un nombre entre deux bornes, avec une valeur de repli si ce n'en
+   est pas un. Un décor dont la position est corrompue doit revenir au centre,
+   pas disparaître de l'écran. */
+function borne(v, min, max, defaut){
+  const n = typeof v === 'number' && isFinite(v) ? v : defaut;
+  return Math.round(Math.max(min, Math.min(max, n)) * 10) / 10;
+}
+/* Une adresse qu'on peut poser dans un `url(...)` CSS sans risque. Les
+   guillemets, parenthèses et espaces y casseraient la déclaration — et,
+   pire, l'attribut `style` qui la porte : le reste de la balise partirait
+   en attributs. On préfère ne pas mettre de fond flouté du tout. */
+function urlCss(u){
+  const s = String(u || '');
+  return /["'()\s\\]/.test(s) ? '' : s;
+}
 function esc(s){
   return String(s == null ? '' : s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -2071,8 +2218,9 @@ function imgAvatar(cls, src, ini, id){
 /* ---------- État ---------- */
 const CLE = 'fgl_data_v1';
 let DATA = null;
-let UI = { statut:'', plateforme:'', tri:'recent', vue:'grille', vue2:'accueil', q:'',
-           trpQ:'', trpF:'tous' };   // recherche et filtre dans la liste des succès
+let UI = { vue2:'accueil', q:'', trpQ:'', trpF:'tous' };
+// `q` : la recherche de jeux. `vue2` : la page affichée. Les filtres de statut,
+// de plateforme et de tri ont disparu en 0.9.45 avec la barre qui les portait.
 let lecture = null;      // profil consulté en lecture seule (null = ma liste)
 let jeuEnCours = null;   // id du jeu ouvert dans la modale
 let noteTmp = null;      // note en cours de saisie
@@ -2080,12 +2228,16 @@ let centTmp = false;     // case « fait à 100 % » en cours de saisie
 
 function dataVierge(){
   return {
-    version: 17,
+    version: 19,
     reglages: { cleRawg:'', cleSgdb:'', cleYT:'', cleGB:'', proxySgdb:'', mailTrad:'',
                 langueSucces:'french',
-                theme:'sombre', palette:'auto', anim:true },
+                theme:'sombre', palette:'auto', anim:true, meuble:'metal' },
     cloud: { login:'', gistData:'', gistProfil:'', auto:true, syncAt:'', majAt:'', connus:[] },
-    etageres: [],           // étagères de la bibliothèque, créées à la main
+    etageres: [],           // étagères des OST, créées à la main
+    // v18 → v19 : les décors ne sont plus accrochés au bout d'une étagère.
+    // Ce sont des images posées librement autour du meuble, une liste par
+    // scène (la bibliothèque de jeux, celle des OST), 15 au maximum.
+    decors: { jeux:[], ost:[] },
     defis: {},              // id du défi → jour du déblocage
     osts: [],               // bandes originales
     tournoi: { jeux:null, ost:null },
@@ -2120,6 +2272,49 @@ function migre(){
   if(DATA.reglages.proxySgdb === undefined) DATA.reglages.proxySgdb = '';
   if(DATA.reglages.cleGB === undefined) DATA.reglages.cleGB = '';
   if(!DATA.reglages.palette) DATA.reglages.palette = 'auto';
+  // v17 → v18 : la matière du meuble. « metal » est l'ancienne apparence, donc
+  // une collection existante s'affiche exactement pareil après migration.
+  if(!DATA.reglages.meuble) DATA.reglages.meuble = 'metal';
+  // v18 → v19 : les décors changent complètement de nature. En v18 c'était
+  // « une étagère → une adresse d'image », posée au bout de la rangée. Ce
+  // sont maintenant des images libres, placées à la main autour du meuble.
+  // Les anciennes ne sont pas jetées : elles repartent alignées sur le sol,
+  // devant le meuble, là où elles se voient tout de suite.
+  if(!DATA.decors || typeof DATA.decors !== 'object' || Array.isArray(DATA.decors)){
+    DATA.decors = { jeux:[], ost:[] };
+  }
+  if(!Array.isArray(DATA.decors.jeux) || !Array.isArray(DATA.decors.ost)){
+    const anciens = DATA.decors;
+    const neuf = { jeux:[], ost:[] };
+    Object.keys(anciens).forEach(k => {
+      const url = anciens[k];
+      if(typeof url !== 'string' || !url) return;
+      const ou = String(k).indexOf('o:') === 0 ? 'ost' : 'jeux';
+      if(neuf[ou].length >= MAX_DECORS) return;
+      const n = neuf[ou].length;
+      // deux rangées de huit : au-delà, tout se serait empilé sur le bord
+      // droit une fois les positions ramenées dans les bornes
+      neuf[ou].push({ id: uidDecor(), url: url,
+                      x: 9 + (n % 8) * 12, y: n < 8 ? 88 : 70,
+                      w: 11, r: 0, plan: 'avant' });
+    });
+    DATA.decors = neuf;
+  }
+  // une entrée abîmée (import à la main, ancienne version) est réparée ou jetée,
+  // jamais laissée telle quelle : un décor sans adresse ne se voit pas, mais il
+  // occuperait une des quinze places
+  ['jeux','ost'].forEach(ou => {
+    DATA.decors[ou] = DATA.decors[ou]
+      .filter(d => d && typeof d === 'object' && typeof d.url === 'string' && d.url)
+      .slice(0, MAX_DECORS)
+      .map(d => ({
+        id: String(d.id || uidDecor()),
+        url: String(d.url),
+        x: borne(d.x, 0, 100, 50), y: borne(d.y, 0, 100, 50),
+        w: borne(d.w, 3, 70, 14),  r: borne(d.r, -180, 180, 0),
+        plan: d.plan === 'fond' ? 'fond' : 'avant'
+      }));
+  });
   if(!DATA.reactions || typeof DATA.reactions !== 'object') DATA.reactions = {};
   // v9 → v10 : une réaction ne vise plus un membre mais un jeu ou une OST précis.
   // L'ancienne forme était « login → emoji » : ces entrées n'ont plus de cible,
@@ -2148,6 +2343,10 @@ function migre(){
     // v14 → v15 : même choix que pour un jeu — remplir le cadre, ou montrer
     // l'affiche entière avec les bords comblés par sa version floutée.
     if(o.fit !== 'entiere') o.fit = 'remplir';
+    // v17 → v18 : place du boîtier quand on l'a rangé à la main, exactement
+    // comme `jeu.ordre`. `null` = jamais déplacé : l'étagère garde alors son
+    // tri automatique, et une OST ajoutée ensuite se pose en fin de rangée.
+    if(typeof o.ordre !== 'number') o.ordre = null;
   });
   if(!Array.isArray(DATA.cloud.connus)) DATA.cloud.connus = [];
   if(!DATA.defis || typeof DATA.defis !== 'object') DATA.defis = {};
@@ -2240,7 +2439,7 @@ function migre(){
   });
   if(!Array.isArray(DATA.profil.amis)) DATA.profil.amis = [];
   if(!DATA.profil.visibilite) DATA.profil.visibilite = 'public';
-  DATA.version = 17;
+  DATA.version = 19;
 }
 /* écriture brute, sans toucher aux repères de synchro */
 function ecrit(){
@@ -2351,33 +2550,18 @@ window.addEventListener('mousemove', e => {
 function sourceJeux(){ return lecture ? (lecture.jeux || []) : DATA.jeux; }
 
 function jeuxFiltres(){
-  let L = sourceJeux().slice();
+  // Il ne reste qu'un filtre : la recherche. Les filtres de statut et de
+  // plateforme, et les sept tris, sont partis avec la barre en 0.9.45 — la
+  // bibliothèque range déjà par plateforme, et le rangement à la main prime
+  // sur n'importe quel tri automatique (voir `htmlBiblio`).
   const q = UI.q.trim().toLowerCase();
-  if(q) L = L.filter(g => (g.title || '').toLowerCase().includes(q));
-  if(UI.statut) L = L.filter(g => g.status === UI.statut);
-  if(UI.plateforme) L = L.filter(g => g.platform === UI.plateforme);
-
-  const parNote = (a,b) => (b.note == null ? -1 : b.note) - (a.note == null ? -1 : a.note);
-  switch(UI.tri){
-    case 'ancien':  L.sort((a,b) => ms(a.addedAt) - ms(b.addedAt)); break;
-    case 'note':    L.sort(parNote); break;
-    case 'notebas': L.sort((a,b) => (a.note == null ? 99 : a.note) - (b.note == null ? 99 : b.note)); break;
-    case 'meta':    L.sort((a,b) => (b.metaUser || 0) - (a.metaUser || 0)); break;
-    case 'joue':    L.sort((a,b) => ms(b.lastPlayed) - ms(a.lastPlayed)); break;
-    case 'az':      L.sort((a,b) => (a.title || '').localeCompare(b.title || '', 'fr')); break;
-    default:        L.sort((a,b) => ms(b.addedAt) - ms(a.addedAt));
-  }
-  return L;
+  if(!q) return sourceJeux().slice();
+  return sourceJeux().filter(g => (g.title || '').toLowerCase().includes(q));
 }
 
 function rendGrille(){
   const L = jeuxFiltres();
   const g = $('#grille');
-  // Deux rendus, une seule source : le meuble par défaut, la liste quand on
-  // cherche un jeu par son nom — c'est sa raison d'être, elle garde les titres.
-  const enListe = UI.vue === 'liste';
-  g.className = enListe ? 'grid liste' : 'zone-biblio';
-  $('#compte').textContent = L.length + (L.length > 1 ? ' jeux' : ' jeu');
 
   if(!sourceJeux().length){
     g.innerHTML = '';
@@ -2391,52 +2575,11 @@ function rendGrille(){
   if(!L.length){
     g.innerHTML = '';
     $('#vide').innerHTML = '<div class="vide-etat"><h2>Rien ne correspond</h2>'
-      + '<p>Change de filtre ou vide la recherche.</p></div>';
+      + '<p>Vide la recherche pour retrouver toute la bibliothèque.</p></div>';
     return;
   }
   $('#vide').innerHTML = '';
-
-  if(!enListe){ g.innerHTML = htmlBiblio(L); return; }
-
-  g.innerHTML = L.map(j => {
-    const st = statutDe(j.status);
-    // en lecture seule les succès arrivent déjà comptés (trpObt / trpTot)
-    const obt = j.achievements ? j.achievements.filter(a => a.unlocked).length : (j.trpObt || 0);
-    const tot = j.achievements ? (j.achievementsTotal || j.achievements.length) : (j.trpTot || 0);
-    // l'affiche entière, centrée, posée sur une version floutée d'elle-même
-    const aff = j.cover
-      ? '<div class="flou" style="background-image:url(' + esc(j.cover) + ')"></div>'
-        + '<img src="' + esc(j.cover) + '" alt="" loading="lazy">'
-      : '<div class="vide">' + esc((j.title || '?').slice(0,1).toUpperCase()) + '</div>';
-    const cadre = j.fit === 'entiere' ? ' entiere' : '';
-    const cad = ' style="' + styleCadre(j) + '"';
-    // 100 % : coché à la main, ou tous les succès obtenus
-    const cent = !!j.cent100 || j.status === 'cent' || (tot > 0 && obt === tot);
-    // la plaque monte du bas au survol : pastille de statut, puis la note en étoiles
-    const plaque = '<div class="plaque"><span class="st-dot" style="background:' + st.c + '" '
-      + 'title="' + esc(st.nom) + '"></span>' + htmlEtoiles(j.note) + '</div>';
-    const cible = lecture ? 'data-voir="' + j._i + '"' : 'data-jeu="' + j.id + '"';
-    // aucun texte sur la carte : le titre passe en infobulle et en libellé lecteur d'écran
-    const nom = esc(j.title || 'Jeu');
-    const sous = [j.platform, j.lastPlayed ? depuisJour(j.lastPlayed) : ''].filter(Boolean).join(' · ');
-    return '<button class="carte' + (cent ? ' cent100' : '') + '" ' + cible
-      + ' title="' + nom + '" aria-label="' + nom + '">'
-      + '<div class="aff' + cadre + '"' + cad + '>' + aff
-      + (cent ? '<div class="cent-pip">★</div>' : '')
-      + plaque + '</div>'
-      + (UI.vue === 'liste'
-          ? '<div class="carte-txt">'
-            // --lng porte la longueur du titre : c'est le CSS qui en déduit
-            // la taille, donc aucune mesure au chargement, aucun reflow
-            + '<div class="carte-t" style="--lng:' + String(j.title || 'Jeu').length + '">'
-            +   nom + '</div>'
-            + '<div class="carte-s">' + esc(sous) + '</div>'
-            + (cent ? '<div class="l-cent">100%</div>' : '')
-            + (j.note != null ? '<div class="l-note">' + htmlEtoiles(j.note, 'p') + '</div>' : '')
-            + '</div>'
-          : '')
-      + '</button>';
-  }).join('');
+  g.innerHTML = htmlBiblio(L);
 }
 
 /* =========================================================
@@ -2526,7 +2669,79 @@ function ferme(id){
   if(!m) return;
   m.classList.remove('on');
   coupeVideos(m);
+  // Fermée par la croix, par Échap ou par le fond : la promesse doit quand
+  // même être tenue, sinon la demande suivante croirait qu'une autre est en
+  // cours et l'annulerait.
+  if(id === 'mDem') annuleDem();
 }
+/* Rend la main à qui attendait, comme si on avait cliqué « Annuler ». */
+function annuleDem(){
+  if(!demSuite) return;
+  const suite = demSuite;
+  demSuite = null;
+  suite($('#demChamp').style.display === 'none' ? false : null);
+}
+/* =========================================================
+   DEMANDER QUELQUE CHOSE  (confirmation ou saisie)
+   =========================================================
+   `confirm()` et `prompt()` sont des dialogues NATIFS, et le navigateur a le
+   droit de les ignorer : c'est le cas dans une application installée, et
+   plusieurs navigateurs les désactivent aussi après un premier refus. Quand
+   ça arrive, `confirm()` renvoie `false` sans rien afficher — le bouton
+   « Supprimer » semble alors ne rien faire du tout. C'est exactement le bug
+   remonté en 0.9.44.
+
+   Ces deux fonctions les remplacent partout. Elles rendent une promesse :
+   `false` / `null` si on annule, `true` / le texte saisi si on valide. */
+let demSuite = null;         // ce qu'on fait de la réponse
+
+function fermeDem(reponse){
+  const suite = demSuite;
+  demSuite = null;
+  ferme('mDem');
+  if(suite) suite(reponse);
+}
+
+function demande(opts){
+  return new Promise(res => {
+    // une demande déjà ouverte est annulée plutôt qu'empilée
+    if(demSuite) fermeDem(opts.saisie != null ? null : false);
+    $('#demTitre').textContent = opts.titre || 'Confirmer';
+    $('#demTexte').textContent = opts.texte || '';
+    $('#demTexte').style.display = opts.texte ? '' : 'none';
+    const avecChamp = opts.saisie != null;
+    $('#demChamp').style.display = avecChamp ? '' : 'none';
+    $('#demVal').value = avecChamp ? String(opts.saisie) : '';
+    $('#demVal').placeholder = opts.exemple || '';
+    $('#bDemOui').textContent = opts.oui || 'Confirmer';
+    $('#bDemOui').classList.toggle('dgr', !!opts.danger);
+    // certaines questions ont trois issues (remplacer / fusionner / annuler) :
+    // les réduire à deux ferait perdre une fonction, pas seulement un bouton
+    $('#bDemAutre').style.display = opts.autre ? '' : 'none';
+    $('#bDemAutre').textContent = opts.autre || '';
+    demSuite = res;
+    ouvre('mDem');
+    if(avecChamp) setTimeout(() => { $('#demVal').focus(); $('#demVal').select(); }, 60);
+    else setTimeout(() => $('#bDemOui').focus(), 60);
+  });
+}
+
+/* « Es-tu sûr ? » — rend true seulement si on a cliqué le bouton de gauche. */
+function confirme(texte, opts){
+  const o = opts || {};
+  return demande({ titre: o.titre || 'Confirmer', texte: texte,
+                   oui: o.oui || 'Supprimer', danger: o.danger !== false })
+    .then(r => r === true);
+}
+
+/* Saisie d'une ligne de texte — rend null si on annule, la chaîne sinon. */
+function saisie(titre, valeur, opts){
+  const o = opts || {};
+  return demande({ titre: titre, texte: o.texte || '', saisie: valeur || '',
+                   exemple: o.exemple || '', oui: o.oui || 'Valider' })
+    .then(r => (typeof r === 'string' ? r : null));
+}
+
 /* Un iframe YouTube continue de jouer même caché : on le vide vraiment. */
 function coupeVideos(zone){
   if(!zone) return;
@@ -2624,12 +2839,17 @@ function sauveJeu(){
 }
 
 function supprimeJeu(){
-  if(!jeuEnCours) return;
-  const j = DATA.jeux.find(x => x.id === jeuEnCours);
-  if(!confirm('Supprimer « ' + (j ? j.title : '') +' » ? C\'est définitif.')) return;
-  DATA.jeux = DATA.jeux.filter(x => x.id !== jeuEnCours);
-  sauve(); ferme('mJeu'); toutRendre();
-  toast('Supprimé.');
+  // Aucune sortie silencieuse : si l'identifiant s'est perdu, on le dit.
+  // C'est ce mutisme qui rendait la panne incompréhensible.
+  const j = jeuEnCours ? DATA.jeux.find(x => x.id === jeuEnCours) : null;
+  if(!j){ toast('Aucun jeu ouvert : rien à supprimer.'); return; }
+  const id = j.id;
+  confirme('Supprimer « ' + (j.title || 'ce jeu') + ' » ?\n\nC\'est définitif.').then(ok => {
+    if(!ok) return;
+    DATA.jeux = DATA.jeux.filter(x => x.id !== id);
+    sauve(); ferme('mJeu'); toutRendre();
+    toast('Supprimé.');
+  });
 }
 
 /* =========================================================
@@ -3581,23 +3801,6 @@ async function jaquette(nom, rawgId, secours, plateforme){
   return trouvee || secours || '';
 }
 
-/* une vraie jaquette, par opposition à une capture d'écran RAWG */
-function estJaquette(url){
-  const u = String(url || '');
-  return u.indexOf('steamgriddb') >= 0
-      || u.indexOf('giantbomb') >= 0
-      || u.indexOf('steamstatic') >= 0
-      || u.indexOf('wikimedia.org') >= 0;
-}
-function sourceJaquette(url){
-  const u = String(url || '');
-  if(u.indexOf('steamgriddb') >= 0) return 'SteamGridDB';
-  if(u.indexOf('giantbomb') >= 0)   return 'Giant Bomb';
-  if(u.indexOf('steamstatic') >= 0) return 'Steam';
-  if(u.indexOf('wikimedia.org') >= 0) return 'Commons';
-  return 'capture';
-}
-
 /* Bouton ⤓ : remplit la note Metacritic tout seul */
 async function chercheMeta(){
   const titre = $('#jTitre').value.trim();
@@ -3953,43 +4156,6 @@ function htmlJauge(obt, tot){
     + (obt === tot && tot > 0 ? ' 💯' : '') + '</div></div>';
 }
 
-/* RAWG cherche de façon floue : « Persona 5 » peut ramener « Persona 5 Strikers »
-   en tête. Prendre bêtement le premier résultat, c'est parfois pointer une extension,
-   une édition ou une compilation qui n'a qu'une partie des succès — et c'est la
-   première cause de listes à moitié vides. On note donc les candidats. */
-async function chercheRawg(titre, combien){
-  const u = 'https://api.rawg.io/api/games?key=' + encodeURIComponent(cleRawg())
-    + '&search=' + encodeURIComponent(titre) + '&search_precise=true'
-    + '&page_size=' + (combien || 10);
-  const r = await fetch(u);
-  if(!r.ok) throw new Error('HTTP ' + r.status);
-  const js = await r.json();
-  return js.results || [];
-}
-
-function scoreRawg(r, titre){
-  const cible = normaliseTitre(titre), nom = normaliseTitre(r && r.name || '');
-  let s = 0;
-  if(nom === cible) s += 1000;                      // titre exact : rien ne bat ça
-  else if(nom.indexOf(cible) === 0) s += 400;       // « … » ajouté derrière
-  else if(nom.indexOf(cible) >= 0) s += 200;
-  // à titre équivalent, la fiche la plus suivie est la bonne dans presque tous les cas
-  s += Math.min(120, Math.log10(1 + (r && r.added || 0)) * 40);
-  if((r && r.achievements_count || 0) > 0) s += 60;
-  // une extension ou une bande-son n'a jamais la liste complète du jeu de base
-  if(/\b(dlc|expansion|season pass|bundle|soundtrack|demo|beta|pack)\b/.test(nom)) s -= 500;
-  return s;
-}
-
-async function meilleurRawg(titre){
-  const L = await chercheRawg(titre, 10);
-  if(!L.length) return null;
-  return L.slice().sort((a, b) => scoreRawg(b, titre) - scoreRawg(a, titre))[0];
-}
-
-/* Quand la liste reste incomplète, c'est presque toujours la fiche qui est mauvaise.
-   On montre les candidats plutôt que de laisser l'utilisateur deviner. */
-
 /* =========================================================
    SUCCÈS VIA STEAM  —  la source complète
    =========================================================
@@ -4188,10 +4354,10 @@ async function choisitFicheSteam(){
       + '<div class="trp-vide" style="text-align:left">'
       + '<button class="btn" id="bSteamNum">⌨️ Saisir le numéro à la main</button></div>';
     $('#bSteamNum').onclick = () => {
-      const r = prompt('Numéro de la fiche Steam (dans l\'adresse de la page du jeu) :\n'
-        + 'store.steampowered.com/app/1245620/…  →  1245620', j.steamAppId || '');
-      if(r === null) return;
-      choisitSteamId(String(r).replace(/\D/g, ''));
+      saisie('Numéro de la fiche Steam', j.steamAppId || '',
+        { texte:'Il est dans l\'adresse de la page du jeu :\nstore.steampowered.com/app/1245620/…  →  1245620',
+          exemple:'1245620' })
+        .then(r => { if(r !== null) choisitSteamId(String(r).replace(/\D/g, '')); });
     };
   }catch(e){
     console.error(e);
@@ -4566,16 +4732,25 @@ function basculeTrophee(aid){
 function ajouteTropheeManuel(){
   const j = DATA.jeux.find(x => x.id === jeuEnCours);
   if(!j) return;
-  const nom = prompt('Nom du succès :');
-  if(!nom) return;
-  const icone = prompt('Adresse de l\'icône (facultatif) :\nClic droit sur l\'image → « Copier l\'adresse de l\'image »') || '';
-  j.achievements.push({
-    id: 'a_m_' + Date.now().toString(36),
-    name: nom.trim(), desc:'', icon: icone.trim(),
-    rarity: null, source:'manuel', unlocked: true, date: dayLocal()
+  const id = j.id;
+  saisie('Nom du succès', '', { exemple:'Sans une égratignure' }).then(nom => {
+    if(!nom || !nom.trim()) return;
+    return saisie('Adresse de l\'icône', '',
+      { texte:'Facultatif. Clic droit sur l\'image → « Copier l\'adresse de l\'image ».',
+        exemple:'https://…' })
+      .then(icone => {
+        // la fiche a pu changer entre les deux questions : on relit le jeu
+        const g = DATA.jeux.find(x => x.id === id);
+        if(!g) return;
+        g.achievements.push({
+          id: 'a_m_' + Date.now().toString(36),
+          name: nom.trim(), desc:'', icon: String(icone || '').trim(),
+          rarity: null, source:'manuel', unlocked: true, date: dayLocal()
+        });
+        g.achievementsTotal = Math.max(g.achievementsTotal, g.achievements.length);
+        sauve(); rendTrophees(); rendGrille();
+      });
   });
-  j.achievementsTotal = Math.max(j.achievementsTotal, j.achievements.length);
-  sauve(); rendTrophees(); rendGrille();
 }
 
 /* =========================================================
@@ -4725,22 +4900,22 @@ function importe(fichier){
     try{
       const nv = JSON.parse(fr.result);
       if(!nv || !Array.isArray(nv.jeux)) throw new Error('format');
-      const rempl = confirm(
-        'Remplacer ta liste actuelle (' + DATA.jeux.length + ' jeux) par celle du fichier ('
-        + nv.jeux.length + ' jeux) ?\n\nOK = remplacer   ·   Annuler = fusionner les deux');
-      if(rempl){
-        DATA = nv;
-      }else{
-        const vus = new Set(DATA.jeux.map(g => (g.title || '').toLowerCase()));
-        nv.jeux.forEach(g => {
-          if(!vus.has((g.title || '').toLowerCase())){
-            g.id = uid();
-            DATA.jeux.push(g);
-          }
-        });
-      }
-      migre(); sauve(); toutRendre();
-      toast('Import terminé : ' + DATA.jeux.length + ' jeux.');
+      demande({ titre:'Importer', oui:'Remplacer', autre:'Fusionner',
+        texte:'Ta liste : ' + DATA.jeux.length + ' jeux.\nLe fichier : ' + nv.jeux.length + ' jeux.'
+          + '\n\nRemplacer efface la liste de cet appareil.'
+          + '\nFusionner ajoute seulement les jeux absents.' }).then(rep => {
+        if(rep !== true && rep !== 'autre') return;
+        if(rep === true){
+          DATA = nv;
+        }else{
+          const vus = new Set(DATA.jeux.map(g => (g.title || '').toLowerCase()));
+          nv.jeux.forEach(g => {
+            if(!vus.has((g.title || '').toLowerCase())){ g.id = uid(); DATA.jeux.push(g); }
+          });
+        }
+        migre(); sauve(); toutRendre();
+        toast('Import terminé : ' + DATA.jeux.length + ' jeux.');
+      });
     }catch(e){
       console.error(e);
       toast('Fichier illisible. Prends un export FGL (.json).');
@@ -4755,6 +4930,9 @@ function importe(fichier){
 function appliqueTheme(){
   const t = DATA.reglages.theme;
   document.documentElement.dataset.theme = t;
+  // la matière du meuble est un attribut, pas une classe : elle pilote un jeu
+  // de variables CSS, exactement comme le thème
+  document.documentElement.dataset.meuble = DATA.reglages.meuble || 'metal';
   appliquePalette();
   document.querySelector('meta[name=theme-color]')
     .setAttribute('content', t === 'sombre' ? '#12101a' : '#f4f1f7');
@@ -5309,11 +5487,15 @@ function sauveOst(){
   sauve(); ferme('mOst'); rendOst(); verifieDefis();
 }
 function suppOst(){
-  if(!ostEnCours) return;
-  if(!confirm('Supprimer cette OST ?')) return;
-  DATA.osts = (DATA.osts || []).filter(x => x.id !== ostEnCours);
-  sauve(); ferme('mOst'); rendOst();
-  toast('OST supprimée.');
+  if(!ostEnCours){ toast('Aucune OST ouverte.'); return; }
+  const id = ostEnCours;
+  const o = (DATA.osts || []).find(x => x.id === id);
+  confirme('Supprimer « ' + ((o && o.titre) || 'cette OST') + ' » ?\n\nC\'est définitif.').then(ok => {
+    if(!ok) return;
+    DATA.osts = (DATA.osts || []).filter(x => x.id !== id);
+    sauve(); ferme('mOst'); rendOst();
+    toast('OST supprimée.');
+  });
 }
 
 /* =========================================================
@@ -5329,18 +5511,27 @@ function suppOst(){
 
    L'appui long est indispensable : sans lui, tout défilement de l'étagère
    au doigt commencerait par arracher un jeu de son rang. */
-const DELAI_PRISE = 320;      // ms avant que la jaquette se décolle
+const DELAI_PRISE = 320;      // ms avant que l'objet se décolle
 /* mémorise un passage par le thème clair, pour le défi de l'aller-retour */
 let passeParClair = false;
-let drag = null;              // la jaquette actuellement tenue
+let drag = null;              // l'objet actuellement tenu
 let dragT = null;             // minuterie de l'appui long
 let presse = null;            // point de contact, connu dès l'appui
 let posePrise = 0;            // instant du dernier dépôt
 
+/* Jaquettes ET boîtiers d'OST : le même geste, le même code. Les deux meubles
+   partagent la structure `.etg-in > [prise]`, il n'y a donc rien à dupliquer —
+   seule la liste à renuméroter change à la fin. */
+const SEL_PRISE = '[data-liv],[data-ost]';
+
 function debutPrise(e){
   // souris : bouton gauche seulement ; on ignore les boutons de l'étagère
   if(e.button != null && e.button !== 0) return;
-  const el = e.target.closest('[data-liv]');
+  // en mode décors, le meuble est en retrait : on place des images, on ne
+  // range pas des jeux. Deux gestes de glissement concurrents sur le même
+  // écran ne peuvent que se marcher dessus.
+  if(modeDecor) return;
+  const el = e.target.closest(SEL_PRISE);
   if(!el || lecture) return;             // on ne réorganise pas chez les autres
   const etg = el.closest('.etg-in');
   if(!etg) return;
@@ -5356,12 +5547,27 @@ function debutPrise(e){
 function prendMaintenant(){
   clearTimeout(dragT);
   if(!presse || !presse.el || drag) return;
-  drag = { el: presse.el, etg: presse.etg, id: presse.el.dataset.liv,
-           bouge: false, x0: presse.x0, y0: presse.y0 };
+  const r = presse.el.getBoundingClientRect();
+  drag = { el: presse.el, etg: presse.etg,
+           id: presse.el.dataset.liv || presse.el.dataset.ost,
+           ost: presse.el.dataset.ost != null,
+           bouge: false, dx: 0,
+           // où le doigt a saisi l'objet, en pixels depuis son bord gauche :
+           // c'est ce point-là qui doit rester sous le curseur du début à la fin
+           saisi: presse.x0 - r.left };
   drag.el.classList.add('prise');
   drag.etg.classList.add('range');
   try{ drag.el.setPointerCapture(presse.pointerId); }catch(err){}
   if(navigator.vibrate) navigator.vibrate(12);   // on sent que ça a décollé
+}
+
+/* Position réelle du bord gauche de l'objet, décalage en cours mis à part.
+   `offsetLeft` donne la place que la MISE EN PAGE lui accorde, sans être
+   troublé par les transformations — c'est exactement ce qu'il faut, puisque
+   l'objet est réinséré parmi ses voisines à chaque dépassement. */
+function baseObjet(){
+  const r = drag.etg.getBoundingClientRect();
+  return r.left - drag.etg.scrollLeft + drag.el.offsetLeft;
 }
 
 function bougePrise(e){
@@ -5379,49 +5585,58 @@ function bougePrise(e){
   }
   e.preventDefault();
   drag.bouge = true;
-  drag.el.style.setProperty('--dx', (e.clientX - drag.x0) + 'px');
 
-  // on insère avant la première jaquette dont le milieu est passé à droite
-  // du curseur : c'est le calcul qui donne un ressenti « naturel »
-  const freres = Array.from(drag.etg.querySelectorAll('[data-liv]'))
+  // ⚠️ Le décalage se calcule à partir de la position ACTUELLE de l'objet, pas
+  // du point d'appui de départ. L'objet change de place dans l'étagère dès
+  // qu'il dépasse une voisine : mesuré depuis le départ, le décalage
+  // s'ajoutait à ce déplacement réel et la jaquette s'échappait du curseur,
+  // de plus en plus loin à mesure qu'on traversait la rangée.
+  drag.dx = e.clientX - drag.saisi - baseObjet();
+  drag.el.style.setProperty('--dx', drag.dx + 'px');
+
+  // on insère avant le premier objet dont le milieu est passé à droite du
+  // curseur : c'est le calcul qui donne un ressenti « naturel »
+  const freres = Array.from(drag.etg.querySelectorAll(SEL_PRISE))
     .filter(n => n !== drag.el);
   let cible = null;
   for(const n of freres){
     const r = n.getBoundingClientRect();
     if(e.clientX < r.left + r.width / 2){ cible = n; break; }
   }
+  // Plus rien ne traîne en fin de rangée depuis que les décors ont quitté les
+  // étagères (1.0) : l'objet lâché après le dernier va simplement au bout.
   if(cible) drag.etg.insertBefore(drag.el, cible);
-  else{
-    // après le dernier jeu, mais toujours avant le décor de fin d'étagère
-    const deco = drag.etg.querySelector('.deco');
-    if(deco) drag.etg.insertBefore(drag.el, deco);
-    else drag.etg.appendChild(drag.el);
-  }
+  else drag.etg.appendChild(drag.el);
+  // la réinsertion vient de changer la position de la mise en page : on
+  // recale aussitôt, sinon l'objet saute d'une largeur à chaque dépassement
+  drag.dx = e.clientX - drag.saisi - baseObjet();
+  drag.el.style.setProperty('--dx', drag.dx + 'px');
 }
 
 function finPrise(){
   clearTimeout(dragT);
   if(!drag){ presse = null; return; }
-  const { el, etg, bouge } = drag;
+  const { el, etg, bouge, ost } = drag;
   el.classList.remove('prise');
   etg.classList.remove('range');
   el.style.removeProperty('--dx');
   drag = null; presse = null;
   // un appui long finit toujours par un « click » : on le neutralise même
-  // sans déplacement, sinon prendre un jeu puis se raviser ouvrirait sa fiche
+  // sans déplacement, sinon prendre un objet puis se raviser ouvrirait sa fiche
   posePrise = Date.now();
   if(!bouge) return;
 
   // On renumérote TOUTE l'étagère d'après l'ordre affiché. Ne numéroter que
-  // le jeu déplacé laisserait les autres sans repère, et l'étagère se
+  // l'objet déplacé laisserait les autres sans repère, et l'étagère se
   // réorganiserait au rechargement.
-  const ids = Array.from(etg.querySelectorAll('[data-liv]')).map(n => n.dataset.liv);
-  ids.forEach((id, i) => {
-    const g = DATA.jeux.find(x => x.id === id);
-    if(g) g.ordre = i;
+  const liste = ost ? (DATA.osts || []) : DATA.jeux;
+  const cle = ost ? 'ost' : 'liv';
+  Array.from(etg.querySelectorAll(SEL_PRISE)).forEach((n, i) => {
+    const o = liste.find(x => x.id === n.dataset[cle]);
+    if(o) o.ordre = i;
   });
   sauve();
-  // pas de rendGrille() : le DOM est déjà dans le bon ordre, tout reconstruire
+  // pas de rendu complet : le DOM est déjà dans le bon ordre, tout reconstruire
   // ferait clignoter l'étagère juste après le geste
 }
 
@@ -5438,43 +5653,271 @@ function etagereDe(id){
   return (DATA.etageres || []).find(e => e.id === id) || null;
 }
 
+/* Rend une promesse pour que la fiche OST puisse ranger le morceau sur
+   l'étagère qui vient d'être créée — impossible avec une fonction qui rendait
+   la main avant que le nom soit saisi. */
 function ajouteEtagere(){
-  const nom = prompt('Nom de la nouvelle étagère :\n(par exemple « Final Fantasy », « Thèmes de combat », « Calme »)');
-  if(nom === null) return;
-  const propre = nom.trim().slice(0, 40);
-  if(!propre){ toast('Il faut un nom.'); return; }
-  DATA.etageres.push({ id: 'e_' + Date.now().toString(36), nom: propre });
-  sauve(); rendOst();
-  toast('Étagère « ' + propre + ' » ajoutée.');
+  return saisie('Nouvelle étagère', '',
+    { texte:'Par exemple « Final Fantasy », « Thèmes de combat », « Calme ».',
+      exemple:'Nom de l\'étagère', oui:'Créer' }).then(nom => {
+    if(nom === null) return null;
+    const propre = nom.trim().slice(0, 40);
+    if(!propre){ toast('Il faut un nom.'); return null; }
+    const e = { id: 'e_' + Date.now().toString(36), nom: propre };
+    DATA.etageres.push(e);
+    sauve(); rendOst();
+    toast('Étagère « ' + propre + ' » ajoutée.');
+    return e;
+  });
 }
 
 function renommeEtagere(id){
   const e = etagereDe(id);
   if(!e) return;
-  const nom = prompt('Nouveau nom :', e.nom);
-  if(nom === null) return;
-  const propre = nom.trim().slice(0, 40);
-  if(!propre){ toast('Il faut un nom.'); return; }
-  e.nom = propre;
-  sauve(); rendOst();
+  saisie('Renommer l\'étagère', e.nom, { oui:'Renommer' }).then(nom => {
+    if(nom === null) return;
+    const propre = nom.trim().slice(0, 40);
+    if(!propre){ toast('Il faut un nom.'); return; }
+    e.nom = propre;
+    sauve(); rendOst();
+  });
 }
 
-/* Supprimer une étagère ne supprime JAMAIS les jeux : ils redescendent sur
+/* Supprimer une étagère ne supprime JAMAIS les OST : elles redescendent sur
    l'étagère commune. Perdre une collection en cliquant une croix serait une
-   catastrophe pour un geste anodin. */
+   catastrophe pour un geste anodin. La confirmation est systématique, et elle
+   dit ce qui arrive au contenu — sinon on n'ose pas cliquer. */
 function supprimeEtagere(id){
   const e = etagereDe(id);
   if(!e) return;
   const dessus = (DATA.osts || []).filter(o => o.etagere === id).length;
   const msg = dessus
-    ? 'Supprimer « ' + e.nom + ' » ?\n\nLes ' + dessus + ' OST posées dessus ne sont pas '
-      + 'supprimées : elles retournent sur l\'étagère commune.'
+    ? 'Supprimer l\'étagère « ' + e.nom + ' » ?\n\nLes ' + dessus
+      + (dessus > 1 ? ' OST posées dessus ne sont pas supprimées : elles retournent'
+                    : ' OST posée dessus n\'est pas supprimée : elle retourne')
+      + ' sur l\'étagère commune.'
     : 'Supprimer l\'étagère « ' + e.nom + ' » ?';
-  if(!confirm(msg)) return;
-  (DATA.osts || []).forEach(o => { if(o.etagere === id) o.etagere = ''; });
-  DATA.etageres = DATA.etageres.filter(x => x.id !== id);
-  sauve(); rendOst();
-  toast('Étagère supprimée.');
+  confirme(msg, { titre:'Supprimer l\'étagère' }).then(ok => {
+    if(!ok) return;
+    (DATA.osts || []).forEach(o => { if(o.etagere === id) o.etagere = ''; });
+    DATA.etageres = DATA.etageres.filter(x => x.id !== id);
+    sauve(); rendOst();
+    toast('Étagère supprimée.');
+  });
+}
+
+/* =========================================================
+   LES DÉCORS
+   =========================================================
+   FGL ne fournit AUCUN décor : ni dessin d'origine, ni banque d'images. Ce
+   sont des adresses d'images choisies par l'utilisateur, et seule l'adresse
+   est retenue — jamais une copie, exactement comme une jaquette.
+
+   Ce qui change en 1.0 : un décor n'est plus accroché au bout d'une
+   étagère. Il est posé LIBREMENT sur la scène, devant ou derrière le meuble,
+   et on le déplace à la main dans un mode d'édition. Un décor accroché à une
+   rangée ne pouvait rien décorer d'autre que cette rangée ; c'était le tour
+   du meuble qu'on voulait habiller.
+
+   Deux scènes indépendantes : `jeux` et `ost`. Les positions ne pouvaient de
+   toute façon pas être communes, les deux meubles n'ayant ni la même hauteur
+   ni le même nombre d'étagères.
+
+   ⚠️ Les positions sont en POURCENTAGE de la scène, jamais en pixels : un
+   décor placé sur un écran large doit rester au même endroit du meuble sur
+   un téléphone. */
+let modeDecor = '';        // '' | 'jeux' | 'ost' — scène en cours d'édition
+let decSel = null;         // identifiant du décor sélectionné
+let decDrag = null;        // décor actuellement tenu
+
+function listeDecors(ou){
+  if(!DATA.decors || Array.isArray(DATA.decors) || typeof DATA.decors !== 'object'){
+    DATA.decors = { jeux:[], ost:[] };
+  }
+  if(!Array.isArray(DATA.decors[ou])) DATA.decors[ou] = [];
+  return DATA.decors[ou];
+}
+function decorParId(id){
+  if(!modeDecor) return null;
+  return listeDecors(modeDecor).find(d => d.id === id) || null;
+}
+
+/* Un décor. `onerror` le retire de la vue au lieu de laisser une icône
+   d'image cassée au milieu du salon : une adresse morte ne doit pas se voir.
+   On ne le supprime pas des données pour autant — l'image peut très bien
+   être seulement injoignable pour le moment. */
+function htmlUnDecor(d){
+  return '<div class="dec" data-dec="' + esc(d.id) + '"'
+    + ' style="left:' + d.x + '%;top:' + d.y + '%;width:' + d.w + '%;--r:' + d.r + 'deg">'
+    + '<img src="' + esc(d.url) + '" alt="" loading="lazy" draggable="false"'
+    + ' onerror="this.parentNode.classList.add(\'ko\')"></div>';
+}
+
+/* Les deux calques d'une scène : ce qui est derrière le meuble, ce qui est
+   devant. Rendus vides en lecture seule — on ne décore pas chez les autres,
+   et les décors ne partent pas dans le profil public. */
+function calquesDecors(ou){
+  if(lecture) return { fond:'', avant:'' };
+  const L = listeDecors(ou);
+  return {
+    fond:  L.filter(d => d.plan === 'fond').map(htmlUnDecor).join(''),
+    avant: L.filter(d => d.plan !== 'fond').map(htmlUnDecor).join('')
+  };
+}
+
+/* La scène complète : les décors du fond, la pièce (meuble + sol), les décors
+   du premier plan. C'est le seul endroit où le sol est posé, donc les deux
+   bibliothèques en héritent forcément. */
+function htmlScene(ou, meuble){
+  const c = calquesDecors(ou);
+  return '<div class="scene" data-scene="' + ou + '">'
+    + '<div class="calque fond">' + c.fond + '</div>'
+    + '<div class="piece">' + meuble + '<div class="sol"></div></div>'
+    + '<div class="calque avant">' + c.avant + '</div>'
+    + '</div>';
+}
+
+/* ---------- Le mode d'édition ---------- */
+
+function ouvreDecors(ou){
+  if(lecture) return;
+  modeDecor = ou;
+  decSel = null;
+  document.body.classList.add('edit-dec');
+  if(ou === 'ost') rendOst(); else rendGrille();
+  // Une collection vide n'affiche aucun meuble, donc aucune scène : il n'y a
+  // rien autour de quoi poser quoi que ce soit. Mieux vaut le dire que
+  // laisser une barre d'outils sans effet visible.
+  if(!document.querySelector('.scene')){
+    fermeDecors();
+    toast(ou === 'ost' ? 'Ajoute une OST avant de décorer le meuble.'
+                       : 'Ajoute un jeu avant de décorer la bibliothèque.');
+    return;
+  }
+  majBarreDecor();
+  toast('Glisse les décors pour les placer.');
+}
+function fermeDecors(){
+  const ou = modeDecor;
+  modeDecor = ''; decSel = null; decDrag = null;
+  document.body.classList.remove('edit-dec');
+  if(ou === 'ost') rendOst(); else if(ou) rendGrille();
+}
+
+/* Redessine seulement la barre : refaire toute la scène à chaque coup de
+   curseur ferait clignoter les images et perdrait la sélection. */
+function majBarreDecor(){
+  if(!modeDecor) return;
+  const d = decorParId(decSel);
+  const n = listeDecors(modeDecor).length;
+  $('#decCompte').textContent = n + ' / ' + MAX_DECORS;
+  $('#decAjout').disabled = n >= MAX_DECORS;
+  ['#decTaille','#decAngle','#bDecPlan','#bDecSup'].forEach(s => {
+    $(s).disabled = !d;
+  });
+  $('#decAide').textContent = d
+    ? 'Décor sélectionné — glisse-le, ou règle-le ici.'
+    : (n ? 'Touche un décor pour le régler.' : 'Ajoute une image pour commencer.');
+  if(d){
+    $('#decTaille').value = d.w;
+    $('#decAngle').value  = d.r;
+    $('#bDecPlan').textContent = d.plan === 'fond' ? 'Derrière le meuble' : 'Devant le meuble';
+  }
+  document.querySelectorAll('.dec').forEach(n2 =>
+    n2.classList.toggle('on', !!d && n2.dataset.dec === d.id));
+}
+
+function ajouteDecor(){
+  if(!modeDecor) return;
+  const L = listeDecors(modeDecor);
+  if(L.length >= MAX_DECORS){
+    toast('Quinze décors au maximum par bibliothèque.');
+    return;
+  }
+  saisie('Ajouter un décor', '',
+    { texte:'Colle l\'adresse d\'une image (clic droit sur l\'image → « Copier l\'adresse d\'image »).\n'
+        + 'Une image détourée sur fond transparent rend mieux qu\'une photo rectangulaire.',
+      exemple:'https://…', oui:'Poser' }).then(url => {
+    if(url === null) return;
+    const propre = String(url).trim();
+    if(!propre) return;
+    L.push({ id: uidDecor(), url: propre, x: 50, y: 62, w: 16, r: 0, plan: 'avant' });
+    decSel = L[L.length - 1].id;
+    sauve();
+    if(modeDecor === 'ost') rendOst(); else rendGrille();
+    majBarreDecor();
+  });
+}
+
+function supprimeDecor(){
+  const d = decorParId(decSel);
+  if(!d) return;
+  const L = listeDecors(modeDecor);
+  L.splice(L.indexOf(d), 1);
+  decSel = null;
+  sauve();
+  if(modeDecor === 'ost') rendOst(); else rendGrille();
+  majBarreDecor();
+}
+
+/* Taille, angle et plan : on écrit dans le DOM sans reconstruire la scène,
+   pour que le réglage se voie pendant qu'on bouge le curseur. Le changement
+   de plan, lui, déplace l'élément d'un calque à l'autre — c'est le seul qui
+   demande de toucher à la structure. */
+function regleDecor(champ, valeur){
+  const d = decorParId(decSel);
+  if(!d) return;
+  const el = document.querySelector('.dec[data-dec="' + d.id + '"]');
+  if(champ === 'w'){ d.w = borne(valeur, 3, 70, 14); if(el) el.style.width = d.w + '%'; }
+  if(champ === 'r'){ d.r = borne(valeur, -180, 180, 0); if(el) el.style.setProperty('--r', d.r + 'deg'); }
+  if(champ === 'plan'){
+    d.plan = d.plan === 'fond' ? 'avant' : 'fond';
+    const scene = el && el.closest('.scene');
+    const cible = scene && scene.querySelector('.calque.' + (d.plan === 'fond' ? 'fond' : 'avant'));
+    if(cible && el) cible.appendChild(el);
+    $('#bDecPlan').textContent = d.plan === 'fond' ? 'Derrière le meuble' : 'Devant le meuble';
+  }
+  sauve();
+}
+
+/* ---------- Déplacer un décor ----------
+   Mêmes événements « pointer » que le rangement des jaquettes, pour les mêmes
+   raisons : le glisser natif ne se déclenche pas au doigt et impose son image
+   fantôme. Ici, pas d'appui long : en mode édition, un appui sur un décor ne
+   peut vouloir dire qu'une chose. */
+function prendDecor(e){
+  if(!modeDecor) return;
+  const el = e.target.closest('.dec');
+  if(!el) return;
+  e.preventDefault();
+  const d = decorParId(el.dataset.dec);
+  if(!d) return;
+  const scene = el.closest('.scene');
+  const r = scene.getBoundingClientRect();
+  decSel = d.id;
+  majBarreDecor();
+  decDrag = { el: el, d: d, scene: scene,
+              // écart entre le point saisi et le centre du décor : c'est lui
+              // qui évite au décor de sauter sous le doigt au premier pixel
+              ox: e.clientX - (r.left + r.width  * d.x / 100),
+              oy: e.clientY - (r.top  + r.height * d.y / 100) };
+  el.classList.add('tenu');
+  try{ el.setPointerCapture(e.pointerId); }catch(err){}
+}
+function bougeDecor(e){
+  if(!decDrag) return;
+  e.preventDefault();
+  const r = decDrag.scene.getBoundingClientRect();
+  decDrag.d.x = borne(((e.clientX - decDrag.ox - r.left) / r.width)  * 100, 0, 100, 50);
+  decDrag.d.y = borne(((e.clientY - decDrag.oy - r.top)  / r.height) * 100, 0, 100, 50);
+  decDrag.el.style.left = decDrag.d.x + '%';
+  decDrag.el.style.top  = decDrag.d.y + '%';
+}
+function lacheDecor(){
+  if(!decDrag) return;
+  decDrag.el.classList.remove('tenu');
+  decDrag = null;
+  sauve();
 }
 
 /* Remplit le menu « Étagère » de la fiche OST. */
@@ -5494,35 +5937,45 @@ function poseEtageres(valeur){
   sel.value = v;
 }
 
-/* Les OST rangees comme une collection de CD : une etagere par tranche de
-   huit, boitiers debout, disque qui sort au survol. C'est le pendant de la
-   bibliotheque — meme meuble, autre objet. */
-function htmlCd(o, idx, ref){
+/* Un boîtier de CD posé debout. Même construction en volume qu'une jaquette
+   (§ la bibliothèque) : une face avant, une tranche rabattue vers l'arrière,
+   et la perspective portée par l'objet lui-même.
+
+   ⚠️ Tout est en `<span>`. Un `<div>` dans un `<button>` est du HTML
+   invalide : le contenu d'un bouton doit être du contenu de phrasé. */
+function htmlCd(o, ref){
   const vig = afficheOst(o);
   const nom = [o.titre, o.jeu].filter(Boolean).join(' \u2014 ') || 'OST';
+  const flou = (o.fit === 'entiere' && urlCss(vig))
+    ? '<span class="flou" style="background-image:url(' + urlCss(vig) + ')"></span>' : '';
   const art = vig
-    ? '<div class="flou" style="background-image:url(' + esc(vig) + ')"></div>'
-      + '<img src="' + esc(vig) + '" alt="" loading="lazy">'
-    : '<div class="ini" style="background:' + couleurBadge(nom) + '">\u266a</div>';
+    ? flou + '<img src="' + esc(vig) + '" alt="" loading="lazy">'
+    : '<span class="ini" style="background:' + couleurBadge(nom) + '">\u266a</span>';
   return '<button class="cd" draggable="false" data-ost="' + esc(String(ref)) + '"'
     + ' title="' + esc(nom) + '" aria-label="' + esc(nom) + '">'
     + '<span class="cd-d"></span>'
+    + '<span class="cd-s"></span>'
     + '<span class="cd-b' + (o.fit === 'entiere' ? ' entiere' : '')
-    +   '" style="' + styleCadre(o) + '">' + art + '</span>'
-    + (o.note != null ? '<span class="cd-n">' + htmlEtoiles(o.note, 'p') + '</span>' : '')
+    +   '" style="' + styleCadre(o) + '">' + art
+    +   (o.note != null ? '<span class="cd-n">' + htmlEtoiles(o.note, 'p') + '</span>' : '')
+    + '</span>'
     + '<span class="cd-t">' + esc(nom) + '</span></button>';
 }
 
 function rendOst(){
   const z = $('#ostGrille');
   $('#ostTitreV').textContent = lecture
-    ? '🎵 Les OSTs de ' + (lecture.pseudo || lecture.login)
-    : '🎵 Mes OSTs';
+    ? '\ud83c\udfb5 Les OSTs de ' + (lecture.pseudo || lecture.login)
+    : '\ud83c\udfb5 Mes OSTs';
   const L = sourceOsts();
 
   $('#ostCompte').textContent = L.length + (L.length > 1 ? ' morceaux' : ' morceau');
   $('#bAddOst').style.display = lecture ? 'none' : '';
-  if(!L.length){
+  $('#bDecOst').style.display = lecture ? 'none' : '';
+
+  // Une collection vide n'a pas de meuble à montrer — sauf si des étagères
+  // existent déjà : les cacher donnerait l'impression de les avoir perdues.
+  if(!L.length && !(DATA.etageres || []).length){
     z.innerHTML = '';
     $('#ostVide').innerHTML = '<div class="vide-etat"><div class="logo-g"></div>'
       + '<h2>' + (lecture ? 'Aucune OST' : 'Pas encore d\'OST') + '</h2>'
@@ -5533,56 +5986,65 @@ function rendOst(){
     return;
   }
   $('#ostVide').innerHTML = '';
-  $('#bAddOst').style.display = lecture ? 'none' : '';
-  // Une étagère par rangement créé à la main, dans l'ordre de création :
-  // le meuble ne se réorganise pas tout seul quand on renomme. L'étagère
-  // commune ferme la marche — c'est le fourre-tout, il n'a pas à devancer
-  // les rangements faits exprès.
+
+  // Une étagère par rangement créé à la main, dans l'ordre de création : le
+  // meuble ne se réorganise pas tout seul quand on renomme. L'étagère commune
+  // ferme la marche — c'est le fourre-tout, il n'a pas à devancer les
+  // rangements faits exprès.
   const parEtg = new Map();
   (DATA.etageres || []).forEach(e => parEtg.set(e.id, []));
   const communs = [];
   L.forEach((o, i) => {
     const ref = lecture ? 'l' + i : o.id;
     const id = o.etagere || '';
-    if(id && parEtg.has(id)) parEtg.get(id).push({ o: o, ref: ref, i: i });
-    else communs.push({ o: o, ref: ref, i: i });
+    if(id && parEtg.has(id)) parEtg.get(id).push({ o: o, ref: ref });
+    else communs.push({ o: o, ref: ref });
   });
 
-  const planche = items => '<div class="etg-in">'
-    + (items.length
-        ? items.map(x => htmlCd(x.o, x.i, x.ref)).join('')
-        : '<div class="etg-vide">Rien ici. Ouvre une OST et choisis cette étagère.</div>')
-    + '</div><div class="planche"><div class="dessus"></div><div class="tranche"></div></div>'
-    + '</div>';
+  // Même règle que la bibliothèque de jeux : dès qu'UNE OST de l'étagère a été
+  // déplacée à la main, toute l'étagère suit `ordre`. On ne mélange jamais les
+  // deux ordres, ce serait incompréhensible.
+  const range = items => {
+    const manuel = items.some(x => typeof x.o.ordre === 'number');
+    return items.slice().sort(manuel
+      ? (a, b) => (a.o.ordre == null ? 1e9 : a.o.ordre) - (b.o.ordre == null ? 1e9 : b.o.ordre)
+      : (a, b) => (b.o.note || 0) - (a.o.note || 0)
+        || String(a.o.titre || '').localeCompare(String(b.o.titre || ''), 'fr'));
+  };
+
+  // Une étagère d'OST = le rayon commun de `htmlRayon`, avec deux boutons de
+  // plus. Aucune structure n'est réécrite ici : c'est la même fonction que la
+  // bibliothèque de jeux, donc les deux meubles ne peuvent plus diverger.
+  const etagere = (cle, nom, items, actions) => {
+    const R = range(items);
+    const boutons = lecture ? '' :
+      (actions ? '<button class="ico mini" data-etgren="' + esc(cle) + '"'
+                 + ' title="Renommer">\u270e</button>'
+               + '<button class="ico mini" data-etgsup="' + esc(cle) + '"'
+                 + ' title="Supprimer cette \u00e9tag\u00e8re">\u2715</button>' : '');
+    return htmlRayon(nom, R.length + (R.length > 1 ? ' morceaux' : ' morceau'), boutons,
+      R.length
+        ? R.map(x => htmlCd(x.o, x.ref)).join('')
+        : '<div class="etg-vide">Rien ici. Ouvre une OST et choisis cette \u00e9tag\u00e8re.</div>');
+  };
 
   let h = '<div class="meuble"><div class="corniche"></div>';
   (DATA.etageres || []).forEach(e => {
-    const items = parEtg.get(e.id) || [];
-    h += '<div class="etg">'
-      + '<div class="etg-bd fixe">' + esc(e.nom)
-      +   '<span class="nb">' + items.length
-      +   (items.length > 1 ? ' morceaux' : ' morceau') + '</span>'
-      +   (lecture ? '' : '<span class="etg-act">'
-      +     '<button class="ico mini" data-etgren="' + esc(e.id) + '" title="Renommer">\u270e</button>'
-      +     '<button class="ico mini" data-etgsup="' + esc(e.id) + '" title="Supprimer l\'étagère">\u2715</button>'
-      +   '</span>')
-      + '</div>'
-      + planche(items);
+    h += etagere(e.id, e.nom, parEtg.get(e.id) || [], true);
   });
+  // L'étagère commune n'est ni renommable ni supprimable : c'est le fond du
+  // meuble, pas un rangement. Elle n'apparaît que s'il y a quelque chose
+  // dessus, ou s'il n'y a aucune autre étagère.
   if(communs.length || !(DATA.etageres || []).length){
-    h += '<div class="etg">'
-      + '<div class="etg-bd fixe">'
-      +   ((DATA.etageres || []).length ? 'À ranger' : 'Mes OSTs')
-      +   '<span class="nb">' + communs.length
-      +   (communs.length > 1 ? ' morceaux' : ' morceau') + '</span></div>'
-      + planche(communs);
+    h += etagere('', (DATA.etageres || []).length ? '\u00c0 ranger' : 'Mes OSTs', communs, false);
   }
-  h += '<div class="flanc g"></div><div class="flanc d"></div></div>';
-  // Le bouton d'ajout est SOUS le meuble : ranger et créer un rangement sont
-  // le même geste, ils vont au même endroit.
-  if(!lecture) h += '<button class="etg-plus" data-etgplus="1">'
-    + '<span class="pl">+</span> Ajouter une étagère</button>';
-  z.innerHTML = h;
+  h += '<div class="flanc g"></div><div class="flanc d"></div>'
+     + '</div>';
+  // Le bouton d'ajout est SOUS la scène, pointé vers le bas : ranger et créer
+  // un rangement sont le même geste, ils vont au même endroit.
+  z.innerHTML = htmlScene('ost', h)
+    + (lecture ? '' : '<button class="etg-plus" data-etgplus="1">'
+        + '<span class="pl">+</span> Ajouter une \u00e9tag\u00e8re</button>');
 }
 
 function ouvreOstVoir(ref){
@@ -5834,6 +6296,27 @@ function choisitPalette(id){
   toast('Thème : ' + (PALETTES.find(x => x.id === id) || {}).nom);
 }
 
+/* Les six matières du meuble. Chacune n'est qu'un identifiant : tout le rendu
+   vit dans le bloc [data-meuble="…"] de la feuille de style, et les aperçus
+   ci-dessous réutilisent ces mêmes variables. Ajouter une matière = un bloc
+   CSS et une ligne ici. */
+const MEUBLES = [
+  { id:'metal',  nom:'Métal & verre', desc:'suit le thème' },
+  { id:'chene',  nom:'Chêne verni',   desc:'chaud, à l\'ancienne' },
+  { id:'frene',  nom:'Frêne clair',   desc:'bois pâle' },
+  { id:'acajou', nom:'Acajou',        desc:'bois sombre' },
+  { id:'arcade', nom:'Arcade',        desc:'laque et néon' },
+  { id:'beton',  nom:'Béton ciré',    desc:'minéral, mat' }
+];
+
+function choisitMeuble(id){
+  DATA.reglages.meuble = id;
+  sauve();
+  appliqueTheme();
+  rendThemes();
+  toast('Meuble : ' + ((MEUBLES.find(m => m.id === id) || {}).nom || id));
+}
+
 function rendThemes(){
   const clair = DATA.reglages.theme === 'clair';
   $('#thMode').innerHTML = '<button class="puce' + (!clair ? ' on' : '') + '" data-mode="sombre">🌙 Sombre</button>'
@@ -5854,6 +6337,21 @@ function rendThemes(){
       + (p.auto ? '<small>affiche n°1</small>' : (actif ? '<small>actif</small>' : ''))
       + '</div></button>';
   }).join('');
+
+  // L'aperçu d'une matière est un vrai bout de meuble : trois tranches de
+  // planche dans la matière voulue. Rendre une image serait mentir, puisque
+  // c'est le CSS qui décide de l'apparence finale.
+  const actuel = DATA.reglages.meuble || 'metal';
+  $('#thMeuble').innerHTML = MEUBLES.map(m =>
+    '<button class="th' + (m.id === actuel ? ' on' : '') + '" data-meub="' + m.id + '">'
+    + '<div class="th-meuble" data-meuble="' + m.id + '" '
+    +   'style="background:linear-gradient(90deg,var(--bois),var(--bois2) 12%,var(--bois2) 88%,var(--bois))">'
+    + '<i style="background:linear-gradient(180deg,var(--bois4),var(--planche))"></i>'
+    + '<i style="background:linear-gradient(180deg,var(--bois4),var(--planche))"></i>'
+    + '<i style="background:linear-gradient(180deg,var(--bois4),var(--planche))"></i>'
+    + '</div>'
+    + '<div class="th-nom">' + esc(m.nom) + '<small>'
+    + (m.id === actuel ? 'actif' : esc(m.desc)) + '</small></div></button>').join('');
 }
 
 /* =========================================================
@@ -6229,8 +6727,9 @@ async function cloudPull(manuel){
     const d = await litGistData();
     if(!d){ toast('Aucune sauvegarde trouvée sur ton compte.'); return; }
     if(manuel && DATA.jeux.length){
-      const ok = confirm('Remplacer ta liste de cet appareil (' + DATA.jeux.length
-        + ' jeux) par celle de GitHub (' + (d.jeux || []).length + ' jeux) ?');
+      const ok = await confirme('Remplacer ta liste de cet appareil (' + DATA.jeux.length
+        + ' jeux) par celle de GitHub (' + (d.jeux || []).length + ' jeux) ?',
+        { titre:'Récupérer', oui:'Remplacer' });
       if(!ok) return;
     }
     appliqueDistant(d);
@@ -6268,12 +6767,15 @@ async function cloudConnecte(token){
   }
 }
 function cloudDeconnecte(){
-  if(!confirm('Se déconnecter de GitHub ?\n\nTes jeux restent sur cet appareil et les gists restent sur ton compte.')) return;
-  localStorage.removeItem(CLE_TOKEN);
-  clearInterval(presT); presT = null;
-  DATA.cloud.login = '';
-  ecrit(); majEtatCloud();
-  toast('Déconnecté.');
+  confirme('Se déconnecter de GitHub ?\n\nTes jeux restent sur cet appareil et les gists restent sur ton compte.',
+           { oui:'Se déconnecter' }).then(ok => {
+    if(!ok) return;
+    localStorage.removeItem(CLE_TOKEN);
+    clearInterval(presT); presT = null;
+    DATA.cloud.login = '';
+    ecrit(); majEtatCloud();
+    toast('Déconnecté.');
+  });
 }
 
 /* ---------- Démarrage : on décide qui gagne ---------- */
@@ -6642,27 +7144,35 @@ function ouvreLecture(login, quoi){
     return;
   }
   marqueDefi('visite');
+  // on ne décore pas la vitrine de quelqu'un d'autre : la barre d'édition
+  // resterait ouverte au-dessus d'un meuble qui n'est pas le nôtre
+  if(modeDecor) fermeDecors();
   lecture = p;
   UI.q = ''; $('#q').value = '';
   ferme('mChoix');
   montreVue(quoi === 'ost' ? 'ost' : 'accueil');
-  rendBandeau(); majFiltres(); rendGrille();
+  rendBandeau(); rendGrille();
   window.scrollTo({top:0, behavior:'smooth'});
 }
 function quitteLecture(){
   lecture = null;
   montreVue('users');
-  rendBandeau(); majFiltres(); rendGrille(); rendOst();
+  rendBandeau(); rendGrille(); rendOst();
 }
 function rendBandeau(){
   const z = $('#bandeau');
   const add = $('#bAdd');
+  const dec = $('#bDecJeux');
   if(!lecture){
     z.innerHTML = '';
     if(add) add.style.display = '';
+    if(dec) dec.style.display = '';
     return;
   }
   if(add) add.style.display = 'none';
+  // on ne décore pas la vitrine de quelqu'un d'autre : ses décors ne sont pas
+  // publiés, et les nôtres n'ont rien à faire sur son meuble
+  if(dec) dec.style.display = 'none';
   const ini = (lecture.pseudo || lecture.login || '?').slice(0,1).toUpperCase();
   const srcAv = avatarGH(lecture.login) || (lecture.avatar || '').trim();
   const av = avatarComplet('av-b', srcAv, ini, couronneMembre(lecture));
@@ -6749,6 +7259,9 @@ async function ouvreTropheesLecture(i){
 /* ---------- Bascule des vues ---------- */
 function montreVue(v){
   UI.vue2 = v;
+  // Changer de page en plein placement laisserait la barre d'édition ouverte
+  // au-dessus d'une scène qui n'est plus à l'écran.
+  if(modeDecor && !((modeDecor === 'ost') === (v === 'ost'))) fermeDecors();
   $('#vueAccueil').style.display = v === 'accueil' ? '' : 'none';
   $('#vueUsers').style.display   = v === 'users'   ? '' : 'none';
   $('#vueOst').style.display     = v === 'ost'     ? '' : 'none';
@@ -6767,120 +7280,78 @@ function montreVue(v){
 /* =========================================================
    BIBLIOTHÈQUE
    =========================================================
-   Des étagères qu'on crée soi-même, les jaquettes debout dessus. La
-   plateforme n'organise plus le rangement : elle se lit sur la tranche du
-   boîtier, ce qui laisse les étagères libres de servir à ce qu'on veut.
+   Un meuble par plateforme d'étagères, les jaquettes debout dessus, le tout
+   posé sur un sol : c'est la page de la collection depuis la 0.9.36.
 
-   Les décors sont des dessins ORIGINAUX. Pas de personnage ni de manette de
-   marque : ce sont des objets génériques (cartouche, borne, téléviseur
-   cathodique, peluche inventée) qui évoquent l'époque sans copier personne.
-   Ils sont en SVG dans le fichier, donc aucune requête, aucune dépendance.
-   Chacun hérite de --accent, ils suivent donc la palette choisie. */
+   Depuis la 1.0, le meuble n'est plus seul dans le vide. La scène ajoute
+   un plancher incliné dans la même perspective et deux calques de décors —
+   derrière le meuble et devant lui — que
+   l'utilisateur remplit avec les images de son choix (§ LES DÉCORS). Une
+   scène sans aucun décor est un état normal, pas un vide à combler. */
 
-/* Un décor par plateforme. Volontairement petits (72 px) : ils accompagnent
-   les jaquettes, ils ne leur disputent pas la place. */
-const DECOR = {
-  'PC':
-    '<svg width="76" height="72" viewBox="0 0 76 72" aria-hidden="true">'
-    + '<rect x="6" y="10" width="48" height="34" rx="4" fill="#20222c" stroke="#3b3f4d" stroke-width="2"/>'
-    + '<rect x="10" y="14" width="40" height="26" rx="2" fill="var(--accent)" opacity=".55"/>'
-    + '<path d="M14 34l7-9 5 6 5-8 9 11z" fill="#0e0f14" opacity=".55"/>'
-    + '<rect x="24" y="44" width="12" height="7" fill="#2a2d38"/>'
-    + '<rect x="16" y="51" width="28" height="4" rx="2" fill="#3b3f4d"/>'
-    + '<rect x="58" y="26" width="13" height="29" rx="3" fill="#2a2d38" stroke="#3b3f4d" stroke-width="1.5"/>'
-    + '<circle cx="64.5" cy="32" r="2" fill="var(--accent)"/>'
-    + '<rect x="61" y="38" width="7" height="2" rx="1" fill="#4a4f60"/>'
-    + '<rect x="61" y="42" width="7" height="2" rx="1" fill="#4a4f60"/>'
-    + '<ellipse cx="38" cy="58" rx="30" ry="4" fill="#000" opacity=".28"/></svg>',
+/* Un rayon, et RIEN d'autre. Les deux meubles — jeux et OST — passent par
+   cette fonction : c'est la seule façon d'être sûr qu'ils ne divergent pas.
 
-  'PlayStation':
-    '<svg width="74" height="72" viewBox="0 0 74 72" aria-hidden="true">'
-    /* pile de boîtiers, et un disque appuyé contre elle */
-    + '<rect x="6" y="26" width="36" height="9" rx="2" fill="#1d2030" stroke="#39405c" stroke-width="1.5"/>'
-    + '<rect x="8" y="35" width="36" height="9" rx="2" fill="#232741" stroke="#39405c" stroke-width="1.5"/>'
-    + '<rect x="6" y="44" width="36" height="9" rx="2" fill="#1d2030" stroke="#39405c" stroke-width="1.5"/>'
-    + '<rect x="10" y="28" width="3" height="5" fill="var(--accent)"/>'
-    + '<rect x="12" y="37" width="3" height="5" fill="#8b95bb" opacity=".7"/>'
-    + '<circle cx="58" cy="40" r="14" fill="#cfd6e6"/>'
-    + '<circle cx="58" cy="40" r="14" fill="none" stroke="#8b95bb" stroke-width="1.2"/>'
-    + '<circle cx="58" cy="40" r="9" fill="none" stroke="#fff" stroke-width="2" opacity=".35"/>'
-    + '<circle cx="58" cy="40" r="3.4" fill="#1d2030"/>'
-    + '<path d="M50 31a14 14 0 0 1 12 -2" fill="none" stroke="#fff" stroke-width="2.4" '
-    + 'opacity=".5" stroke-linecap="round"/>'
-    + '<ellipse cx="37" cy="58" rx="32" ry="4" fill="#000" opacity=".28"/></svg>',
+   Ils ont déjà divergé une fois, et ça ne s'est pas vu tout de suite : un
+   `+` en trop devant une ligne de la version OST transformait un morceau de
+   HTML en `NaN` (`+ '<span>'` est un plus UNAIRE, pas une concaténation).
+   L'attribut ainsi ouvert avalait la fin du bandeau et l'ouverture de la
+   rangée, et le navigateur, tombant sur un `<button>` alors qu'un autre
+   était ouvert, refermait le premier : les boîtiers se retrouvaient DANS le
+   bandeau, poussés à droite par la marge automatique du compteur. D'où des
+   étagères vides avec un boîtier flottant en haut à droite.
 
-  'Xbox':
-    '<svg width="74" height="72" viewBox="0 0 74 72" aria-hidden="true">'
-    /* casque posé, et trois boîtiers debout appuyés les uns contre les autres */
-    + '<path d="M8 34a11 11 0 0 1 22 0" fill="none" stroke="#41504a" stroke-width="3.4" '
-    + 'stroke-linecap="round"/>'
-    + '<rect x="4" y="32" width="6" height="12" rx="3" fill="#2f3a34" stroke="#41504a" stroke-width="1.4"/>'
-    + '<rect x="28" y="32" width="6" height="12" rx="3" fill="#2f3a34" stroke="#41504a" stroke-width="1.4"/>'
-    + '<path d="M31 38h6a4 4 0 0 1 4 4v3" fill="none" stroke="#41504a" stroke-width="2" stroke-linecap="round"/>'
-    + '<rect x="44" y="22" width="9" height="32" rx="1.5" fill="#252d28" stroke="#41504a" stroke-width="1.4"/>'
-    + '<rect x="53" y="24" width="9" height="30" rx="1.5" fill="#2d3a33" stroke="#41504a" stroke-width="1.4"/>'
-    + '<rect x="62" y="27" width="8" height="27" rx="1.5" fill="#252d28" stroke="#41504a" stroke-width="1.4"/>'
-    + '<rect x="46" y="26" width="5" height="2" rx="1" fill="var(--accent)"/>'
-    + '<rect x="55" y="28" width="5" height="2" rx="1" fill="#7d907f" opacity=".8"/>'
-    + '<ellipse cx="37" cy="58" rx="32" ry="4" fill="#000" opacity=".28"/></svg>',
+   Le nom passe par son propre `<span>` et les enfants ne grandissent pas :
+   même si quelque chose atterrissait là par erreur, le bandeau resterait une
+   ligne de texte. */
+function htmlRayon(nom, compte, boutons, contenu){
+  return '<div class="etg">'
+    + '<div class="etg-bd">'
+    +   '<span class="etg-nom">' + esc(nom) + '</span>'
+    +   '<span class="nb">' + esc(compte) + '</span>'
+    +   (boutons ? '<span class="etg-act">' + boutons + '</span>' : '')
+    + '</div>'
+    + '<div class="etg-in">' + contenu + '</div>'
+    + '<div class="planche"><div class="dessus"></div><div class="tranche"></div></div>'
+    + '</div>';
+}
 
-  'Nintendo':
-    '<svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">'
-    /* peluche inventée : une petite créature ronde à deux antennes */
-    + '<ellipse cx="26" cy="56" rx="17" ry="4" fill="#000" opacity=".3"/>'
-    + '<path d="M17 22c0-6 4-10 9-10s9 4 9 10" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>'
-    + '<circle cx="17" cy="20" r="3" fill="var(--accent)"/><circle cx="35" cy="20" r="3" fill="var(--accent)"/>'
-    + '<ellipse cx="26" cy="40" rx="16" ry="15" fill="var(--accent)"/>'
-    + '<ellipse cx="26" cy="45" rx="10" ry="8" fill="#fff" opacity=".22"/>'
-    + '<circle cx="21" cy="37" r="2.2" fill="#1a1226"/><circle cx="31" cy="37" r="2.2" fill="#1a1226"/>'
-    + '<path d="M23 43q3 3 6 0" fill="none" stroke="#1a1226" stroke-width="1.8" stroke-linecap="round"/>'
-    + '<circle cx="16" cy="42" r="2.6" fill="#fff" opacity=".28"/>'
-    /* cartouche appuyée contre la peluche */
-    + '<rect x="45" y="26" width="22" height="28" rx="2" fill="#5c5240" stroke="#7d7157" stroke-width="1.5"/>'
-    + '<rect x="48" y="30" width="16" height="11" rx="1" fill="#ded3b8"/>'
-    + '<rect x="49" y="47" width="14" height="4" rx="1" fill="#3d3628"/>'
-    + '<ellipse cx="56" cy="57" rx="13" ry="3" fill="#000" opacity=".28"/></svg>',
+/* Une jaquette debout, en volume : face avant, tranche, étiquette.
 
-  'Mobile':
-    '<svg width="66" height="72" viewBox="0 0 66 72" aria-hidden="true">'
-    + '<rect x="20" y="14" width="27" height="42" rx="5" fill="#1b1d26" stroke="#3b3f4d" stroke-width="2"/>'
-    + '<rect x="23" y="19" width="21" height="32" rx="2" fill="var(--accent)" opacity=".5"/>'
-    + '<circle cx="33.5" cy="53.5" r="1.6" fill="#4a4f60"/>'
-    + '<rect x="28" y="16" width="11" height="1.6" rx=".8" fill="#4a4f60"/>'
-    /* petit support incliné */
-    + '<path d="M14 58h39l-5-6H19z" fill="#2a2d38" stroke="#3b3f4d" stroke-width="1.5"/>'
-    + '<ellipse cx="33" cy="61" rx="26" ry="3.5" fill="#000" opacity=".28"/></svg>',
+   La cible du clic n'est pas la même chez soi et chez les autres : un jeu
+   public n'a PAS d'identifiant (voir `jeuPublic`), il n'a qu'un rang dans la
+   liste. Sans cette distinction, ouvrir un jeu d'un membre appelait
+   `ouvreJeu(undefined)` et ne faisait rien. `data-liv` sert aussi de prise
+   pour le rangement à la main, donc il ne doit apparaître que chez soi.
 
-  '_defaut':
-    '<svg width="66" height="72" viewBox="0 0 66 72" aria-hidden="true">'
-    + '<rect x="16" y="20" width="34" height="34" rx="4" fill="#2a2d38" stroke="#3b3f4d" stroke-width="2"/>'
-    + '<circle cx="33" cy="37" r="9" fill="var(--accent)" opacity=".55"/>'
-    + '<ellipse cx="33" cy="58" rx="24" ry="3.5" fill="#000" opacity=".28"/></svg>'
-};
-
-
-/* Une jaquette debout. `i` sert à l'inclinaison : sans elle, une rangée
-   parfaitement alignée fait « grille », pas « étagère ». L'angle est calculé
-   à partir de l'index, donc il ne change pas d'un rendu à l'autre — un
-   Math.random() ferait sauter les jeux à chaque survol. */
-function htmlLivre(g, i, dernier){
+   ⚠️ Que des `<span>` : un `<div>` dans un `<button>` est du HTML invalide. */
+function htmlLivre(g, i){
   const tel = g.platform === 'Mobile';                 // le mobile se range dans un téléphone
+  // le cadrage réglé dans la fiche s'applique ENFIN sur l'étagère : jusqu'ici
+  // les trois curseurs et « affiche entière » ne se voyaient que dans l'aperçu
+  const flou = (g.fit === 'entiere' && urlCss(g.cover))
+    ? '<span class="flou" style="background-image:url(' + urlCss(g.cover) + ')"></span>' : '';
   const img = g.cover
-    ? '<img src="' + esc(g.cover) + '" alt="" loading="lazy">'
-    : '<div class="ini" style="background:' + couleurBadge(g.title || '?') + '">'
-      + esc(String(g.title || '?').trim().charAt(0).toUpperCase()) + '</div>';
+    ? flou + '<img src="' + esc(g.cover) + '" alt="" loading="lazy">'
+    : '<span class="ini" style="background:' + couleurBadge(g.title || '?') + '">'
+      + esc(String(g.title || '?').trim().charAt(0).toUpperCase()) + '</span>';
+  const cible = lecture ? 'data-voir="' + (g._i == null ? i : g._i) + '"'
+                        : 'data-liv="' + esc(g.id) + '"';
   return '<button class="liv' + (g.cent100 ? ' cent' : '') + (tel ? ' tel' : '')
-    + '" draggable="false" data-liv="' + esc(g.id) + '"'
+    + '" draggable="false" ' + cible
     + ' title="' + esc(g.title || '') + '" aria-label="' + esc(g.title || '') + '">'
-    + (tel ? '<span class="tel-b"><span class="tel-e">' + img + '</span></span>' : img)
-    + (g.note != null ? '<span class="liv-n">' + htmlEtoiles(g.note, 'p') + '</span>' : '')
+    + '<span class="liv-s"></span>'
+    + '<span class="liv-a' + (g.fit === 'entiere' ? ' entiere' : '') + '"'
+    +   ' style="' + styleCadre(g) + '">'
+    +   (tel ? '<span class="tel-b"><span class="tel-e">' + img + '</span></span>' : img)
+    +   (g.note != null ? '<span class="liv-n">' + htmlEtoiles(g.note, 'p') + '</span>' : '')
+    + '</span>'
     + '<span class="liv-t">' + esc(g.title || '') + '</span></button>';
 }
 
-/* Rend le meuble pour une liste de jeux DÉJÀ filtrée. La fonction ne touche
-   plus au DOM elle-même : c'est `rendGrille` qui décide où poser le résultat.
-   Sans cette séparation, filtrer aurait demandé de dupliquer toute la logique
-   de tri et de filtres qui existe déjà. */
+/* Rend la scène complète pour une liste de jeux DÉJÀ filtrée : le meuble, son
+   sol, et les décors posés autour. La fonction ne touche pas au DOM
+   elle-même — c'est `rendGrille` qui décide où poser le résultat. */
 function htmlBiblio(jeux){
   // Une étagère par plateforme, dans l'ordre de PLATEFORMES : le meuble ne se
   // réorganise donc jamais tout seul d'une ouverture à l'autre. Une plateforme
@@ -6903,19 +7374,14 @@ function htmlBiblio(jeux){
       ? (a, b) => (a.ordre == null ? 1e9 : a.ordre) - (b.ordre == null ? 1e9 : b.ordre)
       : (a, b) => (b.note || 0) - (a.note || 0)
         || String(a.title || '').localeCompare(String(b.title || ''), 'fr'));
-    h += '<div class="etg">'
-      + '<div class="etg-bd fixe">' + esc(pl)
-      +   '<span class="nb">' + L.length + (L.length > 1 ? ' jeux' : ' jeu') + '</span></div>'
-      + '<div class="etg-in">'
-      + (L.length
-          ? L.map((g, k) => htmlLivre(g, k, L.length > 2 && k === L.length - 1)).join('')
-          : '<div class="etg-vide">Rien sur cette étagère pour le moment.</div>')
-      + '<div class="deco">' + (DECOR[pl] || DECOR._defaut) + '</div>'
-      + '</div>'
-      + '<div class="planche"><div class="dessus"></div><div class="tranche"></div></div>'
-      + '</div>';
+    h += htmlRayon(pl, L.length + (L.length > 1 ? ' jeux' : ' jeu'), '',
+      L.length
+        ? L.map((g, k) => htmlLivre(g, k)).join('')
+        : '<div class="etg-vide">Rien sur cette étagère pour le moment.</div>');
   });
-  return h + '<div class="flanc g"></div><div class="flanc d"></div></div>';
+  h += '<div class="flanc g"></div><div class="flanc d"></div>'
+     + '</div>';
+  return htmlScene('jeux', h);
 }
 
 
@@ -6929,16 +7395,6 @@ function toutRendre(){
   rendGrille();
   rendFond();
   rendProfil();
-  majFiltres();
-}
-function majFiltres(){
-  const plats = Array.from(new Set(sourceJeux().map(g => g.platform).filter(Boolean))).sort();
-  const sel = $('#fPlat');
-  const val = UI.plateforme;
-  sel.innerHTML = '<option value="">Toutes plateformes</option>'
-    + plats.map(p => '<option value="' + esc(p) + '">' + esc(p) + '</option>').join('');
-  sel.value = plats.includes(val) ? val : '';
-  UI.plateforme = sel.value;
 }
 
 function init(){
@@ -6951,11 +7407,6 @@ function init(){
   // listes déroulantes
   posePlateforme('');
   $('#jStat').innerHTML = STATUTS.map(s => '<option value="' + s.id + '">' + s.nom + '</option>').join('');
-  $('#puces').innerHTML = '<button class="puce on" data-st="">Tous</button>'
-    + STATUTS.map(s => '<button class="puce" data-st="' + s.id + '">' + s.nom + '</button>').join('');
-  $('#puces').style.display = 'flex';
-  $('#puces').style.gap = '6px';
-  $('#puces').style.flexWrap = 'wrap';
 
   initEtoiles();
 
@@ -7016,12 +7467,10 @@ function init(){
   $('#bOstJeu').onclick = montreJeuxOst;
   // créer une étagère depuis la fiche, et la choisir dans la foulée : sans ça
   // il faudrait fermer, créer sous le meuble, puis rouvrir l'OST
+  // `ajouteEtagere` rend maintenant une promesse : sans le `then`, on
+  // sélectionnait l'étagère avant même que le nom soit saisi.
   $('#bOstEtgPlus').onclick = () => {
-    const avant = (DATA.etageres || []).length;
-    ajouteEtagere();
-    if((DATA.etageres || []).length > avant){
-      poseEtageres(DATA.etageres[DATA.etageres.length - 1].id);
-    }
+    ajouteEtagere().then(e => { if(e) poseEtageres(e.id); });
   };
   $('#bOstYT').onclick = () => choisitAfficheOst('');
   $('#oFit').onclick = e => {
@@ -7037,22 +7486,6 @@ function init(){
   $('#oTitre').addEventListener('keydown', e => { if(e.key === 'Enter') sauveOst(); });
   $('#q').addEventListener('input', e => { UI.q = e.target.value; rendGrille(); });
 
-  // filtres
-  $('#puces').addEventListener('click', e => {
-    const b = e.target.closest('.puce');
-    if(!b) return;
-    UI.statut = b.dataset.st;
-    document.querySelectorAll('#puces .puce').forEach(x => x.classList.toggle('on', x === b));
-    rendGrille();
-  });
-  $('#fPlat').onchange = e => { UI.plateforme = e.target.value; rendGrille(); };
-  $('#fTri').onchange  = e => { UI.tri = e.target.value; rendGrille(); };
-  $('#bVue').onclick = () => {
-    UI.vue = UI.vue === 'grille' ? 'liste' : 'grille';
-    $('#bVue').textContent = UI.vue === 'grille' ? '☰' : '📚';
-    $('#bVue').title = UI.vue === 'grille' ? 'Voir en liste' : 'Voir les étagères';
-    rendGrille();
-  };
 
   // clic sur une carte ou une ligne du top 10
   document.body.addEventListener('click', e => {
@@ -7090,6 +7523,8 @@ function init(){
     if(df){ ouvreDefi(df.dataset.defi); return; }
     const pal = e.target.closest('[data-pal]');
     if(pal){ choisitPalette(pal.dataset.pal); return; }
+    const meub = e.target.closest('[data-meub]');
+    if(meub){ choisitMeuble(meub.dataset.meub); return; }
     const mo = e.target.closest('[data-mode]');
     if(mo){
       DATA.reglages.theme = mo.dataset.mode;
@@ -7107,7 +7542,7 @@ function init(){
     const st = e.target.closest('[data-steamid]');
     if(st){ choisitSteamId(st.dataset.steamid); return; }
     const bLiv = e.target.closest('[data-liv]');
-    if(bLiv){ if(!vientDEtreRange()) ouvreJeu(bLiv.dataset.liv); return; }
+    if(bLiv){ if(!vientDEtreRange() && !modeDecor) ouvreJeu(bLiv.dataset.liv); return; }
     const bOJeu = e.target.closest('[data-ojeu]');
     if(bOJeu){ choisitAfficheOst(bOJeu.dataset.ojeu); return; }
     const bPlus = e.target.closest('[data-etgplus]');
@@ -7119,7 +7554,7 @@ function init(){
     const yt = e.target.closest('[data-yt]');
     if(yt){ choisitYT(yt.dataset.yt); return; }
     const os = e.target.closest('[data-ost]');
-    if(os){ ouvreOstVoir(os.dataset.ost); return; }
+    if(os){ if(!vientDEtreRange() && !modeDecor) ouvreOstVoir(os.dataset.ost); return; }
     const eo = e.target.closest('[data-editost]');
     if(eo){ ferme('mOstVoir'); ouvreOst(eo.dataset.editost); return; }
     const tt = e.target.closest('[data-ttype]');
@@ -7139,7 +7574,11 @@ function init(){
     if(du){ choisitDuel(du.dataset.duel); return; }
     const tst = e.target.closest('[data-tstop]');
     if(tst){
-      if(confirm('Abandonner ce tournoi ?')){ DATA.tournoi[tst.dataset.tstop] = null; ecrit(); rendTournoi(); }
+      const quel = tst.dataset.tstop;
+      confirme('Abandonner ce tournoi ?', { oui:'Abandonner' }).then(ok => {
+        if(!ok) return;
+        DATA.tournoi[quel] = null; ecrit(); rendTournoi();
+      });
       return;
     }
     const tre = e.target.closest('[data-trelance]');
@@ -7158,14 +7597,22 @@ function init(){
   // fermer en cliquant le fond noir — en coupant le son au passage
   document.querySelectorAll('.modale').forEach(m => {
     m.addEventListener('click', e => {
-      if(e.target === m){ m.classList.remove('on'); coupeVideos(m); }
+      if(e.target === m){ m.classList.remove('on'); coupeVideos(m); annuleDem(); }
     });
   });
   document.addEventListener('keydown', e => {
     if(e.key !== 'Escape') return;
     document.querySelectorAll('.modale.on').forEach(m => { m.classList.remove('on'); coupeVideos(m); });
+    annuleDem();
     $('#panProfil').classList.remove('on');
   });
+
+  // fenêtre de demande (confirmation / saisie)
+  $('#bDemOui').onclick   = () => fermeDem($('#demChamp').style.display === 'none' ? true : $('#demVal').value);
+  $('#bDemAutre').onclick = () => fermeDem('autre');
+  $('#bDemNon').onclick   = () => fermeDem($('#demChamp').style.display === 'none' ? false : null);
+  // Entrée valide, comme dans un dialogue natif
+  $('#demVal').addEventListener('keydown', e => { if(e.key === 'Enter') $('#bDemOui').click(); });
 
   // modale jeu
   $('#bSauve').onclick    = sauveJeu;
@@ -7217,16 +7664,59 @@ function init(){
   // Le glisser natif d'image et le menu contextuel doivent être refusés
   // explicitement : l'attribut draggable ne suffit pas sur toutes les
   // combinaisons navigateur/système.
+  // Sans ces deux refus, le navigateur lance SON glisser-déposer d'image dès
+  // le premier mouvement (une jaquette est un <img>), ce qui annule toute la
+  // séquence « pointer » ; au doigt, le même geste ouvre « enregistrer
+  // l'image ». Vaut pour les jaquettes comme pour les boîtiers d'OST.
+  // Vaut aussi pour les décors : ce sont des <img>, donc le navigateur veut
+  // les faire glisser à SA façon dès le premier mouvement.
   document.addEventListener('dragstart', e => {
-    if(e.target.closest('[data-liv]')) e.preventDefault();
+    if(e.target.closest(SEL_PRISE) || e.target.closest('.dec')) e.preventDefault();
   });
   document.addEventListener('contextmenu', e => {
-    if(e.target.closest('[data-liv]')) e.preventDefault();
+    if(e.target.closest(SEL_PRISE) || (modeDecor && e.target.closest('.dec'))) e.preventDefault();
   });
   document.addEventListener('pointerdown', debutPrise);
   document.addEventListener('pointermove', bougePrise, { passive: false });
   document.addEventListener('pointerup', finPrise);
   document.addEventListener('pointercancel', finPrise);
+
+  // ---------- Décors ----------
+  $('#bDecJeux').onclick = () => ouvreDecors('jeux');
+  $('#bDecOst').onclick  = () => ouvreDecors('ost');
+  $('#bDecFin').onclick  = fermeDecors;
+  $('#decAjout').onclick = ajouteDecor;
+  $('#bDecSup').onclick  = supprimeDecor;
+  $('#bDecPlan').onclick = () => regleDecor('plan');
+  $('#decTaille').oninput = e => regleDecor('w', +e.target.value);
+  $('#decAngle').oninput  = e => regleDecor('r', +e.target.value);
+  // Posés sur le document comme le rangement : la scène est reconstruite à
+  // chaque ajout, un écouteur collé sur un décor serait perdu au premier coup.
+  document.addEventListener('pointerdown', prendDecor);
+  document.addEventListener('pointermove', bougeDecor, { passive: false });
+  document.addEventListener('pointerup', lacheDecor);
+  document.addEventListener('pointercancel', lacheDecor);
+  // Échap sort du mode édition, comme d'une fenêtre
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && modeDecor) fermeDecors();
+  });
+
+  /* La molette fait défiler l'étagère HORIZONTALEMENT. C'est la contrepartie
+     d'avoir masqué la barre de défilement : sans elle, une étagère bien
+     remplie n'aurait plus aucun moyen d'être parcourue à la souris. On ne
+     détourne le geste que si l'étagère déborde vraiment, sinon la page ne
+     défilerait plus dès que le curseur passe sur un meuble. */
+  document.addEventListener('wheel', e => {
+    const etg = e.target.closest && e.target.closest('.etg-in');
+    if(!etg) return;
+    if(etg.scrollWidth <= etg.clientWidth + 2) return;
+    if(Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    const avant = etg.scrollLeft;
+    etg.scrollLeft += e.deltaY;
+    // arrivé au bout, on rend la molette à la page : rester bloqué sur une
+    // étagère en fin de course donnerait l'impression que la page est figée
+    if(etg.scrollLeft !== avant) e.preventDefault();
+  }, { passive: false });
 
   $('#bFicheSteam').onclick = choisitFicheSteam;
   $('#bTrpRaz').onclick = () => {
