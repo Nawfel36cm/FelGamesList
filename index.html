@@ -442,8 +442,8 @@
 .liv.tel .liv-a{background:none;box-shadow:none;overflow:visible;filter:none}
 .liv.tel .liv-a::after{display:none}
 .liv.tel:hover .liv-a{box-shadow:none;filter:none}
-/* la note suit l'arrondi de l'écran au lieu de déborder sur le châssis */
-.liv.tel .liv-n{left:5px;right:5px;bottom:7px;border-radius:0 0 10px 10px}
+/* Posée dans l'écran (voir `htmlLivre`), la plaque n'a qu'à en suivre l'arrondi. */
+.liv.tel .liv-n{border-radius:0 0 10px 10px}
 /* Le liseré doré des 100 % vit sur la face avant du boîtier — que le
    téléphone n'a plus. Sans ce report, un jeu mobile fini à 100 % perdait
    silencieusement son repère : il passe sur le châssis. */
@@ -7352,15 +7352,23 @@ function htmlLivre(g, i){
       + esc(String(g.title || '?').trim().charAt(0).toUpperCase()) + '</span>';
   const cible = lecture ? 'data-voir="' + (g._i == null ? i : g._i) + '"'
                         : 'data-liv="' + esc(g.id) + '"';
+  const note = g.note != null
+    ? '<span class="liv-n">' + htmlEtoiles(g.note, 'p') + '</span>' : '';
+  // ⚠️ La plaque de note va DANS l'écran du téléphone, pas à côté.
+  // Elle est cachée en la faisant descendre sous le bas du cadre, et c'est le
+  // débordement coupé de son parent qui l'escamote. Or la face avant d'un
+  // téléphone ne coupe rien (il faut que les boutons de tranche puissent
+  // dépasser) : la plaque restait donc affichée en permanence sous
+  // l'appareil, et remontait par-dessus au survol. L'écran, lui, coupe.
+  const dedans = tel
+    ? '<span class="tel-b"><span class="tel-e">' + img + note + '</span></span>'
+    : img + note;
   return '<button class="liv' + (g.cent100 ? ' cent' : '') + (tel ? ' tel' : '')
     + '" draggable="false" ' + cible
     + ' title="' + esc(g.title || '') + '" aria-label="' + esc(g.title || '') + '">'
     + '<span class="liv-s"></span>'
     + '<span class="liv-a' + (g.fit === 'entiere' ? ' entiere' : '') + '"'
-    +   ' style="' + styleCadre(g) + '">'
-    +   (tel ? '<span class="tel-b"><span class="tel-e">' + img + '</span></span>' : img)
-    +   (g.note != null ? '<span class="liv-n">' + htmlEtoiles(g.note, 'p') + '</span>' : '')
-    + '</span>'
+    +   ' style="' + styleCadre(g) + '">' + dedans + '</span>'
     + '<span class="liv-t">' + esc(g.title || '') + '</span></button>';
 }
 
