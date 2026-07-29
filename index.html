@@ -257,7 +257,11 @@
    une étagère a de l'air au-dessus des objets, c'est normal. */
 .etg-in{
   position:relative;z-index:3;display:flex;align-items:flex-end;gap:12px;
-  min-height:352px;padding:78px 20px 76px;margin-bottom:-76px;
+  /* La hauteur minimale, c'est un objet plus l'air au-dessus et en dessous.
+     Elle se DÉDUIT donc de `--oh` : la réécrire à la main était une deuxième
+     source de vérité, qui ne demandait qu'à diverger le jour où l'objet
+     changerait de taille — c'est exactement ce que fait « tout voir ». */
+  min-height:calc(var(--oh,198px) + 154px);padding:78px 20px 76px;margin-bottom:-76px;
   overflow-x:auto;overflow-y:hidden;
   scrollbar-width:none;-ms-overflow-style:none;
 }
@@ -281,13 +285,37 @@
      ombre, tranche, dessus sur --pl → la tablette sur laquelle pose la
                                        rangée du DESSUS
 
-   `--oh` est la hauteur d'un objet, la seule valeur qui change d'un meuble à
-   l'autre : 198 px pour une jaquette 2/3 de 132, 170 px pour un boîtier carré. */
-#grille .etg-in{--oh:198px}
-#ostGrille .etg-in{--oh:170px}
+   `--oh` est la hauteur d'un objet. Elle n'est plus écrite à la main : seule
+   la LARGEUR (`--lw`) est donnée, et la hauteur s'en déduit par la forme de
+   l'objet — une jaquette est en 2/3, un boîtier de CD est carré. Une seule
+   valeur à changer pour retailler un meuble, et le motif des tablettes
+   intercalaires ne peut plus se désaccorder des objets qu'il porte. */
+#grille   .etg-in{--lw:132px;--oh:calc(var(--lw) * 3 / 2)}
+#ostGrille .etg-in{--lw:170px;--oh:var(--lw)}
+
+/* En « tout voir », l'objet passe en TAILLE RÉDUITE. C'est le sens même du
+   mode : on l'ouvre pour embrasser une étagère d'un coup d'œil, et de grandes
+   jaquettes sur plusieurs rangées demandent de faire défiler la page — on a
+   juste échangé un défilement horizontal contre un vertical. Petites, elles
+   tiennent bien plus par rangée, donc bien plus à l'écran.
+   La taille retenue est celle déjà réglée pour le téléphone : elle a été
+   éprouvée, inutile d'en inventer une autre. */
+body.deplie #grille   .etg-in{--lw:92px}
+body.deplie #ostGrille .etg-in{--lw:116px}
+body.deplie .liv{--ep:13px;--ry:11deg}
+body.deplie .cd{--ep:11px;--ry:10deg}
+/* Ce qui est POSÉ SUR l'objet doit rétrécir avec lui : la plaque de note fait
+   cinq étoiles de large et déborderait d'une jaquette réduite, et l'initiale
+   d'un jeu sans affiche mangerait toute la face avant. Rétrécir la boîte sans
+   rétrécir ce qu'elle porte, c'est le bug qui attend. */
+body.deplie .liv-n .etl i,body.deplie .cd-n .etl i{font-size:10px}
+body.deplie .liv-n{padding:5px 4px 6px}
+body.deplie .liv-a .ini,body.deplie .tel-e .ini{font-size:22px}
+body.deplie .cd-b .ini{font-size:19px}
+
 body.deplie .etg-in{
   flex-wrap:wrap;align-content:flex-end;overflow:visible;
-  --pl:42px;row-gap:var(--pl);
+  --pl:34px;row-gap:var(--pl);
   background-origin:content-box;background-clip:content-box;
   background-position:left bottom;
   background-image:repeating-linear-gradient(to top,
@@ -393,7 +421,7 @@ body.deplie .etg-in::after{
    rotation au repos (`--ry`) est ce qui rend la tranche visible ; sans elle
    on ne verrait qu'un rectangle. */
 .liv{
-  position:relative;flex:0 0 auto;width:132px;aspect-ratio:2/3;border:0;padding:0;
+  position:relative;flex:0 0 auto;width:var(--lw,132px);aspect-ratio:2/3;border:0;padding:0;
   background:none;cursor:pointer;--ry:13deg;--ep:20px;
   transform-style:preserve-3d;transform-origin:bottom center;
   transform:perspective(900px) rotateY(var(--ry)) translateZ(0);
@@ -643,12 +671,24 @@ body.edit-dec .dec-barre{display:flex}
 @keyframes monte{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
 
 @media (max-width:640px){
-  .liv{width:92px;--ep:13px;--ry:11deg}
-  #grille .etg-in{--oh:138px}
-  #ostGrille .etg-in{--oh:116px}
+  .liv{--ep:13px;--ry:11deg}
+  #grille   .etg-in{--lw:92px}
+  #ostGrille .etg-in{--lw:116px}
+  /* Sur téléphone l'objet est déjà petit ; « tout voir » le réduit encore,
+     sinon le mode ne gagnerait qu'une jaquette par rangée. */
+  body.deplie #grille   .etg-in{--lw:72px}
+  body.deplie #ostGrille .etg-in{--lw:92px}
+  body.deplie .liv{--ep:10px}
+  body.deplie .cd{--ep:9px}
+  body.deplie .liv-n .etl i,body.deplie .cd-n .etl i{font-size:8px}
+  body.deplie .liv-a .ini,body.deplie .tel-e .ini{font-size:17px}
+  body.deplie .cd-b .ini{font-size:15px}
+  /* 30 px est un PLANCHER, pas un réglage : le motif de la tablette empile
+     ses bandes jusqu'à `--oh + 30px`. En dessous, les arrêts du dégradé
+     passent dans le désordre et la tranche se replie sur elle-même. */
   body.deplie .etg-in{--pl:30px}
   body.deplie .etg-in::after{left:12px;right:12px;bottom:56px}
-  .etg-in{min-height:252px;padding:58px 12px 56px;margin-bottom:-56px}
+  .etg-in{min-height:calc(var(--oh,138px) + 114px);padding:58px 12px 56px;margin-bottom:-56px}
   .meuble{padding:0 20px}
   .meuble > .flanc{width:26px}
   .corniche{margin:0 -20px 8px;height:22px}
@@ -669,7 +709,7 @@ body.edit-dec .dec-barre{display:flex}
    Même construction en volume que la jaquette : perspective locale, face
    avant, tranche rabattue. Seules les proportions changent. */
 .cd{
-  position:relative;flex:0 0 auto;width:170px;aspect-ratio:1/1;border:0;padding:0;
+  position:relative;flex:0 0 auto;width:var(--lw,170px);aspect-ratio:1/1;border:0;padding:0;
   background:none;cursor:pointer;--ry:12deg;--ep:16px;
   transform-style:preserve-3d;transform-origin:bottom center;
   transform:perspective(900px) rotateY(var(--ry)) translateZ(0);
@@ -759,7 +799,8 @@ body.edit-dec .dec-barre{display:flex}
 .cd.prise .cd-b{box-shadow:0 40px 50px rgba(0,0,0,.6),0 0 0 2px var(--accent)}
 .cd.prise .cd-d{opacity:0}
 .etg-in.range [data-ost]{transition:transform .18s ease}
-@media (max-width:640px){ .cd{width:116px;--ep:11px;--ry:10deg} }
+/* la largeur vient de `--lw`, posée sur l'étagère : ici, seul le volume change */
+@media (max-width:640px){ .cd{--ep:11px;--ry:10deg} }
 @media (hover:none){ .cd-t{display:none} .cd-n{transform:translateY(0)} .cd-d{display:none}
   .liv-t{display:none} }
 
@@ -1284,16 +1325,27 @@ body.sansanim .confetti{display:none}
 .rc-mot textarea{min-height:62px;resize:vertical}
 .rc-cpt{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:5px}
 .rc-liste{display:flex;flex-direction:column;gap:8px;margin-top:13px}
+/* ⚠️ La bulle est un BLOC, et le mot un paragraphe pleine largeur dedans.
+   Elle a d'abord été une rangée flex — avatar, colonne nom + mot, emoji —
+   et le mot s'en échappait : la bulle prenait la hauteur du seul emoji, donc
+   le texte se peignait EN DEHORS, par-dessus le fond de la page. Une hauteur
+   de bloc qui dépend de la hauteur d'un élément flex est fragile ; un bloc
+   dans un bloc ne peut pas déborder de son parent. La bulle grandit donc
+   toujours avec le message, quelle que soit sa longueur. */
 .rc-l{
-  display:flex;gap:10px;align-items:flex-start;background:var(--ink2);
-  border:1px solid var(--line);border-radius:12px;padding:9px 11px;
+  background:var(--ink2);border:1px solid var(--line);
+  border-radius:12px;padding:9px 11px;
 }
 .rc-l.moi{border-color:color-mix(in srgb,var(--accent) 55%,transparent)}
+.rc-hd{display:flex;gap:10px;align-items:center;min-height:28px}
 .rc-av{width:28px;height:28px;border-radius:99px;object-fit:cover;flex:0 0 28px;
   display:grid;place-items:center;background:var(--ink3);font-size:12px;font-weight:700}
-.rc-c{flex:1;min-width:0}
-.rc-c b{font-size:12.5px;font-weight:600}
-.rc-c p{margin:4px 0 0;font-size:13px;line-height:1.45;word-break:break-word}
+.rc-nom{flex:1;min-width:0;font-size:12.5px;font-weight:600;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* `pre-wrap` garde les retours à la ligne tapés dans le champ ; `anywhere`
+   coupe un mot interminable au lieu de le laisser élargir la bulle. */
+.rc-p{margin:7px 0 0;font-size:13px;line-height:1.45;
+  white-space:pre-wrap;overflow-wrap:anywhere}
 .rc-e{font-size:19px;line-height:1;flex:0 0 auto}
 .rc-vide{font-size:12.5px;color:var(--muted);line-height:1.5}
 
@@ -6630,12 +6682,14 @@ function htmlReactions(login, type, it){
   if(L.length){
     h += '<div class="rc-liste">' + L.map(r =>
         '<div class="rc-l' + (r.moi ? ' moi' : '') + '">'
+        + '<div class="rc-hd">'
         + (r.avatar
             ? '<img class="rc-av" src="' + esc(r.avatar) + '" alt="">'
             : '<span class="rc-av">' + esc((r.pseudo || '?').slice(0,1).toUpperCase()) + '</span>')
-        + '<div class="rc-c"><b>' + esc(r.pseudo) + (r.moi ? ' · toi' : '') + '</b>'
-        + (r.mot ? '<p>' + esc(r.mot) + '</p>' : '') + '</div>'
+        + '<b class="rc-nom">' + esc(r.pseudo) + (r.moi ? ' · toi' : '') + '</b>'
         + (r.emo ? '<span class="rc-e">' + r.emo + '</span>' : '')
+        + '</div>'
+        + (r.mot ? '<p class="rc-p">' + esc(r.mot) + '</p>' : '')
         + '</div>').join('') + '</div>';
   }else{
     h += '<div class="rc-vide" style="margin-top:12px">'
@@ -7905,12 +7959,23 @@ function init(){
      2. L'écouteur était posé en phase de bulle. Une fois une chaîne de
         défilement engagée, le navigateur peut rendre les événements suivants
         NON annulables : il faut être servi en premier, donc en CAPTURE.
+     3. Être servi en premier ne suffit pas : un événement non annulable
+        reste non annulable. On écrivait quand même `scrollLeft`, donc
+        l'étagère partait à droite PENDANT que la page descendait — les deux
+        mouvements à la fois. Ça se voyait surtout sur les OSTs, où les
+        étagères sont plus nombreuses et débordent plus tôt : on arrivait
+        dessus en faisant déjà défiler la page, donc la chaîne était déjà
+        engagée et le geste ne nous appartenait plus.
+        Un geste a UN propriétaire. Si le navigateur ne nous laisse pas
+        l'annuler, on ne touche à rien et on laisse la page faire — au geste
+        suivant, la chaîne est retombée et l'étagère reprend la main.
 
      On ne détourne le geste que si l'étagère déborde et qu'il lui reste de la
      place dans ce sens — sinon la page ne défilerait plus dès que le curseur
      passe sur un meuble, et on se croirait bloqué. */
   document.addEventListener('wheel', e => {
     if(e.ctrlKey) return;                       // zoom du navigateur
+    if(!e.cancelable) return;                   // le geste est déjà à la page : on n'y touche pas
     if(!(e.target instanceof Element)) return;
     const etg = e.target.closest('.etg-in');
     if(!etg) return;
@@ -7922,7 +7987,7 @@ function init(){
     const apres = Math.max(0, Math.min(max, avant + d));
     if(apres === avant) return;                 // bout de course : à la page de jouer
     etg.scrollLeft = apres;
-    if(e.cancelable) e.preventDefault();
+    e.preventDefault();
   }, { passive: false, capture: true });
 
   $('#bFicheSteam').onclick = choisitFicheSteam;
