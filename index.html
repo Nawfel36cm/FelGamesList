@@ -212,7 +212,11 @@
 }
 
 /* une étagère : fond sombre en creux, scène en perspective, planche à deux faces */
-.etg{position:relative;padding:0 0 30px;z-index:1}
+/* `--air` et `--bas` : la hauteur libre au-dessus et en dessous des objets.
+   Portées par `.etg` et non par `.etg-in`, pour que les FLÈCHES — qui sont des
+   sœurs de la zone, pas des filles — puissent se centrer dessus sans qu'on
+   recopie les mêmes nombres à côté. */
+.etg{position:relative;padding:0 0 30px;z-index:1;--bd:36px;--air:78px;--bas:76px}
 /* le fond du meuble, plus sombre que les côtés, avec l'ombre des bords :
    c'est ce creux qui fait lire la profondeur */
 .etg::before{
@@ -227,7 +231,7 @@
    coupe au besoin — une image tombée là ne peut plus faire enfler la barre. */
 .etg-bd{
   display:flex;align-items:center;gap:10px;flex-wrap:nowrap;
-  padding:8px 10px 6px;min-height:36px;position:relative;z-index:2;
+  padding:8px 10px 6px;min-height:var(--bd);position:relative;z-index:2;
   color:var(--etq,#f4e3c8);font:600 13px/1 var(--dsp);letter-spacing:.04em;text-transform:uppercase;
   background:linear-gradient(180deg,rgba(0,0,0,.34),transparent);
   border:0;width:100%;text-align:left;border-radius:8px 8px 0 0;
@@ -261,7 +265,8 @@
      Elle se DÉDUIT donc de `--oh` : la réécrire à la main était une deuxième
      source de vérité, qui ne demandait qu'à diverger le jour où l'objet
      changerait de taille — c'est exactement ce que fait « tout voir ». */
-  min-height:calc(var(--oh,198px) + 154px);padding:78px 20px 76px;margin-bottom:-76px;
+  min-height:calc(var(--oh,198px) + var(--air) + var(--bas));
+  padding:var(--air) 20px var(--bas);margin-bottom:calc(0px - var(--bas));
   overflow-x:auto;overflow-y:hidden;
   scrollbar-width:none;-ms-overflow-style:none;
 }
@@ -290,8 +295,8 @@
    l'objet — une jaquette est en 2/3, un boîtier de CD est carré. Une seule
    valeur à changer pour retailler un meuble, et le motif des tablettes
    intercalaires ne peut plus se désaccorder des objets qu'il porte. */
-#grille   .etg-in{--lw:132px;--oh:calc(var(--lw) * 3 / 2)}
-#ostGrille .etg-in{--lw:170px;--oh:var(--lw)}
+#grille   .etg{--lw:132px;--oh:calc(var(--lw) * 3 / 2)}
+#ostGrille .etg{--lw:170px;--oh:var(--lw)}
 
 /* En « tout voir », l'objet passe en TAILLE RÉDUITE. C'est le sens même du
    mode : on l'ouvre pour embrasser une étagère d'un coup d'œil, et de grandes
@@ -300,8 +305,8 @@
    tiennent bien plus par rangée, donc bien plus à l'écran.
    La taille retenue est celle déjà réglée pour le téléphone : elle a été
    éprouvée, inutile d'en inventer une autre. */
-body.deplie #grille   .etg-in{--lw:92px}
-body.deplie #ostGrille .etg-in{--lw:116px}
+body.deplie #grille   .etg{--lw:92px}
+body.deplie #ostGrille .etg{--lw:116px}
 body.deplie .liv{--ep:13px;--ry:11deg}
 body.deplie .cd{--ep:11px;--ry:10deg}
 /* Ce qui est POSÉ SUR l'objet doit rétrécir avec lui : la plaque de note fait
@@ -632,25 +637,63 @@ body.edit-dec .dec-barre{display:flex}
    qu'un raccourci : elle dépend de ce que le navigateur laisse annuler, ce
    qui n'est pas garanti d'une zone à l'autre. Un bouton, lui, marche toujours.
 
-   Elles se placent entre le bandeau et la planche, donc au centre de la
-   hauteur des objets, sans avoir besoin de connaître leur taille : `top` et
-   `bottom` suffisent, et ça reste juste quel que soit `--lw`. */
+   ⚠️ CENTRAGE. Elles se centrent sur les OBJETS, pas sur l'étagère : ceux-ci
+   n'en occupent pas toute la hauteur, il y a le bandeau au-dessus puis l'air
+   sous plafond. Cette hauteur est MESURÉE par `majFleches` et posée dans
+   `--flY`. La déduire des variables supposait un bandeau à sa hauteur
+   minimale de 36 px — il en fait 38 dès qu'il porte ses boutons d'action, et
+   davantage si un nom passe à la ligne. Le repli ne sert qu'avant la
+   première mesure. */
 .etg-fl{
-  position:absolute;top:36px;bottom:30px;width:46px;z-index:4;
+  position:absolute;z-index:4;
+  top:var(--flY,calc(var(--bd) + var(--air) + var(--oh,198px) / 2));
+  transform:translateY(-50%);
+  width:34px;height:34px;border-radius:99px;
   display:flex;align-items:center;justify-content:center;
-  border:0;padding:0;cursor:pointer;font:400 30px/1 var(--dsp);
-  color:var(--paper);opacity:0;pointer-events:none;transition:opacity .18s ease;
+  /* ⚠️ Fond OPAQUE. Il a d'abord été translucide à 92 %, et ces 8 % suffisaient
+     à faire passer la jaquette du dessous : au-dessus d'une affiche claire la
+     pastille et son contour ressortaient nettement, au-dessus d'une affiche
+     sombre le contour s'effaçait et il ne restait qu'un chevron flottant. Deux
+     boutons rigoureusement identiques qui ne se lisaient pas pareil selon ce
+     qu'il y avait derrière — mesuré sur capture : les chevrons étaient au
+     pixel près l'image l'un de l'autre. Une commande posée SUR des images ne
+     peut pas emprunter leur couleur : elle doit apporter la sienne. */
+  border:2px solid rgba(255,255,255,.5);padding:0;cursor:pointer;
+  background:#100d18;box-shadow:0 4px 14px rgba(0,0,0,.75);
+  color:#fff;
+  opacity:0;pointer-events:none;transition:opacity .18s ease,background .18s ease;
 }
-.etg-fl.g{left:-14px;border-radius:0 14px 14px 0;
-  background:linear-gradient(90deg,rgba(0,0,0,.72),rgba(0,0,0,.30) 74%,transparent)}
-.etg-fl.d{right:-14px;border-radius:14px 0 0 14px;
-  background:linear-gradient(270deg,rgba(0,0,0,.72),rgba(0,0,0,.30) 74%,transparent)}
+[data-theme="clair"] .etg-fl{background:#241f33;border-color:rgba(255,255,255,.42)}
+/* ⚠️ Le chevron est DESSINÉ, pas écrit. Avec les caractères « ‹ » et « › »,
+   les deux flèches n'avaient pas la même forme : une police ne garantit pas
+   que deux glyphes soient l'image l'un de l'autre — ils ont leurs propres
+   graisses, largeurs et hauteurs. Ici c'est un seul carré à deux bords, tourné
+   dans un sens ou dans l'autre : la même forme des deux côtés, par
+   construction. Le décalage compense le vide laissé par la diagonale. */
+.etg-fl-ch{
+  display:block;width:10px;height:10px;
+  border:3px solid currentColor;border-left:0;border-bottom:0;
+}
+/* ⚠️ Le SENS se lit dans `data-fl`, pas dans une classe. Ces boutons se sont
+   d'abord appelés `.etg-fl.g` et `.etg-fl.d` — or il existe déjà une règle
+   `.d` sans préfixe (les cartes de défis). Elle attrapait donc la flèche de
+   droite et, arrivant plus loin dans la feuille, l'emportait à spécificité
+   égale : coins carrés au lieu du rond, deux pixels de large en plus, et au
+   survol un `translateY(-2px)` qui écrasait le `translateY(-50%)` du
+   centrage — la flèche sautait. Deux boutons censés être identiques ne
+   l'étaient plus. Une classe d'une lettre n'appartient à personne ; un
+   attribut porté par l'élément, si. */
+.etg-fl[data-fl="-1"]{left:10px}
+.etg-fl[data-fl="1"]{right:10px}
+.etg-fl[data-fl="-1"] .etg-fl-ch{transform:rotate(-135deg);margin-left:3px}
+.etg-fl[data-fl="1"]  .etg-fl-ch{transform:rotate(45deg);margin-right:3px}
 /* `deborde` est posé par `majFleches` : sans débordement, pas de flèches du
-   tout — elles n'ont pas à gêner la prise d'un objet pour rien. */
-.etg.deborde > .etg-fl{opacity:.55;pointer-events:auto}
-.etg.deborde > .etg-fl:hover{opacity:1}
+   tout — elles n'ont pas à gêner la prise d'un objet pour rien. Mais quand il
+   y a quelque chose à parcourir, elles se voient FRANCHEMENT : une commande
+   qu'il faut chercher des yeux ne sert à rien. */
+.etg.deborde > .etg-fl{opacity:1;pointer-events:auto}
+.etg.deborde > .etg-fl:hover{background:var(--accent);border-color:var(--accent)}
 .etg-fl[disabled]{opacity:0;pointer-events:none}
-@media (hover:none){ .etg.deborde > .etg-fl{opacity:.8} }
 
 /* Le bouton d'ajout : posé sous le meuble, il en prolonge la matière plutôt
    que de ressembler à un bouton de formulaire égaré. */
@@ -697,12 +740,12 @@ body.edit-dec .dec-barre{display:flex}
 
 @media (max-width:640px){
   .liv{--ep:13px;--ry:11deg}
-  #grille   .etg-in{--lw:92px}
-  #ostGrille .etg-in{--lw:116px}
+  #grille   .etg{--lw:92px}
+  #ostGrille .etg{--lw:116px}
   /* Sur téléphone l'objet est déjà petit ; « tout voir » le réduit encore,
      sinon le mode ne gagnerait qu'une jaquette par rangée. */
-  body.deplie #grille   .etg-in{--lw:72px}
-  body.deplie #ostGrille .etg-in{--lw:92px}
+  body.deplie #grille   .etg{--lw:72px}
+  body.deplie #ostGrille .etg{--lw:92px}
   body.deplie .liv{--ep:10px}
   body.deplie .cd{--ep:9px}
   body.deplie .liv-n .etl i,body.deplie .cd-n .etl i{font-size:8px}
@@ -711,10 +754,14 @@ body.edit-dec .dec-barre{display:flex}
   /* 30 px est un PLANCHER, pas un réglage : le motif de la tablette empile
      ses bandes jusqu'à `--oh + 30px`. En dessous, les arrêts du dégradé
      passent dans le désordre et la tranche se replie sur elle-même. */
-  .etg-fl{width:38px;font-size:25px;bottom:26px}
+  .etg-fl{width:30px;height:30px}
+  .etg-fl-ch{width:8px;height:8px}
+  .etg-fl[data-fl="-1"]{left:6px}
+  .etg-fl[data-fl="1"]{right:6px}
   body.deplie .etg-in{--pl:30px}
   body.deplie .etg-in::after{left:12px;right:12px;bottom:56px}
-  .etg-in{min-height:calc(var(--oh,138px) + 114px);padding:58px 12px 56px;margin-bottom:-56px}
+  .etg{--air:58px;--bas:56px}
+  .etg-in{padding-left:12px;padding-right:12px}
   .meuble{padding:0 20px}
   .meuble > .flanc{width:26px}
   .corniche{margin:0 -20px 8px;height:22px}
@@ -7594,12 +7641,34 @@ function montreVue(v){
 function majFleches(){
   document.querySelectorAll('.etg').forEach(etg => {
     const zone = etg.querySelector('.etg-in');
-    const g = etg.querySelector('.etg-fl.g'), d = etg.querySelector('.etg-fl.d');
+    const g = etg.querySelector('.etg-fl[data-fl="-1"]');
+    const d = etg.querySelector('.etg-fl[data-fl="1"]');
     if(!zone || !g || !d) return;
     const max = zone.scrollWidth - zone.clientWidth;
     etg.classList.toggle('deborde', max > 2);
     g.disabled = zone.scrollLeft <= 1;
     d.disabled = zone.scrollLeft >= max - 1;
+
+    /* ⚠️ La hauteur des flèches se MESURE, elle ne se calcule pas. Elle était
+       déduite de « bandeau + air + moitié d'un objet », en supposant que le
+       bandeau fasse ses 36 px de hauteur minimale. Il en fait 38 dès qu'il
+       porte ses boutons d'action, et rien ne garantit qu'il n'en fera pas
+       plus un jour — un nom d'étagère qui passe à la ligne suffirait. Trois
+       suppositions enchaînées pour placer un bouton, c'était trois occasions
+       de tomber à côté.
+
+       ⚠️ Et on mesure le rectangle DESSINÉ, pas la boîte de mise en page.
+       Une jaquette est tournée (`rotateY`) autour de son ARÊTE DU BAS, avec
+       sa propre perspective : le haut de l'objet part en arrière, donc ce
+       qu'on voit ne remplit pas la boîte que la mise en page lui réserve.
+       `offsetTop` rendait la boîte théorique et plaçait la flèche à côté du
+       milieu visible ; `getBoundingClientRect` rend le rectangle réellement
+       occupé à l'écran, transformations comprises. */
+    const obj = zone.querySelector('.liv, .cd');
+    const rE = etg.getBoundingClientRect();
+    const r = obj ? obj.getBoundingClientRect() : zone.getBoundingClientRect();
+    etg.style.setProperty('--flY',
+      Math.round((r.top + r.bottom) / 2 - rE.top) + 'px');
   });
 }
 
@@ -7611,10 +7680,10 @@ function htmlRayon(nom, compte, boutons, contenu){
     +   (boutons ? '<span class="etg-act">' + boutons + '</span>' : '')
     + '</div>'
     + '<div class="etg-in">' + contenu + '</div>'
-    + '<button class="etg-fl g" data-fl="-1" tabindex="-1"'
-    +   ' title="Vers la gauche" aria-label="Vers la gauche">\u2039</button>'
-    + '<button class="etg-fl d" data-fl="1" tabindex="-1"'
-    +   ' title="Vers la droite" aria-label="Vers la droite">\u203a</button>'
+    + '<button class="etg-fl" data-fl="-1" tabindex="-1"'
+    +   ' title="Vers la gauche" aria-label="Vers la gauche"><span class="etg-fl-ch"></span></button>'
+    + '<button class="etg-fl" data-fl="1" tabindex="-1"'
+    +   ' title="Vers la droite" aria-label="Vers la droite"><span class="etg-fl-ch"></span></button>'
     + '<div class="planche"><div class="dessus"></div><div class="tranche"></div></div>'
     + '</div>';
 }
