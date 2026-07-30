@@ -627,6 +627,31 @@ body.edit-dec .dec-barre{display:flex}
 .dec-barre input[type=range]{width:96px;padding:0;background:none;border:0}
 .dec-barre .btn{padding:7px 12px;font-size:13px}
 
+/* ---------- LES FLÈCHES DE PARCOURS ----------
+   Le moyen FIABLE de parcourir une étagère qui déborde. La molette n'en est
+   qu'un raccourci : elle dépend de ce que le navigateur laisse annuler, ce
+   qui n'est pas garanti d'une zone à l'autre. Un bouton, lui, marche toujours.
+
+   Elles se placent entre le bandeau et la planche, donc au centre de la
+   hauteur des objets, sans avoir besoin de connaître leur taille : `top` et
+   `bottom` suffisent, et ça reste juste quel que soit `--lw`. */
+.etg-fl{
+  position:absolute;top:36px;bottom:30px;width:46px;z-index:4;
+  display:flex;align-items:center;justify-content:center;
+  border:0;padding:0;cursor:pointer;font:400 30px/1 var(--dsp);
+  color:var(--paper);opacity:0;pointer-events:none;transition:opacity .18s ease;
+}
+.etg-fl.g{left:-14px;border-radius:0 14px 14px 0;
+  background:linear-gradient(90deg,rgba(0,0,0,.72),rgba(0,0,0,.30) 74%,transparent)}
+.etg-fl.d{right:-14px;border-radius:14px 0 0 14px;
+  background:linear-gradient(270deg,rgba(0,0,0,.72),rgba(0,0,0,.30) 74%,transparent)}
+/* `deborde` est posé par `majFleches` : sans débordement, pas de flèches du
+   tout — elles n'ont pas à gêner la prise d'un objet pour rien. */
+.etg.deborde > .etg-fl{opacity:.55;pointer-events:auto}
+.etg.deborde > .etg-fl:hover{opacity:1}
+.etg-fl[disabled]{opacity:0;pointer-events:none}
+@media (hover:none){ .etg.deborde > .etg-fl{opacity:.8} }
+
 /* Le bouton d'ajout : posé sous le meuble, il en prolonge la matière plutôt
    que de ressembler à un bouton de formulaire égaré. */
 .etg-plus{
@@ -686,6 +711,7 @@ body.edit-dec .dec-barre{display:flex}
   /* 30 px est un PLANCHER, pas un réglage : le motif de la tablette empile
      ses bandes jusqu'à `--oh + 30px`. En dessous, les arrêts du dégradé
      passent dans le désordre et la tranche se replie sur elle-même. */
+  .etg-fl{width:38px;font-size:25px;bottom:26px}
   body.deplie .etg-in{--pl:30px}
   body.deplie .etg-in::after{left:12px;right:12px;bottom:56px}
   .etg-in{min-height:calc(var(--oh,138px) + 114px);padding:58px 12px 56px;margin-bottom:-56px}
@@ -2615,9 +2641,16 @@ function rendFond(){
 /* la mosaïque se recalcule quand la fenêtre change de taille */
 let redimT = null;
 window.addEventListener('resize', () => {
+  majFleches();                                 // le débordement dépend de la largeur
   clearTimeout(redimT);
   redimT = setTimeout(() => { if(DATA) rendFond(); }, 320);
 });
+
+/* Le défilement ne remonte pas : il faut l'écouter en CAPTURE pour savoir
+   qu'une étagère a bougé et griser la flèche arrivée au bout. */
+document.addEventListener('scroll', e => {
+  if(e.target instanceof Element && e.target.classList.contains('etg-in')) majFleches();
+}, true);
 
 /* Couleur d'accent tirée de l'affiche du jeu n°1 */
 function extraitAccent(url){
@@ -2702,6 +2735,7 @@ function rendGrille(){
   }
   $('#vide').innerHTML = '';
   g.innerHTML = htmlBiblio(L);
+  majFleches();
 }
 
 /* =========================================================
@@ -5969,6 +6003,9 @@ function basculeDeplie(){
   DATA.reglages.deplie = !DATA.reglages.deplie;
   sauve();
   appliqueDeplie();
+  // en « tout voir » l'étagère revient à la ligne au lieu de défiler : plus
+  // rien à parcourir, donc plus de flèches — et l'inverse en repassant en rangée
+  majFleches();
 }
 
 /* ---------- Le mode d'édition ---------- */
@@ -6239,6 +6276,7 @@ function rendOst(){
   z.innerHTML = htmlScene('ost', h)
     + (lecture ? '' : '<button class="etg-plus" data-etgplus="1">'
         + '<span class="pl">+</span> Ajouter une \u00e9tag\u00e8re</button>');
+  majFleches();
 }
 
 function ouvreOstVoir(ref){
@@ -7506,6 +7544,10 @@ function montreVue(v){
   if(v === 'ost') rendOst();
   if(v === 'tournoi') rendTournoi();
   if(v === 'themes') rendThemes();
+  // ⚠️ Une zone en `display:none` mesure ZÉRO : une étagère rendue pendant que
+  // sa vue était cachée ne débordait « pas », et ses flèches ne se seraient
+  // jamais montrées. On remesure donc une fois la vue affichée.
+  majFleches();
 }
 
 
@@ -7536,6 +7578,31 @@ function montreVue(v){
    Le nom passe par son propre `<span>` et les enfants ne grandissent pas :
    même si quelque chose atterrissait là par erreur, le bandeau resterait une
    ligne de texte. */
+/* Les flèches sont posées dans `.etg`, JAMAIS dans `.etg-in` : à l'intérieur,
+   elles défileraient avec les objets et compteraient dans la largeur à
+   parcourir. Elles sont cachées tant que l'étagère ne déborde pas, et
+   désactivées à chaque bout — c'est `majFleches` qui en décide, la mise en
+   page ne peut pas le savoir toute seule. `tabindex="-1"` les sort du parcours
+   au clavier : les flèches du clavier font déjà défiler l'étagère, il n'y a
+   pas de raison d'obliger à traverser deux boutons de plus par étagère. */
+/* Une étagère ne sait pas toute seule si elle déborde : ça dépend de la
+   largeur de l'écran, du nombre d'objets et du mode « tout voir ». On le
+   mesure donc après chaque rendu, à chaque redimensionnement et à chaque
+   défilement d'étagère — et on n'affiche les flèches que là où il y a
+   vraiment quelque chose à parcourir. Une flèche qui ne mène nulle part est
+   désactivée plutôt que laissée cliquable dans le vide. */
+function majFleches(){
+  document.querySelectorAll('.etg').forEach(etg => {
+    const zone = etg.querySelector('.etg-in');
+    const g = etg.querySelector('.etg-fl.g'), d = etg.querySelector('.etg-fl.d');
+    if(!zone || !g || !d) return;
+    const max = zone.scrollWidth - zone.clientWidth;
+    etg.classList.toggle('deborde', max > 2);
+    g.disabled = zone.scrollLeft <= 1;
+    d.disabled = zone.scrollLeft >= max - 1;
+  });
+}
+
 function htmlRayon(nom, compte, boutons, contenu){
   return '<div class="etg">'
     + '<div class="etg-bd">'
@@ -7544,6 +7611,10 @@ function htmlRayon(nom, compte, boutons, contenu){
     +   (boutons ? '<span class="etg-act">' + boutons + '</span>' : '')
     + '</div>'
     + '<div class="etg-in">' + contenu + '</div>'
+    + '<button class="etg-fl g" data-fl="-1" tabindex="-1"'
+    +   ' title="Vers la gauche" aria-label="Vers la gauche">\u2039</button>'
+    + '<button class="etg-fl d" data-fl="1" tabindex="-1"'
+    +   ' title="Vers la droite" aria-label="Vers la droite">\u203a</button>'
     + '<div class="planche"><div class="dessus"></div><div class="tranche"></div></div>'
     + '</div>';
 }
@@ -7785,6 +7856,14 @@ function init(){
     if(bLiv){ if(!vientDEtreRange() && !modeDecor) ouvreJeu(bLiv.dataset.liv); return; }
     const bOJeu = e.target.closest('[data-ojeu]');
     if(bOJeu){ choisitAfficheOst(bOJeu.dataset.ojeu); return; }
+    const bFl = e.target.closest('[data-fl]');
+    if(bFl){
+      const zone = bFl.closest('.etg').querySelector('.etg-in');
+      // un peu moins d'un écran par appui : il reste un objet en commun d'une
+      // vue à l'autre, sinon on ne sait plus où on en était
+      zone.scrollBy({ left: +bFl.dataset.fl * zone.clientWidth * .8, behavior: 'smooth' });
+      return;
+    }
     const bPlus = e.target.closest('[data-etgplus]');
     if(bPlus){ ajouteEtagere(); return; }
     const bRen = e.target.closest('[data-etgren]');
@@ -7960,22 +8039,21 @@ function init(){
         défilement engagée, le navigateur peut rendre les événements suivants
         NON annulables : il faut être servi en premier, donc en CAPTURE.
      3. Être servi en premier ne suffit pas : un événement non annulable
-        reste non annulable. On écrivait quand même `scrollLeft`, donc
-        l'étagère partait à droite PENDANT que la page descendait — les deux
-        mouvements à la fois. Ça se voyait surtout sur les OSTs, où les
-        étagères sont plus nombreuses et débordent plus tôt : on arrivait
-        dessus en faisant déjà défiler la page, donc la chaîne était déjà
-        engagée et le geste ne nous appartenait plus.
-        Un geste a UN propriétaire. Si le navigateur ne nous laisse pas
-        l'annuler, on ne touche à rien et on laisse la page faire — au geste
-        suivant, la chaîne est retombée et l'étagère reprend la main.
+        reste non annulable, et on ne pouvait alors QUE subir — soit laisser
+        la page descendre, soit bouger l'étagère en même temps. Le verrou se
+        traite donc à la source, en CSS : `overscroll-behavior:contain` sur
+        `.etg-in` empêche le navigateur d'enchaîner sur la page, donc de
+        verrouiller le geste sur elle. Il ne reste plus ici qu'à convertir.
 
-     On ne détourne le geste que si l'étagère déborde et qu'il lui reste de la
-     place dans ce sens — sinon la page ne défilerait plus dès que le curseur
-     passe sur un meuble, et on se croirait bloqué. */
+     Ça reste un CONFORT, pas le moyen de parcourir une étagère : la molette
+     dépend de ce que le navigateur veut bien nous laisser annuler, et sur les
+     OSTs il ne le laisse pas. Le moyen fiable, ce sont les flèches (voir
+     `majFleches`), qui ne dépendent d'aucun geste. Si la molette ne convertit
+     pas, la page défile normalement — c'est un comportement banal, pas une
+     panne. On ne détourne le geste que si l'étagère déborde et qu'il lui
+     reste de la place dans ce sens. */
   document.addEventListener('wheel', e => {
     if(e.ctrlKey) return;                       // zoom du navigateur
-    if(!e.cancelable) return;                   // le geste est déjà à la page : on n'y touche pas
     if(!(e.target instanceof Element)) return;
     const etg = e.target.closest('.etg-in');
     if(!etg) return;
@@ -7986,6 +8064,7 @@ function init(){
     const avant = etg.scrollLeft;
     const apres = Math.max(0, Math.min(max, avant + d));
     if(apres === avant) return;                 // bout de course : à la page de jouer
+    if(!e.cancelable) return;                   // geste déjà pris par la page : on n'y touche pas
     etg.scrollLeft = apres;
     e.preventDefault();
   }, { passive: false, capture: true });
